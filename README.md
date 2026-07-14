@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# City Rentals
 
-## Getting Started
+Car-rental operations and GPS fleet tracking built with Next.js 16, TypeScript, Tailwind CSS, shadcn/ui, TanStack Table, and Supabase.
 
-First, run the development server:
+## Current milestone
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Milestone 1 provides the reusable design system, responsive protected shell, authentication and password recovery flows, organization/profile RLS migration, simulator-ready dashboard, and internal component preview at `/design-system`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Feature destinations from later milestones are intentionally represented by clear placeholder states. Their data services, validation, permissions, and tests will be introduced together in the milestone that owns them.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Install dependencies with `npm install`.
+2. Copy `.env.example` to `.env.local` and add Supabase project credentials.
+3. Start Supabase locally with `npx supabase start`, or link an existing project.
+4. Apply migrations with `npx supabase db reset` for local development.
+5. Create the first organization and administrator profile with a trusted server-side process or the Supabase SQL editor.
+6. Run the app with `npm run dev`.
 
-## Learn More
+Without Supabase environment variables, the app runs in a clearly labeled UI demo mode so the design foundation can be reviewed. Authentication and data access are enforced once project credentials are configured.
 
-To learn more about Next.js, take a look at the following resources:
+## Verification
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Security notes
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Use a Supabase publishable key in the browser; never expose `SUPABASE_SERVICE_ROLE_KEY`.
+- Server-side route protection validates JWT claims rather than trusting session storage.
+- Authorization roles live in `public.profiles`, not user-editable metadata.
+- All exposed business tables use RLS and explicit grants.
+# citi-rental
