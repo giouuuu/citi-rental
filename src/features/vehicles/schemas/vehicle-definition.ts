@@ -1,0 +1,134 @@
+import { z } from "zod";
+
+import {
+  optionalNumber,
+  optionalText,
+  optionalUrl,
+  requiredNumber,
+  requiredText,
+} from "@/features/shared/schemas/schema-helpers";
+import type { ResourceDefinition } from "@/features/shared/types/resource";
+
+export const vehicleDefinition: ResourceDefinition = {
+  key: "vehicle",
+  table: "vehicles",
+  singular: "Vehicle",
+  plural: "Vehicles",
+  route: "/vehicles",
+  titleField: "plate_number",
+  subtitleField: "name",
+  searchColumn: "plate_number",
+  description:
+    "Register fleet vehicles, maintain availability, and open location or rental history.",
+  writeRoles: ["administrator"],
+  archive: { field: "status", value: "inactive", label: "Archive vehicle" },
+  schema: z.object({
+    plate_number: requiredText("Plate number", 32),
+    name: requiredText("Vehicle name", 120),
+    make: requiredText("Make", 80),
+    model: requiredText("Model", 80),
+    year: requiredNumber("Year", 1900).max(2100),
+    color: optionalText(60),
+    category: optionalText(80),
+    transmission: z.enum(["automatic", "manual", "cvt"]).optional(),
+    fuel_type: z
+      .enum(["gasoline", "diesel", "hybrid", "electric", "other"])
+      .optional(),
+    seating_capacity: optionalNumber(1),
+    current_odometer: optionalNumber(0),
+    status: z.enum([
+      "available",
+      "reserved",
+      "rented",
+      "maintenance",
+      "inactive",
+    ]),
+    photo_url: optionalUrl,
+    notes: optionalText(),
+  }),
+  fields: [
+    {
+      name: "plate_number",
+      label: "Plate number",
+      required: true,
+      placeholder: "ABC 1234",
+    },
+    {
+      name: "name",
+      label: "Vehicle name",
+      required: true,
+      placeholder: "Toyota Vios 01",
+    },
+    { name: "make", label: "Make", required: true },
+    { name: "model", label: "Model", required: true },
+    { name: "year", label: "Year", type: "number", required: true },
+    { name: "color", label: "Color" },
+    { name: "category", label: "Category", placeholder: "Sedan" },
+    {
+      name: "transmission",
+      label: "Transmission",
+      type: "select",
+      options: [
+        { value: "automatic", label: "Automatic" },
+        { value: "manual", label: "Manual" },
+        { value: "cvt", label: "CVT" },
+      ],
+    },
+    {
+      name: "fuel_type",
+      label: "Fuel type",
+      type: "select",
+      options: [
+        { value: "gasoline", label: "Gasoline" },
+        { value: "diesel", label: "Diesel" },
+        { value: "hybrid", label: "Hybrid" },
+        { value: "electric", label: "Electric" },
+        { value: "other", label: "Other" },
+      ],
+    },
+    { name: "seating_capacity", label: "Seating capacity", type: "number" },
+    {
+      name: "current_odometer",
+      label: "Current odometer (km)",
+      type: "number",
+      step: "0.1",
+    },
+    {
+      name: "status",
+      label: "Status",
+      type: "select",
+      required: true,
+      options: [
+        "available",
+        "reserved",
+        "rented",
+        "maintenance",
+        "inactive",
+      ].map((value) => ({ value, label: value.replaceAll("_", " ") })),
+    },
+    { name: "photo_url", label: "Photo URL", type: "url" },
+    {
+      name: "notes",
+      label: "Notes",
+      type: "textarea",
+      className: "md:col-span-2",
+    },
+  ],
+  columns: [
+    { key: "plate_number", label: "Plate" },
+    { key: "name", label: "Vehicle" },
+    { key: "category", label: "Category" },
+    { key: "status", label: "Status", format: "status" },
+    { key: "updated_at", label: "Last updated", format: "datetime" },
+  ],
+  demoRows: [
+    {
+      id: "demo-vehicle",
+      plate_number: "NCR 1842",
+      name: "Toyota Vios 01",
+      category: "Sedan",
+      status: "available",
+      updated_at: "2026-07-15T01:12:00Z",
+    },
+  ],
+};
