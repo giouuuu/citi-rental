@@ -12,12 +12,14 @@ import {
   createPublicBookingAction,
   type CreatePublicBookingResult,
 } from "@/features/booking/actions/create-public-booking-action";
+import { BookingDateRangeCalendar } from "@/features/booking/components/booking-date-range-calendar";
 import {
   BookingNotesField,
   BookingTextField,
 } from "@/features/booking/components/booking-form-fields";
 import { BookingVehicleSummary } from "@/features/booking/components/booking-vehicle-summary";
 import { publicBookingSchema } from "@/features/booking/schemas/public-booking-schema";
+import type { PublicVehicleBookedRange } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import type { PublicFleetVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,7 @@ type BookingFormValues = z.input<typeof publicBookingSchema>;
 
 type BookingFormProps = {
   vehicle: PublicFleetVehicle;
+  bookedRanges?: PublicVehicleBookedRange[];
   initialStartAt?: string;
   initialReturnAt?: string;
   initialPickupLocation?: string;
@@ -51,6 +54,7 @@ function toDateTimeLocalValue(value?: string) {
 
 export function BookingForm({
   vehicle,
+  bookedRanges = [],
   initialStartAt,
   initialReturnAt,
   initialPickupLocation,
@@ -110,23 +114,15 @@ export function BookingForm({
         vehicle={vehicle}
       />
 
+      <BookingDateRangeCalendar
+        bookedRanges={bookedRanges}
+        control={form.control}
+        disabled={pending}
+        returnName="expectedReturnAt"
+        startName="startAt"
+      />
+
       <FieldGroup className="grid gap-4 sm:grid-cols-2">
-        <BookingTextField
-          control={form.control}
-          disabled={pending}
-          label="Pick-up date & time"
-          name="startAt"
-          type="datetime-local"
-          withCalendarIcon
-        />
-        <BookingTextField
-          control={form.control}
-          disabled={pending}
-          label="Return date & time"
-          name="expectedReturnAt"
-          type="datetime-local"
-          withCalendarIcon
-        />
         <BookingTextField
           control={form.control}
           disabled={pending}

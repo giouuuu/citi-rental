@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { SiteHeader } from "@/components/landing/site-header";
 import { BookingForm } from "@/features/booking/components/booking-form";
+import { listPublicVehicleBookedRanges } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import { getPublicVehicle } from "@/features/booking/services/public-booking-service";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -31,6 +32,8 @@ export default async function BookVehiclePage({
   const vehicle = await getPublicVehicle(vehicleId);
 
   if (!vehicle) notFound();
+
+  const bookedRanges = await listPublicVehicleBookedRanges(vehicleId);
 
   let initialFullName: string | undefined;
   let initialEmail: string | undefined;
@@ -78,6 +81,7 @@ export default async function BookVehiclePage({
           </div>
         ) : (
           <BookingForm
+            bookedRanges={bookedRanges}
             initialEmail={initialEmail}
             initialFullName={initialFullName}
             initialPickupLocation={query.pickup}
