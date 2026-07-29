@@ -1,17 +1,23 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { resolvePostAuthPath } from "@/features/auth/lib/post-auth-redirect";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
+/**
+ * OAuth / email-confirm callback.
+ *
+ * Account linking note: if a password account already exists for the same
+ * Google email, Supabase may reject the Google signup unless identity linking
+ * is enabled in the project. Users should sign in with the original method or
+ * link identities from an authenticated session. Booking Google signup never
+ * sets `provision=organization` (owner self-service stays on the email RPC path).
+ */
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const shouldProvision =
     request.nextUrl.searchParams.get("provision") === "organization";
-  const requestedNext = request.nextUrl.searchParams.get("next") ?? "/dashboard";
-  const safeNext =
-    requestedNext.startsWith("/") && !requestedNext.startsWith("//")
-      ? requestedNext
-      : "/dashboard";
+  const requestedNext = request.nextUrl.searchParams.get("next");
 
   if (code && isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -42,7 +48,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (!error) {
-      return NextResponse.redirect(new URL(safeNext, request.url));
+      const nextPath = await resolvePostAuthPath(supabase, requestedNext);
+      return NextResponse.redirect(new URL(nextPath, request.url));
     }
   }
 

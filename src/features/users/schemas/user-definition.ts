@@ -13,12 +13,12 @@ export const userDefinition: ResourceDefinition = {
   searchColumn: "full_name",
   description:
     "Assign staff roles and disable application access. Authentication identities remain managed by Supabase Auth.",
-  writeRoles: ["administrator"],
+  writeRoles: ["owner", "admin"],
   archive: { field: "is_active", value: false, label: "Disable access" },
   schema: z.object({
     id: z.uuid("Enter the Supabase Auth user ID."),
     full_name: requiredText("Full name", 120),
-    role: z.enum(["administrator", "rental_staff", "viewer"]),
+    role: z.enum(["owner", "staff", "admin", "customer"]),
     is_active: z.boolean(),
   }),
   fields: [
@@ -36,9 +36,10 @@ export const userDefinition: ResourceDefinition = {
       type: "select",
       required: true,
       options: [
-        { value: "administrator", label: "Administrator" },
-        { value: "rental_staff", label: "Rental staff" },
-        { value: "viewer", label: "Viewer" },
+        { value: "owner", label: "Owner" },
+        { value: "admin", label: "Admin" },
+        { value: "staff", label: "Staff" },
+        { value: "customer", label: "Customer" },
       ],
     },
     {
@@ -57,7 +58,7 @@ export const userDefinition: ResourceDefinition = {
     {
       id: "00000000-0000-0000-0000-000000000001",
       full_name: "Alex Rivera",
-      role: "administrator",
+      role: "admin",
       is_active: true,
       updated_at: "2026-07-15T00:00:00Z",
     },

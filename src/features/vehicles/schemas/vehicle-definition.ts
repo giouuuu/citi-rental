@@ -3,7 +3,6 @@ import { z } from "zod";
 import {
   optionalNumber,
   optionalText,
-  optionalUrl,
   requiredNumber,
   requiredText,
 } from "@/features/shared/schemas/schema-helpers";
@@ -20,8 +19,26 @@ export const vehicleDefinition: ResourceDefinition = {
   searchColumn: "plate_number",
   description:
     "Register fleet vehicles, maintain availability, and open location or rental history.",
-  writeRoles: ["administrator"],
+  writeRoles: ["owner", "admin"],
   archive: { field: "status", value: "inactive", label: "Archive vehicle" },
+  detailColumns: [
+    "id",
+    "plate_number",
+    "name",
+    "make",
+    "model",
+    "year",
+    "color",
+    "category",
+    "transmission",
+    "fuel_type",
+    "seating_capacity",
+    "daily_rate",
+    "current_odometer",
+    "status",
+    "photo_url",
+    "notes",
+  ],
   schema: z.object({
     plate_number: requiredText("Plate number", 32),
     name: requiredText("Vehicle name", 120),
@@ -35,15 +52,9 @@ export const vehicleDefinition: ResourceDefinition = {
       .enum(["gasoline", "diesel", "hybrid", "electric", "other"])
       .optional(),
     seating_capacity: optionalNumber(1),
+    daily_rate: requiredNumber("Daily rate", 1),
     current_odometer: optionalNumber(0),
-    status: z.enum([
-      "available",
-      "reserved",
-      "rented",
-      "maintenance",
-      "inactive",
-    ]),
-    photo_url: optionalUrl,
+    status: z.enum(["available", "maintenance", "inactive"]),
     notes: optionalText(),
   }),
   fields: [
@@ -88,6 +99,16 @@ export const vehicleDefinition: ResourceDefinition = {
     },
     { name: "seating_capacity", label: "Seating capacity", type: "number" },
     {
+      name: "daily_rate",
+      label: "Daily rate (PHP)",
+      type: "number",
+      required: true,
+      placeholder: "2000",
+      step: "1",
+      description:
+        "Rate changes are blocked while this car has an active or reserved booking.",
+    },
+    {
       name: "current_odometer",
       label: "Current odometer (km)",
       type: "number",
@@ -98,15 +119,20 @@ export const vehicleDefinition: ResourceDefinition = {
       label: "Status",
       type: "select",
       required: true,
-      options: [
-        "available",
-        "reserved",
-        "rented",
-        "maintenance",
-        "inactive",
-      ].map((value) => ({ value, label: value.replaceAll("_", " ") })),
+      description:
+        "Operational status only. Reservations come from booking dates, not this field.",
+      options: ["available", "maintenance", "inactive"].map((value) => ({
+        value,
+        label: value.replaceAll("_", " "),
+      })),
     },
-    { name: "photo_url", label: "Photo URL", type: "url" },
+    {
+      name: "photo",
+      label: "Vehicle photo",
+      type: "image",
+      description: "Upload a JPEG, PNG, WebP, or GIF up to 5MB. Stored in Supabase Storage.",
+      className: "md:col-span-2",
+    },
     {
       name: "notes",
       label: "Notes",
@@ -115,9 +141,11 @@ export const vehicleDefinition: ResourceDefinition = {
     },
   ],
   columns: [
+    { key: "photo_url", label: "Photo", format: "image" },
     { key: "plate_number", label: "Plate" },
     { key: "name", label: "Vehicle" },
     { key: "category", label: "Category" },
+    { key: "daily_rate", label: "Daily rate", format: "number" },
     { key: "status", label: "Status", format: "status" },
     { key: "updated_at", label: "Last updated", format: "datetime" },
   ],
@@ -127,7 +155,9 @@ export const vehicleDefinition: ResourceDefinition = {
       plate_number: "NCR 1842",
       name: "Toyota Vios 01",
       category: "Sedan",
+      daily_rate: 2000,
       status: "available",
+      photo_url: null,
       updated_at: "2026-07-15T01:12:00Z",
     },
   ],

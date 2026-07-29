@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  isBookingNextPath,
+  sanitizeNextPath,
+} from "@/features/auth/lib/post-auth-redirect";
+import { isAdminRole } from "@/features/shared/lib/app-roles";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 
 const publicRoutes = [
@@ -10,6 +15,8 @@ const publicRoutes = [
   "/reset-password",
   "/access-disabled",
   "/auth",
+  "/book",
+  "/account",
 ];
 
 function isPublicRoute(pathname: string) {
@@ -59,10 +66,32 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (data?.claims && (pathname === "/login" || pathname === "/register")) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
-    dashboardUrl.search = "";
-    return NextResponse.redirect(dashboardUrl);
+    const safeNext = sanitizeNextPath(
+      request.nextUrl.searchParams.get("next"),
+    );
+
+    if (isBookingNextPath(safeNext)) {
+      return NextResponse.redirect(new URL(safeNext!, request.url));
+    }
+
+    let role: string | null = null;
+    const userId = data.claims.sub;
+    if (typeof userId === "string") {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .maybeSingle();
+      role = profile?.role ?? null;
+    }
+
+    const destination = isAdminRole(role)
+      ? (safeNext ?? "/dashboard")
+      : safeNext && safeNext !== "/dashboard"
+        ? safeNext
+        : "/";
+
+    return NextResponse.redirect(new URL(destination, request.url));
   }
 
   return response;

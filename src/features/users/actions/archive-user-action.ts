@@ -1,5 +1,6 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 export async function archiveUserAction(formData: FormData): Promise<ActionResult> {
   const id = String(formData.get("id") ?? "");
@@ -10,7 +11,7 @@ export async function archiveUserAction(formData: FormData): Promise<ActionResul
     const userId = claims?.claims?.sub;
     if (!userId) throw new Error("Your session expired. Sign in and try again.");
     const { data: profile } = await supabase.from("profiles").select("organization_id, role, is_active").eq("id", userId).maybeSingle();
-    if (!profile?.is_active || profile.role !== "administrator") throw new Error("Only administrators can modify users.");
+    if (!profile?.is_active || !isAdminRole(profile.role)) throw new Error("Only owners or admins can modify users.");
     const { data, error } = await supabase.from("profiles").update({ is_active: false }).eq("id", id).eq("organization_id", profile.organization_id).select("id").maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("The user was not found in your organization.");

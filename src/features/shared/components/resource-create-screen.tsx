@@ -26,7 +26,7 @@ export async function ResourceCreateScreen({
   definition: ResourceDefinition;
   action: SaveAction;
 }) {
-  let role: AppRole = "administrator";
+  let role: AppRole = "customer";
   const references: ResourceReferences = {};
 
   if (isSupabaseConfigured()) {
@@ -47,9 +47,16 @@ export async function ResourceCreateScreen({
     await Promise.all(
       definition.fields.map(async (field) => {
         if (!field.reference) return;
-        const { table, labelColumn, secondaryColumn, activeColumn } =
-          field.reference;
-        const columns = ["id", labelColumn, secondaryColumn]
+        const {
+          table,
+          labelColumn,
+          secondaryColumn,
+          activeColumn,
+          statusColumn,
+          excludeStatuses,
+          equals,
+        } = field.reference;
+        const columns = ["id", labelColumn, secondaryColumn, statusColumn]
           .filter(Boolean)
           .join(",");
         let request = supabase
@@ -57,17 +64,33 @@ export async function ResourceCreateScreen({
           .select(columns)
           .eq("organization_id", profile.organization_id);
         if (activeColumn) request = request.eq(activeColumn, true);
+        if (equals) {
+          for (const [column, value] of Object.entries(equals)) {
+            request = request.eq(column, value);
+          }
+        }
+        if (excludeStatuses?.length) {
+          request = request.not(
+            statusColumn ?? "status",
+            "in",
+            `(${excludeStatuses.map((status) => `"${status}"`).join(",")})`,
+          );
+        }
         const { data, error } = await request.limit(200);
         if (error) throw new Error(error.message);
         references[field.name] = (
           (data ?? []) as unknown as Record<string, unknown>[]
-        ).map((row) => ({
-          value: String(row.id),
-          label:
+        ).map((row) => {
+          const base =
             secondaryColumn && row[secondaryColumn]
               ? `${String(row[labelColumn])} · ${String(row[secondaryColumn])}`
-              : String(row[labelColumn] ?? row.id),
-        }));
+              : String(row[labelColumn] ?? row.id);
+          const status =
+            statusColumn && row[statusColumn]
+              ? ` · ${String(row[statusColumn])}`
+              : "";
+          return { value: String(row.id), label: `${base}${status}` };
+        });
       }),
     );
   }

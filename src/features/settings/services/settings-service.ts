@@ -10,6 +10,9 @@ export type OrganizationSettings = {
   tracker_delayed_threshold_minutes: number;
   location_retention_days: number;
   gps_provider: string;
+  deposit_percent: number;
+  payment_qr_url: string;
+  payment_instructions: string;
 };
 
 export async function getOrganizationSettings(): Promise<OrganizationSettings> {
@@ -21,13 +24,18 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       tracker_delayed_threshold_minutes: 15,
       location_retention_days: 90,
       gps_provider: "simulator",
+      deposit_percent: 30,
+      payment_qr_url: "",
+      payment_instructions: "",
     };
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims?.sub) throw new Error("Unauthorized");
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("organization_id, organizations(name, timezone)")
+    .select(
+      "organization_id, organizations(name, timezone, deposit_percent, payment_qr_url, payment_instructions)",
+    )
     .eq("id", claims.claims.sub)
     .single();
   if (error) throw new Error(error.message);
@@ -44,6 +52,9 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
   const organization = profile.organizations as unknown as {
     name: string;
     timezone: string;
+    deposit_percent: number | null;
+    payment_qr_url: string | null;
+    payment_instructions: string | null;
   };
   const values = new Map(
     (appSettings ?? []).map((setting) => [
@@ -66,6 +77,9 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     gps_provider: String(
       values.get("gps.provider") ?? process.env.GPS_PROVIDER ?? "simulator",
     ),
+    deposit_percent: Number(organization.deposit_percent ?? 30),
+    payment_qr_url: organization.payment_qr_url ?? "",
+    payment_instructions: organization.payment_instructions ?? "",
   };
 }
 

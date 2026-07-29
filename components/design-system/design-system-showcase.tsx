@@ -79,12 +79,12 @@ type VehicleRow = {
 };
 
 const vehicles: VehicleRow[] = [
-  { id: "1", vehicle: "Toyota Vios", plate: "NCR 1842", fleetStatus: "rented", trackerStatus: "moving", lastUpdate: "47 sec ago" },
+  { id: "1", vehicle: "Toyota Vios", plate: "NCR 1842", fleetStatus: "available", trackerStatus: "moving", lastUpdate: "47 sec ago" },
   { id: "2", vehicle: "Honda City", plate: "NCR 2291", fleetStatus: "available", trackerStatus: "parked", lastUpdate: "2 min ago" },
-  { id: "3", vehicle: "Nissan Urvan", plate: "VAN 5041", fleetStatus: "rented", trackerStatus: "delayed", lastUpdate: "12 min ago" },
+  { id: "3", vehicle: "Nissan Urvan", plate: "VAN 5041", fleetStatus: "available", trackerStatus: "delayed", lastUpdate: "12 min ago" },
   { id: "4", vehicle: "Mitsubishi Mirage", plate: "NCR 7718", fleetStatus: "maintenance", trackerStatus: "offline", lastUpdate: "1 hr ago" },
-  { id: "5", vehicle: "Toyota Innova", plate: "NCR 6308", fleetStatus: "reserved", trackerStatus: "online", lastUpdate: "3 min ago" },
-  { id: "6", vehicle: "Suzuki Dzire", plate: "NCR 3420", fleetStatus: "available", trackerStatus: "online", lastUpdate: "4 min ago" },
+  { id: "5", vehicle: "Toyota Innova", plate: "NCR 6308", fleetStatus: "available", trackerStatus: "online", lastUpdate: "3 min ago" },
+  { id: "6", vehicle: "Suzuki Dzire", plate: "NCR 3420", fleetStatus: "inactive", trackerStatus: "offline", lastUpdate: "4 min ago" },
 ];
 
 const columns: ColumnDef<VehicleRow>[] = [
@@ -188,7 +188,7 @@ export function DesignSystemShowcase() {
                 <SelectTrigger className="w-full" id="preview-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="rented">Rented</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
                   <SelectItem value="maintenance">Maintenance</SelectItem>
                 </SelectContent>
               </Select>
@@ -220,7 +220,8 @@ export function DesignSystemShowcase() {
             <div>
               <p className="mb-3 text-xs font-medium text-muted-foreground">Vehicle</p>
               <div className="flex flex-wrap gap-2">
-                {(["available", "reserved", "rented", "maintenance", "inactive"] as const).map((status) => <StatusBadge key={status} status={status} />)}
+                {(["available", "maintenance", "inactive"] as const).map((status) => <StatusBadge key={status} status={status} />)}
+                {(["draft", "reserved", "active", "completed"] as const).map((status) => <StatusBadge key={status} status={status} />)}
               </div>
             </div>
             <div>

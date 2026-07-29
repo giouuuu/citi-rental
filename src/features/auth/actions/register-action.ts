@@ -18,6 +18,8 @@ export type RegisterActionResult = ActionResult<RegistrationData>;
 const errorMessages: Record<RegistrationError["code"], string> = {
   already_authenticated: "You are already signed in. Open your dashboard to continue.",
   configuration: "Registration is not available until Supabase is configured.",
+  network:
+    "Could not reach the authentication service. Check your internet connection and try again.",
   provisioning: "Your account was created, but workspace setup could not finish. Open the dashboard or contact support.",
   rate_limit: "Too many registration attempts. Wait a few minutes and try again.",
   signup: "We could not create the account. Check your details or try signing in.",

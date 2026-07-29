@@ -33,7 +33,7 @@ export const geofenceDefinition: ResourceDefinition = {
   searchColumn: "name",
   description:
     "Define allowed, restricted, branch, pickup, and return areas for fleet alerts.",
-  writeRoles: ["administrator"],
+  writeRoles: ["owner", "admin"],
   archive: { field: "is_active", value: false, label: "Disable geofence" },
   schema: z
     .object({

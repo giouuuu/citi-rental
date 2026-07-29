@@ -43,12 +43,25 @@ export function buildResourceColumns({
     ...columns.map((column) =>
       columnHelper.accessor((row) => row[column.key], {
         id: column.key,
+        size: column.format === "image" ? 88 : undefined,
+        enableSorting: column.format !== "image",
         header: ({ column: tableColumn }) => (
           <DataTableColumnHeader column={tableColumn} title={column.label} />
         ),
         cell: (context) =>
           column.format === "status" ? (
             <StatusBadge status={String(context.getValue() ?? "unknown")} />
+          ) : column.format === "image" ? (
+            context.getValue() ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                alt=""
+                className="h-10 w-14 rounded-md border object-cover"
+                src={String(context.getValue())}
+              />
+            ) : (
+              <span className="text-muted-foreground">No photo</span>
+            )
           ) : (
             <span
               className={
@@ -64,6 +77,7 @@ export function buildResourceColumns({
     ),
     columnHelper.display({
       id: "open",
+      size: 48,
       enableHiding: false,
       cell: ({ row }) => (
         <Button asChild size="icon-sm" variant="ghost">

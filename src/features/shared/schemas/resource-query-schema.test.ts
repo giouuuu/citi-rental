@@ -19,7 +19,7 @@ const definition: ResourceDefinition = {
     { key: "updated_at", label: "Updated" },
   ],
   schema: z.object({}),
-  writeRoles: ["administrator"],
+  writeRoles: ["owner", "admin"],
 };
 
 describe("parseResourceQuery", () => {

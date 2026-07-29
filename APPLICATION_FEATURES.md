@@ -164,12 +164,12 @@ Display:
 - Recent alerts.
 - Rentals due for return today.
 
-Vehicle status values:
+Vehicle status values (operational only):
 - `available`
-- `reserved`
-- `rented`
 - `maintenance`
-- `inactive`
+- `inactive` (archive / out of fleet)
+
+Reservation and rental occupancy are **not** stored on the vehicle row. They come from rental date ranges (`reserved` / `active` / `overdue`).
 
 Tracker connection status:
 - `online`
@@ -341,9 +341,9 @@ Features:
 - View alerts generated during the rental.
 
 Business rules:
-- A vehicle cannot have overlapping active or reserved rentals.
-- Starting a rental sets the vehicle status to rented.
-- Completing a rental sets the vehicle status to available unless it is marked for maintenance.
+- A vehicle cannot have overlapping active or reserved rentals (date-range conflicts).
+- Vehicle status stays operational (`available` / `maintenance` / `inactive`); rentals do not flip the vehicle to reserved or rented.
+- Maintenance and inactive vehicles cannot be booked for any dates.
 - Tracking history displayed for a rental must use the rental time window.
 - The UI must show last-known position rather than falsely labeling stale data as live.
 

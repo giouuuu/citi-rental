@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCheck, LoaderCircle, TriangleAlert } from "lucide-react";
+import { Controller, useForm } from "react-hook-form";
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +18,15 @@ import {
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { acknowledgeAlertAction } from "@/features/alerts/actions/actions";
+import {
+  acknowledgeAlertSchema,
+  type AcknowledgeAlertInput,
+} from "@/features/alerts/schemas/acknowledge-alert-schema";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
+import {
+  applyServerFieldErrors,
+  valuesToFormData,
+} from "@/features/shared/lib/form-utils";
 import type { ActionResult } from "@/features/shared/types/resource";
 
 export function AlertResolutionForm({
@@ -30,15 +41,26 @@ export function AlertResolutionForm({
   const [state, setState] = useState<ActionResult | null>(null);
   const { isPending, runMutation } = useMutationCoordinator();
   const router = useRouter();
-  function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+
+  const form = useForm<AcknowledgeAlertInput>({
+    resolver: zodResolver(acknowledgeAlertSchema),
+    defaultValues: {
+      id,
+      resolution_note: currentNote ?? "",
+    },
+  });
+
+  function onSubmit(values: AcknowledgeAlertInput) {
     runMutation(async () => {
-      const result = await acknowledgeAlertAction(formData);
+      const result = await acknowledgeAlertAction(valuesToFormData(values));
       setState(result);
+      if (!result.success && result.fieldErrors) {
+        applyServerFieldErrors(form.setError, result.fieldErrors);
+      }
       if (result.success) router.refresh();
     });
   }
+
   return (
     <Card>
       <CardHeader>
@@ -57,28 +79,33 @@ export function AlertResolutionForm({
             <AlertDescription>{state.message}</AlertDescription>
           </Alert>
         ) : null}
-        <form className="space-y-4" onSubmit={submit}>
-          <input name="id" type="hidden" value={id} />
-          <Field
-            data-invalid={Boolean(
-              !state?.success && state?.fieldErrors?.resolution_note,
+        <form
+          className="space-y-4"
+          noValidate
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
+          <input type="hidden" {...form.register("id")} />
+          <Controller
+            control={form.control}
+            name="resolution_note"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="resolution_note">Resolution note</FieldLabel>
+                <Textarea
+                  {...field}
+                  aria-invalid={fieldState.invalid}
+                  disabled={acknowledged || isPending}
+                  id="resolution_note"
+                  placeholder="What was checked or resolved?"
+                  rows={5}
+                  value={field.value ?? ""}
+                />
+                {fieldState.invalid ? (
+                  <FieldError errors={[fieldState.error]} />
+                ) : null}
+              </Field>
             )}
-          >
-            <FieldLabel htmlFor="resolution_note">Resolution note</FieldLabel>
-            <Textarea
-              defaultValue={currentNote ?? ""}
-              disabled={acknowledged || isPending}
-              id="resolution_note"
-              name="resolution_note"
-              placeholder="What was checked or resolved?"
-              rows={5}
-            />
-            <FieldError>
-              {!state?.success
-                ? state?.fieldErrors?.resolution_note?.[0]
-                : undefined}
-            </FieldError>
-          </Field>
+          />
           <Button disabled={acknowledged || isPending} type="submit">
             {isPending ? (
               <LoaderCircle className="animate-spin" />

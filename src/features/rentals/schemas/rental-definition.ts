@@ -17,7 +17,7 @@ export const rentalDefinition: ResourceDefinition = {
   searchColumn: "reference_number",
   description:
     "Create reservations, start and complete rentals, and review time-bounded tracking history.",
-  writeRoles: ["administrator", "rental_staff"],
+  writeRoles: ["owner", "admin", "staff"],
   archive: { field: "status", value: "cancelled", label: "Cancel rental" },
   schema: z
     .object({
@@ -69,10 +69,12 @@ export const rentalDefinition: ResourceDefinition = {
       label: "Customer",
       type: "select",
       required: true,
+      description: "Blocked customers are hidden and cannot be booked.",
       reference: {
         table: "customers",
         labelColumn: "full_name",
         secondaryColumn: "phone_number",
+        equals: { is_blocked: false },
       },
     },
     {
@@ -80,10 +82,14 @@ export const rentalDefinition: ResourceDefinition = {
       label: "Vehicle",
       type: "select",
       required: true,
+      description:
+        "Maintenance and inactive cars are hidden. Overlapping reserved/active/overdue bookings are blocked.",
       reference: {
         table: "vehicles",
         labelColumn: "plate_number",
         secondaryColumn: "name",
+        statusColumn: "status",
+        excludeStatuses: ["maintenance", "inactive"],
       },
     },
     {
@@ -146,6 +152,7 @@ export const rentalDefinition: ResourceDefinition = {
     { key: "start_at", label: "Starts", format: "datetime" },
     { key: "expected_return_at", label: "Expected return", format: "datetime" },
     { key: "status", label: "Status", format: "status" },
+    { key: "payment_status", label: "Payment", format: "status" },
     { key: "updated_at", label: "Updated", format: "datetime" },
   ],
   demoRows: [

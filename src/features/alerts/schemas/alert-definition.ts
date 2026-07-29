@@ -12,7 +12,7 @@ export const alertDefinition: ResourceDefinition = {
   searchColumn: "event_type",
   description:
     "Review tracking, geofence, offline, overdue, and device events requiring staff attention.",
-  writeRoles: ["administrator", "rental_staff"],
+  writeRoles: ["owner", "admin", "staff"],
   allowCreate: false,
   schema: z.object({}),
   fields: [],

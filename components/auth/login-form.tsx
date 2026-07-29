@@ -1,36 +1,94 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, Info } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Info } from "lucide-react";
+import { Controller, useForm } from "react-hook-form";
 
-import { loginAction, type AuthActionState } from "@/app/(auth)/actions";
+import { loginAction } from "@/app/(auth)/actions";
+import { LoginFormFooter } from "@/components/auth/login-form-footer";
 import { PasswordInput } from "@/components/auth/password-input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
+import {
+  isBookingNextPath,
+  sanitizeNextPath,
+} from "@/features/auth/lib/post-auth-redirect";
+import {
+  loginSchema,
+  type LoginInput,
+} from "@/features/auth/schemas/login-schema";
+import {
+  applyServerFieldErrors,
+  valuesToFormData,
+} from "@/features/shared/lib/form-utils";
 
-const initialState: AuthActionState = {};
+export function LoginForm({
+  resetComplete = false,
+  nextPath,
+  embedded = false,
+}: {
+  resetComplete?: boolean;
+  nextPath?: string;
+  /** Compact layout for intercepting-route modals */
+  embedded?: boolean;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState<string>();
+  const safeNext = sanitizeNextPath(nextPath);
+  const isBookingReturn = isBookingNextPath(safeNext);
 
-export function LoginForm({ resetComplete = false }: { resetComplete?: boolean }) {
-  const [state, formAction, pending] = useActionState(loginAction, initialState);
+  const form = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  function onSubmit(values: LoginInput) {
+    setMessage(undefined);
+    const formData = valuesToFormData(values);
+    if (safeNext) formData.set("next", safeNext);
+
+    startTransition(async () => {
+      const result = await loginAction(formData);
+      if (result.errors) {
+        applyServerFieldErrors(form.setError, result.errors);
+      }
+      if (result.message) setMessage(result.message);
+    });
+  }
 
   return (
     <div>
-      <div className="mb-8 lg:hidden">
-        <span className="flex size-10 items-center justify-center rounded-md bg-brand-900 text-sm font-black text-white">
-          M
-        </span>
-      </div>
-      <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
-        Secure staff access
-      </p>
-      <h1 className="mt-2 text-3xl font-bold tracking-[-0.03em]">Welcome back</h1>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        Sign in to manage rentals and monitor fleet activity.
-      </p>
+      {embedded ? null : (
+        <div className="mb-8 lg:hidden">
+          <span className="flex size-10 items-center justify-center rounded-md bg-brand-900 text-sm font-black text-white">
+            M
+          </span>
+        </div>
+      )}
+      {embedded ? null : (
+        <>
+          <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
+            {isBookingReturn ? "Customer access" : "Secure staff access"}
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-[-0.03em]">Welcome back</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {isBookingReturn
+              ? "Sign in to continue your reservation with saved account details."
+              : "Sign in to manage rentals and monitor fleet activity."}
+          </p>
+        </>
+      )}
 
       {resetComplete ? (
         <Alert className="mt-6 border-success/20 bg-success-surface">
@@ -40,50 +98,77 @@ export function LoginForm({ resetComplete = false }: { resetComplete?: boolean }
         </Alert>
       ) : null}
 
-      <form action={formAction} className="mt-8 space-y-5" noValidate>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email address</Label>
-          <Input
-            aria-describedby={state.errors?.email ? "email-error" : undefined}
-            aria-invalid={Boolean(state.errors?.email)}
-            autoComplete="email"
-            id="email"
+      <div className={embedded ? "space-y-5" : "mt-8 space-y-5"}>
+        <GoogleSignInButton
+          nextPath={isBookingReturn ? safeNext : "/"}
+        />
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="h-px flex-1 bg-border" />
+          or continue with email
+          <div className="h-px flex-1 bg-border" />
+        </div>
+      </div>
+
+      <form
+        className="mt-5 space-y-5"
+        noValidate
+        onSubmit={form.handleSubmit(onSubmit)}
+      >
+        <FieldGroup>
+          <Controller
+            control={form.control}
             name="email"
-            placeholder="you@company.com"
-            required
-            type="email"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="email">Email address</FieldLabel>
+                <Input
+                  {...field}
+                  aria-invalid={fieldState.invalid}
+                  autoComplete="email"
+                  id="email"
+                  placeholder="you@company.com"
+                  type="email"
+                />
+                {fieldState.invalid ? (
+                  <FieldError errors={[fieldState.error]} />
+                ) : null}
+              </Field>
+            )}
           />
-          {state.errors?.email ? (
-            <p className="text-xs text-destructive" id="email-error" role="alert">
-              {state.errors.email[0]}
-            </p>
-          ) : null}
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-4">
-            <Label htmlFor="password">Password</Label>
-            <Link className="text-xs font-medium text-primary hover:underline" href="/forgot-password">
-              Forgot password?
-            </Link>
-          </div>
-          <PasswordInput
-            aria-describedby={state.errors?.password ? "password-error" : undefined}
-            aria-invalid={Boolean(state.errors?.password)}
-            autoComplete="current-password"
-            id="password"
+          <Controller
+            control={form.control}
             name="password"
-            required
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <div className="flex items-center justify-between gap-4">
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <Link
+                    className="text-xs font-medium text-primary hover:underline"
+                    href="/forgot-password"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <PasswordInput
+                  {...field}
+                  aria-invalid={fieldState.invalid}
+                  autoComplete="current-password"
+                  id="password"
+                />
+                {fieldState.invalid ? (
+                  <FieldError errors={[fieldState.error]} />
+                ) : null}
+              </Field>
+            )}
           />
-          {state.errors?.password ? (
-            <p className="text-xs text-destructive" id="password-error" role="alert">
-              {state.errors.password[0]}
-            </p>
-          ) : null}
-        </div>
-        {state.message ? (
-          <div className="flex gap-2 rounded-md border border-warning/20 bg-warning-surface p-3 text-sm leading-5 text-warning" role="alert">
+        </FieldGroup>
+        {message ? (
+          <div
+            className="flex gap-2 rounded-md border border-warning/20 bg-warning-surface p-3 text-sm leading-5 text-warning"
+            role="alert"
+          >
             <Info className="mt-0.5 size-4 shrink-0" />
-            <span>{state.message}</span>
+            <span>{message}</span>
           </div>
         ) : null}
         <Button className="w-full" disabled={pending} size="lg" type="submit">
@@ -91,25 +176,12 @@ export function LoginForm({ resetComplete = false }: { resetComplete?: boolean }
           {pending ? "Signing in..." : "Sign in"}
         </Button>
       </form>
-      <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-        <div className="h-px flex-1 bg-border" />
-        Local review
-        <div className="h-px flex-1 bg-border" />
-      </div>
-      <Button asChild className="w-full" variant="outline">
-        <Link href="/dashboard">
-          Open demo workspace <ArrowRight />
-        </Link>
-      </Button>
-      <p className="mt-7 text-center text-sm text-muted-foreground">
-        New to City Rentals?{" "}
-        <Link className="font-medium text-primary hover:underline" href="/register">
-          Create an account
-        </Link>
-      </p>
-      <p className="mt-8 text-center text-xs leading-5 text-muted-foreground">
-        Access is limited to authorized rental operations staff.
-      </p>
+
+      <LoginFormFooter
+        embedded={embedded}
+        isBookingReturn={isBookingReturn}
+        safeNext={safeNext}
+      />
     </div>
   );
 }

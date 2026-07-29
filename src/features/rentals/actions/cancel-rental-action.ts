@@ -1,6 +1,7 @@
 "use server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { isStaffRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 export async function cancelRentalAction(formData: FormData): Promise<ActionResult> {
   const id = z.uuid().safeParse(String(formData.get("id") ?? ""));
@@ -12,7 +13,7 @@ export async function cancelRentalAction(formData: FormData): Promise<ActionResu
     if (!userId) throw new Error("Your session expired. Sign in and try again.");
     const { data: profile } = await supabase.from("profiles").select("role, is_active").eq("id", userId).maybeSingle();
     if (!profile?.is_active) throw new Error("Your profile is not active for this organization.");
-    if (!["administrator", "rental_staff"].includes(profile.role)) throw new Error("Your role cannot modify rentals.");
+    if (!isStaffRole(profile.role)) throw new Error("Your role cannot modify rentals.");
     const { error } = await supabase.rpc("transition_rental", { p_rental_id: id.data, p_status: "cancelled", p_actual_return_at: null, p_ending_odometer: null, p_ending_fuel_level: null, p_notes: null });
     if (error) throw error;
     return { success: true };

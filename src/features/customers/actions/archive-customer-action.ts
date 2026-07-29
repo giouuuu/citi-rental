@@ -1,5 +1,6 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
+import { isStaffRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 export async function archiveCustomerAction(formData: FormData): Promise<ActionResult> {
   const id = String(formData.get("id") ?? "");
@@ -11,7 +12,7 @@ export async function archiveCustomerAction(formData: FormData): Promise<ActionR
     if (!userId) throw new Error("Your session expired. Sign in and try again.");
     const { data: profile } = await supabase.from("profiles").select("organization_id, role, is_active").eq("id", userId).maybeSingle();
     if (!profile?.is_active) throw new Error("Your profile is not active for this organization.");
-    if (!["administrator", "rental_staff"].includes(profile.role)) throw new Error("Your role cannot modify customers.");
+    if (!isStaffRole(profile.role)) throw new Error("Your role cannot modify customers.");
     const { data, error } = await supabase.from("customers").update({ is_blocked: true }).eq("id", id).eq("organization_id", profile.organization_id).select("id").maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("The customer was not found in your organization.");

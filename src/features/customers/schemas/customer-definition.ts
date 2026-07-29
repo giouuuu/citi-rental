@@ -18,7 +18,7 @@ export const customerDefinition: ResourceDefinition = {
   searchColumn: "full_name",
   description:
     "Maintain renter contacts, license details, consent, and rental eligibility.",
-  writeRoles: ["administrator", "rental_staff"],
+  writeRoles: ["owner", "admin", "staff"],
   archive: { field: "is_blocked", value: true, label: "Block customer" },
   schema: z
     .object({

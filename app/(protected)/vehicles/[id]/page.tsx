@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { archiveVehicleAction, saveVehicleAction } from "@/features/vehicles";
 import { vehicleDefinition } from "@/features/vehicles";
 import { ResourceDetailScreen } from "@/features/shared";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { listVehicleRentals } from "@/features/vehicles/services/list-vehicle-rentals";
+import { VehicleDetailTabs } from "@/features/vehicles/components/vehicle-detail-tabs";
+
 export default async function Page({
   params,
   searchParams,
@@ -12,6 +16,9 @@ export default async function Page({
   searchParams: Promise<{ saved?: string }>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
+
+  const rentals = isSupabaseConfigured() ? await listVehicleRentals(id) : [];
+
   return (
     <ResourceDetailScreen
       action={saveVehicleAction}
@@ -26,6 +33,8 @@ export default async function Page({
       definition={vehicleDefinition}
       id={id}
       saved={query.saved === "1"}
-    />
+    >
+      {({ form }) => <VehicleDetailTabs info={form} rentals={rentals} />}
+    </ResourceDetailScreen>
   );
 }

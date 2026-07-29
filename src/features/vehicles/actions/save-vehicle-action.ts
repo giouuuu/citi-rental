@@ -2,8 +2,11 @@
 
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { vehicleDefinition } from "@/features/vehicles/schemas/vehicle-definition";
+import { uploadVehiclePhoto } from "@/features/vehicles/lib/upload-vehicle-photo";
+import { isVehicleRateLockedByBookings } from "@/features/vehicles/lib/vehicle-rate-lock";
 
 export async function saveVehicleAction(
   formData: FormData,
@@ -26,9 +29,9 @@ export async function saveVehicleAction(
     transmission: formData.get("transmission") || undefined,
     fuel_type: formData.get("fuel_type") || undefined,
     seating_capacity: formData.get("seating_capacity") || undefined,
+    daily_rate: formData.get("daily_rate") ?? undefined,
     current_odometer: formData.get("current_odometer") || undefined,
     status: formData.get("status") ?? undefined,
-    photo_url: formData.get("photo_url") || undefined,
     notes: formData.get("notes") || undefined,
   };
   const parsed = vehicleDefinition.schema.safeParse(values);
@@ -45,6 +48,8 @@ export async function saveVehicleAction(
 
   const idValue = formData.get("__id");
   const id = typeof idValue === "string" && idValue ? idValue : undefined;
+  const photo = formData.get("photo");
+  const photoFile = photo instanceof File && photo.size > 0 ? photo : null;
   const payload = Object.fromEntries(
     Object.entries(parsed.data).filter(([, value]) => value !== undefined),
   );
@@ -62,32 +67,97 @@ export async function saveVehicleAction(
       .maybeSingle();
     if (profileError || !profile || !profile.is_active)
       throw new Error("Your profile is not active for this organization.");
-    if (profile.role !== "administrator")
+    if (!isAdminRole(profile.role))
       throw new Error("Your role cannot modify vehicles.");
 
+    let savedId = id;
+
     if (id) {
+      const { data: current, error: currentError } = await supabase
+        .from("vehicles")
+        .select("daily_rate")
+        .eq("id", id)
+        .eq("organization_id", profile.organization_id)
+        .maybeSingle();
+      if (currentError) throw currentError;
+      if (!current)
+        throw new Error("The vehicle was not found in your organization.");
+
+      const { data: occupancy, error: occupancyError } = await supabase
+        .from("rentals")
+        .select("status")
+        .eq("vehicle_id", id)
+        .eq("organization_id", profile.organization_id)
+        .in("status", ["reserved", "active", "overdue"]);
+      if (occupancyError) throw occupancyError;
+
+      const rateLocked = isVehicleRateLockedByBookings(
+        (occupancy ?? []).map((row) => String(row.status)),
+      );
+      if (
+        rateLocked &&
+        payload.daily_rate !== undefined &&
+        Number(payload.daily_rate) !== Number(current.daily_rate)
+      ) {
+        return {
+          success: false,
+          message:
+            "Daily rate cannot be changed while this vehicle has an active or reserved booking.",
+          fieldErrors: {
+            daily_rate: [
+              "Daily rate cannot be changed while this vehicle has an active or reserved booking.",
+            ],
+          },
+        };
+      }
+
+      const updatePayload = rateLocked
+        ? Object.fromEntries(
+            Object.entries(payload).filter(([key]) => key !== "daily_rate"),
+          )
+        : payload;
+
       const { data, error } = await supabase
         .from("vehicles")
-        .update(payload)
+        .update(updatePayload)
         .eq("id", id)
         .eq("organization_id", profile.organization_id)
         .select("id")
         .maybeSingle();
       if (error) throw error;
       if (!data) throw new Error("The vehicle was not found in your organization.");
-      return { success: true, data: { id, href: `${vehicleDefinition.route}/${id}` } };
+      savedId = data.id;
+    } else {
+      const { data, error } = await supabase
+        .from("vehicles")
+        .insert({ ...payload, organization_id: profile.organization_id })
+        .select("id")
+        .single();
+      if (error) throw error;
+      savedId = String(data.id);
     }
 
-    const { data, error } = await supabase
-      .from("vehicles")
-      .insert({ ...payload, organization_id: profile.organization_id })
-      .select("id")
-      .single();
-    if (error) throw error;
-    const savedId = String(data.id);
+    if (photoFile && savedId) {
+      const publicUrl = await uploadVehiclePhoto({
+        supabase,
+        organizationId: profile.organization_id,
+        vehicleId: savedId,
+        file: photoFile,
+      });
+      const { error: photoError } = await supabase
+        .from("vehicles")
+        .update({ photo_url: publicUrl })
+        .eq("id", savedId)
+        .eq("organization_id", profile.organization_id);
+      if (photoError) throw photoError;
+    }
+
     return {
       success: true,
-      data: { id: savedId, href: `${vehicleDefinition.route}/${savedId}` },
+      data: {
+        id: String(savedId),
+        href: `${vehicleDefinition.route}/${savedId}`,
+      },
     };
   } catch (error) {
     const message =

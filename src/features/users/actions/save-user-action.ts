@@ -1,6 +1,7 @@
 "use server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { userDefinition } from "@/features/users/schemas/user-definition";
 export async function saveUserAction(formData: FormData): Promise<ActionResult<{ id: string; href: string }>> {
@@ -18,7 +19,7 @@ export async function saveUserAction(formData: FormData): Promise<ActionResult<{
     const userId = claims?.claims?.sub;
     if (!userId) throw new Error("Your session expired. Sign in and try again.");
     const { data: profile } = await supabase.from("profiles").select("organization_id, role, is_active").eq("id", userId).maybeSingle();
-    if (!profile?.is_active || profile.role !== "administrator") throw new Error("Only administrators can modify users.");
+    if (!profile?.is_active || !isAdminRole(profile.role)) throw new Error("Only owners or admins can modify users.");
     const idValue = formData.get("__id");
     const id = typeof idValue === "string" && idValue ? idValue : String(parsed.data.id);
     const payload = Object.fromEntries(Object.entries(parsed.data).filter(([key, value]) => key !== "id" && value !== undefined));

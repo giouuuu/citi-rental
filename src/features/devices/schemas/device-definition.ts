@@ -17,7 +17,7 @@ export const deviceDefinition: ResourceDefinition = {
   searchColumn: "unique_identifier",
   description:
     "Register SinoTrack hardware, review tracker health, and maintain vehicle assignments.",
-  writeRoles: ["administrator"],
+  writeRoles: ["owner", "admin"],
   archive: { field: "is_active", value: false, label: "Deactivate device" },
   schema: z.object({
     traccar_device_id: optionalText(80),

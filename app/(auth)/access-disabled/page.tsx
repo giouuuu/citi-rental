@@ -15,6 +15,7 @@ export default async function AccessDisabledPage({
   const params = await searchParams;
   const missingProfile = params.reason === "profile";
   const setupFailed = params.reason === "setup";
+  const wrongRole = params.reason === "role";
 
   return (
     <AuthShell>
@@ -32,8 +33,10 @@ export default async function AccessDisabledPage({
           {setupFailed
             ? "Your account was created, but the organization workspace could not be initialized. Sign out and contact support before trying again."
             : missingProfile
-            ? "Your account has not been assigned to an active organization profile."
-            : "Your staff profile is disabled and cannot access fleet or rental information."}
+              ? "Your account has not been assigned to an active organization profile."
+              : wrongRole
+                ? "This workspace is limited to owner and admin roles. Sign out or use an account with ops access."
+                : "Your staff profile is disabled and cannot access fleet or rental information."}
         </p>
         <form action={logoutAction} className="mt-8">
           <Button className="w-full" type="submit" variant="outline">

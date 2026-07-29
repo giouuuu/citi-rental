@@ -1,20 +1,15 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
 
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  resetPasswordSchema,
+} from "@/features/auth/schemas/login-schema";
+import { resolvePostAuthPath } from "@/features/auth/lib/post-auth-redirect";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
-
-const emailSchema = z.email("Enter a valid email address.").trim();
-const passwordSchema = z
-  .string()
-  .min(8, "Password must contain at least 8 characters.");
-
-const loginSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(1, "Enter your password."),
-});
 
 export type AuthActionState = {
   message?: string;
@@ -26,7 +21,6 @@ export type AuthActionState = {
 };
 
 export async function loginAction(
-  _previousState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
   const validated = loginSchema.safeParse({
@@ -52,17 +46,21 @@ export async function loginAction(
     return { message: "Email or password is incorrect. Please try again." };
   }
 
-  redirect("/dashboard");
+  const rawNext = String(formData.get("next") ?? "").trim();
+  const nextPath = await resolvePostAuthPath(supabase, rawNext);
+
+  redirect(nextPath);
 }
 
 export async function forgotPasswordAction(
-  _previousState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
-  const validated = emailSchema.safeParse(formData.get("email"));
+  const validated = forgotPasswordSchema.safeParse({
+    email: formData.get("email"),
+  });
 
   if (!validated.success) {
-    return { errors: { email: validated.error.flatten().formErrors } };
+    return { errors: validated.error.flatten().fieldErrors };
   }
 
   if (!isSupabaseConfigured()) {
@@ -73,9 +71,12 @@ export async function forgotPasswordAction(
 
   const supabase = await createClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const { error } = await supabase.auth.resetPasswordForEmail(validated.data, {
-    redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
-  });
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    validated.data.email,
+    {
+      redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+    },
+  );
 
   if (error) {
     return { message: "The reset email could not be sent. Please try again." };
@@ -88,13 +89,14 @@ export async function forgotPasswordAction(
 }
 
 export async function resetPasswordAction(
-  _previousState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
-  const validated = passwordSchema.safeParse(formData.get("password"));
+  const validated = resetPasswordSchema.safeParse({
+    password: formData.get("password"),
+  });
 
   if (!validated.success) {
-    return { errors: { password: validated.error.flatten().formErrors } };
+    return { errors: validated.error.flatten().fieldErrors };
   }
 
   if (!isSupabaseConfigured()) {
@@ -102,7 +104,9 @@ export async function resetPasswordAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password: validated.data });
+  const { error } = await supabase.auth.updateUser({
+    password: validated.data.password,
+  });
 
   if (error) {
     return { message: "This reset link is invalid or expired. Request a new one." };
@@ -111,11 +115,19 @@ export async function resetPasswordAction(
   redirect("/login?reset=success");
 }
 
-export async function logoutAction() {
+export async function logoutAction(formData?: FormData) {
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
     await supabase.auth.signOut();
   }
 
-  redirect("/login");
+  const rawNext = String(formData?.get("next") ?? "").trim();
+  const nextPath =
+    rawNext.startsWith("/") &&
+    !rawNext.startsWith("//") &&
+    !rawNext.includes("\\")
+      ? rawNext
+      : "/login";
+
+  redirect(nextPath);
 }

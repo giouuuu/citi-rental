@@ -1,6 +1,7 @@
 "use server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { deviceDefinition } from "@/features/devices/schemas/device-definition";
 export async function saveDeviceAction(formData: FormData): Promise<ActionResult<{ id: string; href: string }>> {
@@ -20,7 +21,7 @@ export async function saveDeviceAction(formData: FormData): Promise<ActionResult
     if (!userId) throw new Error("Your session expired. Sign in and try again.");
     const { data: profile } = await supabase.from("profiles").select("organization_id, role, is_active").eq("id", userId).maybeSingle();
     if (!profile?.is_active) throw new Error("Your profile is not active for this organization.");
-    if (profile.role !== "administrator") throw new Error("Your role cannot modify GPS devices.");
+    if (!isAdminRole(profile.role)) throw new Error("Your role cannot modify GPS devices.");
     const idValue = formData.get("__id");
     const id = typeof idValue === "string" && idValue ? idValue : undefined;
     const payload = Object.fromEntries(Object.entries(parsed.data).filter(([key, value]) => key !== "vehicle_id" && value !== undefined));

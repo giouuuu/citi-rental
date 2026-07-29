@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { PageHeader } from "@/components/design-system/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { ResourceSearchForm } from "@/features/shared/components/resource-search-form";
 import { ResourceTable } from "@/features/shared/components/resource-table";
 import type {
   ResourceDefinition,
@@ -43,28 +43,7 @@ export function ResourceList({
         title={definition.plural}
       />
       <Card>
-        <CardContent className="space-y-4 pt-5">
-          <form className="flex max-w-md gap-2" role="search">
-            <input name="page_size" type="hidden" value={query.pageSize} />
-            <input name="sort" type="hidden" value={query.sort} />
-            <input name="direction" type="hidden" value={query.direction} />
-            <div className="relative flex-1">
-              <Search
-                aria-hidden="true"
-                className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                aria-label={`Search ${definition.plural.toLowerCase()}`}
-                className="pl-9"
-                defaultValue={query.q}
-                name="q"
-                placeholder={`Search ${definition.plural.toLowerCase()}…`}
-              />
-            </div>
-            <Button type="submit" variant="outline">
-              Search
-            </Button>
-          </form>
+        <CardContent className="pt-5">
           <ResourceTable
             columns={definition.columns}
             hasNextPage={result.hasNextPage}
@@ -76,6 +55,15 @@ export function ResourceList({
             rows={result.rows}
             singular={definition.singular}
             titleField={definition.titleField}
+            toolbar={
+              <ResourceSearchForm
+                defaultQuery={query.q}
+                direction={query.direction}
+                pageSize={query.pageSize}
+                plural={definition.plural}
+                sort={query.sort}
+              />
+            }
           />
         </CardContent>
       </Card>

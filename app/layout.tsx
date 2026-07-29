@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -21,13 +22,20 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "City Rentals",
-    template: "%s | City Rentals",
+    default: "Zeke Car Rentals",
+    template: "%s | Zeke Car Rentals",
   },
-  description: "Car rental operations and GPS fleet tracking.",
+  description:
+    "DTI-registered car rental in Cebu — clear rates, live availability, and local pickup support.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+  modal,
+}: Readonly<{
+  children: ReactNode;
+  modal: ReactNode;
+}>) {
   return (
     <html
       lang="en"
@@ -41,7 +49,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to main content
         </a>
-        <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+        <TooltipProvider delayDuration={200}>
+          {children}
+          {modal}
+        </TooltipProvider>
         <Toaster richColors position="top-right" />
       </body>
     </html>

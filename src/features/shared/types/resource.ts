@@ -1,6 +1,8 @@
 import type { ZodType } from "zod";
 
-export type AppRole = "administrator" | "rental_staff" | "viewer";
+import type { AppRole } from "@/features/shared/lib/app-roles";
+
+export type { AppRole };
 
 export type ResourceRow = Record<string, unknown> & { id: string };
 
@@ -19,7 +21,8 @@ export type ResourceField = {
     | "datetime-local"
     | "textarea"
     | "select"
-    | "checkbox";
+    | "checkbox"
+    | "image";
   required?: boolean;
   placeholder?: string;
   description?: string;
@@ -29,15 +32,32 @@ export type ResourceField = {
     labelColumn: string;
     secondaryColumn?: string;
     activeColumn?: string;
+    statusColumn?: string;
+    excludeStatuses?: string[];
+    equals?: Record<string, string | number | boolean>;
   };
   step?: string;
   className?: string;
+  accept?: string;
+  /** Disable this field when another form field matches one of these values. */
+  lockWhen?: {
+    field: string;
+    values: string[];
+    message?: string;
+  };
 };
 
 export type ResourceColumn = {
   key: string;
   label: string;
-  format?: "text" | "status" | "date" | "datetime" | "number" | "boolean";
+  format?:
+    | "text"
+    | "status"
+    | "date"
+    | "datetime"
+    | "number"
+    | "boolean"
+    | "image";
 };
 
 export type ResourceDefinition = {

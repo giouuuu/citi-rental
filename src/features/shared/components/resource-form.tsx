@@ -1,31 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, LoaderCircle, Save } from "lucide-react";
+import { useForm } from "react-hook-form";
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import type { ActionResult } from "@/features/shared/types/resource";
+import { FieldGroup } from "@/components/ui/field";
+import { ResourceFormField } from "@/features/shared/components/resource-form-field";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
+import {
+  applyServerFieldErrors,
+  valuesToFormData,
+} from "@/features/shared/lib/form-utils";
+import type { ActionResult } from "@/features/shared/types/resource";
 import type { ResourceFormProps } from "@/features/shared/types/resource-form";
+
+type ResourceFormValues = Record<string, unknown>;
+
+function buildDefaultValues(
+  fields: ResourceFormProps["definition"]["fields"],
+  row: ResourceFormProps["row"],
+): ResourceFormValues {
+  const values: ResourceFormValues = {};
+  for (const field of fields) {
+    const value = row?.[field.name];
+    if (field.type === "checkbox") {
+      values[field.name] = Boolean(value);
+      continue;
+    }
+    if (field.type === "image") {
+      values[field.name] = undefined;
+      continue;
+    }
+    if (typeof value === "object" && value !== null) {
+      values[field.name] = JSON.stringify(value, null, 2);
+      continue;
+    }
+    values[field.name] = value == null ? "" : String(value);
+  }
+  return values;
+}
 
 export function ResourceForm({
   definition,
@@ -41,12 +58,24 @@ export function ResourceForm({
   const { isPending, runMutation } = useMutationCoordinator();
   const router = useRouter();
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+  const defaultValues = useMemo(
+    () => buildDefaultValues(definition.fields, row),
+    [definition.fields, row],
+  );
+
+  const form = useForm<ResourceFormValues>({ defaultValues });
+  const watchedValues = form.watch();
+
+  function onSubmit(values: ResourceFormValues) {
+    const extras: Record<string, string> = {};
+    if (row?.id) extras.__id = String(row.id);
+
     runMutation(async () => {
-      const result = await action(formData);
+      const result = await action(valuesToFormData(values, extras));
       setState(result);
+      if (!result.success && result.fieldErrors) {
+        applyServerFieldErrors(form.setError, result.fieldErrors);
+      }
       if (result.success) {
         if (!row && result.data?.href) router.replace(result.data.href);
         else router.refresh();
@@ -66,8 +95,12 @@ export function ResourceForm({
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
-        <form className="space-y-6" onSubmit={submit}>
-          {row ? <input name="__id" type="hidden" value={row.id} /> : null}
+        <form
+          className="space-y-6"
+          encType="multipart/form-data"
+          noValidate
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
           {state && !state.success ? (
             <Alert variant="destructive">
               <AlertCircle />
@@ -82,102 +115,35 @@ export function ResourceForm({
             </Alert>
           ) : null}
           <FieldGroup className="grid gap-5 md:grid-cols-2">
-            {definition.fields.map((field) => {
-              const id = `${definition.key}-${field.name}`;
-              const error = !state?.success
-                ? state?.fieldErrors?.[field.name]
-                : undefined;
-              const value = row?.[field.name];
-              const displayValue =
-                typeof value === "object" && value !== null
-                  ? JSON.stringify(value, null, 2)
-                  : String(value ?? "");
-              const options = references[field.name] ?? field.options ?? [];
+            {definition.fields.map((fieldDef) => {
+              const lockSource = fieldDef.lockWhen
+                ? String(
+                    watchedValues[fieldDef.lockWhen.field] ??
+                      row?.[fieldDef.lockWhen.field] ??
+                      "",
+                  )
+                : "";
+              const locked = Boolean(
+                fieldDef.lockWhen?.values.includes(lockSource),
+              );
               return (
-                <Field
-                  className={field.className}
-                  data-invalid={Boolean(error)}
-                  key={field.name}
-                >
-                  {field.type === "checkbox" ? (
-                    <div className="flex min-h-12 items-start gap-3 rounded-md border bg-muted/30 p-3">
-                      <Checkbox
-                        defaultChecked={Boolean(value)}
-                        disabled={readOnly || isPending}
-                        id={id}
-                        name={field.name}
-                      />
-                      <div>
-                        <FieldLabel htmlFor={id}>{field.label}</FieldLabel>
-                        {field.description ? (
-                          <FieldDescription>
-                            {field.description}
-                          </FieldDescription>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <FieldLabel htmlFor={id}>
-                        {field.label}
-                        {field.required ? (
-                          <span aria-hidden="true" className="text-destructive">
-                            *
-                          </span>
-                        ) : null}
-                      </FieldLabel>
-                      {field.type === "textarea" ? (
-                        <Textarea
-                          defaultValue={displayValue}
-                          disabled={readOnly || isPending}
-                          id={id}
-                          name={field.name}
-                          placeholder={field.placeholder}
-                          rows={4}
-                        />
-                      ) : field.type === "select" ? (
-                        <Select
-                          defaultValue={displayValue}
-                          disabled={readOnly || isPending}
-                          name={field.name}
-                          required={field.required}
-                        >
-                          <SelectTrigger
-                            aria-invalid={Boolean(error)}
-                            className="h-11! w-full"
-                            id={id}
-                          >
-                            <SelectValue
-                              placeholder={`Select ${field.label.toLowerCase()}`}
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {options.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input
-                          defaultValue={displayValue}
-                          disabled={readOnly || isPending}
-                          id={id}
-                          name={field.name}
-                          placeholder={field.placeholder}
-                          required={field.required}
-                          step={field.step}
-                          type={field.type ?? "text"}
-                        />
-                      )}
-                      {field.description ? (
-                        <FieldDescription>{field.description}</FieldDescription>
-                      ) : null}
-                    </>
-                  )}
-                  <FieldError>{error?.[0]}</FieldError>
-                </Field>
+                <ResourceFormField
+                  control={form.control}
+                  definitionKey={definition.key}
+                  fieldDef={
+                    locked && fieldDef.lockWhen?.message
+                      ? {
+                          ...fieldDef,
+                          description: fieldDef.lockWhen.message,
+                        }
+                      : fieldDef
+                  }
+                  isPending={isPending}
+                  key={fieldDef.name}
+                  options={references[fieldDef.name] ?? fieldDef.options ?? []}
+                  readOnly={readOnly || locked}
+                  row={row}
+                />
               );
             })}
           </FieldGroup>

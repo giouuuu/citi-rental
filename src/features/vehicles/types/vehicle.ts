@@ -1,9 +1,4 @@
-export type VehicleStatus =
-  | "available"
-  | "reserved"
-  | "rented"
-  | "maintenance"
-  | "inactive";
+export type VehicleStatus = "available" | "maintenance" | "inactive";
 
 export type Vehicle = {
   id: string;

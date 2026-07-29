@@ -29,6 +29,8 @@ export async function ResourceDetailScreen({
   archiveAction,
   saved,
   actions,
+  formReadOnly,
+  children,
 }: {
   definition: ResourceDefinition;
   id: string;
@@ -36,8 +38,16 @@ export async function ResourceDetailScreen({
   archiveAction?: ArchiveAction;
   saved?: boolean;
   actions?: ReactNode;
+  /** Force the edit form read-only (in addition to role checks). */
+  formReadOnly?: boolean | ((row: ResourceRow) => boolean);
+  children?: (parts: {
+    form: ReactNode;
+    row: ResourceRow;
+    canWrite: boolean;
+    formReadOnly: boolean;
+  }) => ReactNode;
 }) {
-  let role: AppRole = "administrator";
+  let role: AppRole = "customer";
   let row: ResourceRow | null =
     definition.demoRows?.find((item) => item.id === id) ?? null;
   const references: ResourceReferences = {};
@@ -76,9 +86,14 @@ export async function ResourceDetailScreen({
       .maybeSingle();
     const referenceRequests = definition.fields.map(async (field) => {
       if (!field.reference) return;
-      const { table, labelColumn, secondaryColumn, activeColumn } =
-        field.reference;
-      const columns = ["id", labelColumn, secondaryColumn]
+      const {
+        table,
+        labelColumn,
+        secondaryColumn,
+        activeColumn,
+        statusColumn,
+      } = field.reference;
+      const columns = ["id", labelColumn, secondaryColumn, statusColumn]
         .filter(Boolean)
         .join(",");
       let request = supabase
@@ -86,17 +101,22 @@ export async function ResourceDetailScreen({
         .select(columns)
         .eq("organization_id", profile.organization_id);
       if (activeColumn) request = request.eq(activeColumn, true);
+      // Keep current linked records visible on edit, even if normally excluded.
       const { data, error } = await request.limit(200);
       if (error) throw new Error(error.message);
       references[field.name] = (
         (data ?? []) as unknown as Record<string, unknown>[]
-      ).map((item) => ({
-        value: String(item.id),
-        label:
+      ).map((item) => {
+        const base =
           secondaryColumn && item[secondaryColumn]
             ? `${String(item[labelColumn])} · ${String(item[secondaryColumn])}`
-            : String(item[labelColumn] ?? item.id),
-      }));
+            : String(item[labelColumn] ?? item.id);
+        const status =
+          statusColumn && item[statusColumn]
+            ? ` · ${String(item[statusColumn])}`
+            : "";
+        return { value: String(item.id), label: `${base}${status}` };
+      });
     });
     const { data, error } = await rowRequest;
     await Promise.all(referenceRequests);
@@ -107,6 +127,11 @@ export async function ResourceDetailScreen({
   if (!row) notFound();
   const title = String(row[definition.titleField] ?? definition.singular);
   const canWrite = definition.writeRoles.includes(role);
+  const lockedByRule =
+    typeof formReadOnly === "function"
+      ? formReadOnly(row)
+      : Boolean(formReadOnly);
+  const isFormReadOnly = !canWrite || lockedByRule;
   return (
     <div className="space-y-6">
       <PageHeader
@@ -145,17 +170,29 @@ export async function ResourceDetailScreen({
           </AlertDescription>
         </Alert>
       ) : null}
-      <ResourceForm
-        action={action}
-        definition={{
-          key: definition.key,
-          singular: definition.singular,
-          fields: definition.fields,
-        }}
-        readOnly={!canWrite}
-        references={references}
-        row={row}
-      />
+      {(() => {
+        const form = (
+          <ResourceForm
+            action={action}
+            definition={{
+              key: definition.key,
+              singular: definition.singular,
+              fields: definition.fields,
+            }}
+            readOnly={isFormReadOnly}
+            references={references}
+            row={row}
+          />
+        );
+        if (children)
+          return children({
+            form,
+            row,
+            canWrite,
+            formReadOnly: isFormReadOnly,
+          });
+        return form;
+      })()}
     </div>
   );
 }

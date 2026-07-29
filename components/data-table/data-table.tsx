@@ -96,10 +96,12 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  const hasToolbar = Boolean(filterKey || toolbar);
+
   return (
     <div aria-busy={isPending} className={cn("space-y-4", className)}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {filterKey ? (
             <div className="relative w-full max-w-sm">
               <Search
@@ -121,7 +123,10 @@ export function DataTable<TData, TValue>({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="shrink-0" variant="outline">
+            <Button
+              className={cn("shrink-0", !hasToolbar && "sm:ml-auto")}
+              variant="outline"
+            >
               <Settings2 /> Columns
             </Button>
           </DropdownMenuTrigger>
@@ -153,7 +158,17 @@ export function DataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    style={
+                      header.column.columnDef.size
+                        ? {
+                            width: header.getSize(),
+                            maxWidth: header.column.columnDef.size,
+                          }
+                        : undefined
+                    }
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(

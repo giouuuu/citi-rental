@@ -11,10 +11,15 @@ export default async function LoginPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
+  const nextRaw = params.next;
+  const nextPath = Array.isArray(nextRaw) ? nextRaw[0] : nextRaw;
 
   return (
     <AuthShell>
-      <LoginForm resetComplete={params.reset === "success"} />
+      <LoginForm
+        nextPath={nextPath}
+        resetComplete={params.reset === "success"}
+      />
     </AuthShell>
   );
 }

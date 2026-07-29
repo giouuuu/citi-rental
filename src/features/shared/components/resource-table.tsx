@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useTransition } from "react";
+import { useMemo, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { SortingState } from "@tanstack/react-table";
 
@@ -27,12 +27,22 @@ type Props = {
   page: number;
   pageSize: number;
   hasNextPage: boolean;
+  toolbar?: ReactNode;
 };
 
 export function ResourceTable(props: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const columns = useMemo(() => buildResourceColumns(props), [props]);
+  const columns = useMemo(
+    () =>
+      buildResourceColumns({
+        columns: props.columns,
+        route: props.route,
+        singular: props.singular,
+        titleField: props.titleField,
+      }),
+    [props.columns, props.route, props.singular, props.titleField],
+  );
   const sorting: SortingState = [
     { id: props.query.sort, desc: props.query.direction === "desc" },
   ];
@@ -69,6 +79,7 @@ export function ResourceTable(props: Props) {
           route={props.route}
         />
       }
+      toolbar={props.toolbar}
     />
   );
 }

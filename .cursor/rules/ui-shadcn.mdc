@@ -1,0 +1,15 @@
+---
+description: Prefer shadcn/ui and project DataTable/Empty/Combobox patterns
+alwaysApply: true
+---
+
+# UI: shadcn first
+
+Follow **UI conventions (all agents)** in `AGENTS.md`. Summary for Cursor:
+
+- Prefer `components/ui/*` and existing wrappers before custom markup.
+- Missing shadcn pieces: add via the **shadcn MCP** (`npx shadcn@latest mcp` / project MCP), not hand-rolled copies.
+- Paginated resource tables: `DataTable` + server-side pagination (`components/data-table`, `src/features/shared/components/resource-table*`).
+- Empty lists/tables: `components/ui/empty.tsx`.
+- Searchable dropdowns: Combobox (Command + Popover); plain `Select` only for short fixed lists.
+- Form field rows: top-align (`items-start`), not center/end — error text must not misalign siblings.

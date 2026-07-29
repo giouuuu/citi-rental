@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 
 export async function archiveVehicleAction(
@@ -22,7 +23,7 @@ export async function archiveVehicleAction(
       .maybeSingle();
     if (profileError || !profile || !profile.is_active)
       throw new Error("Your profile is not active for this organization.");
-    if (profile.role !== "administrator")
+    if (!isAdminRole(profile.role))
       throw new Error("Your role cannot modify vehicles.");
 
     const { data, error } = await supabase

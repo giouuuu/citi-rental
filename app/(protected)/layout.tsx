@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell/app-shell";
+import { isAdminRole } from "@/features/shared/lib/app-roles";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -34,6 +35,10 @@ export default async function ProtectedLayout({ children }: LayoutProps<"/">) {
     if (!profile.is_active) {
       redirect("/access-disabled?reason=inactive");
     }
+
+    if (!isAdminRole(profile.role)) {
+      redirect("/access-disabled?reason=role");
+    }
   }
 
   return (
@@ -41,7 +46,7 @@ export default async function ProtectedLayout({ children }: LayoutProps<"/">) {
       demoMode={!configured}
       organizationName={profile?.organizations?.name ?? "Northline Rentals"}
       userName={profile?.full_name ?? "Alex Rivera"}
-      userRole={profile?.role ?? "administrator"}
+      userRole={profile?.role ?? "owner"}
     >
       {children}
     </AppShell>
