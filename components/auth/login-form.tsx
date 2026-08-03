@@ -9,6 +9,7 @@ import { Controller, useForm } from "react-hook-form";
 import { loginAction } from "@/app/(auth)/actions";
 import { LoginFormFooter } from "@/components/auth/login-form-footer";
 import { PasswordInput } from "@/components/auth/password-input";
+import { ZekeMark } from "@/components/brand/zeke-mark";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -71,9 +72,13 @@ export function LoginForm({
     <div>
       {embedded ? null : (
         <div className="mb-8 lg:hidden">
-          <span className="flex size-10 items-center justify-center rounded-md bg-brand-900 text-sm font-black text-white">
-            M
-          </span>
+          {isBookingReturn ? (
+            <ZekeMark className="size-10" variant="navy" />
+          ) : (
+            <span className="flex size-10 items-center justify-center rounded-md bg-brand-900 text-sm font-black text-white">
+              M
+            </span>
+          )}
         </div>
       )}
       {embedded ? null : (

@@ -68,7 +68,8 @@ export function BookingDateRangeCalendar<T extends FieldValues>({
                 <div>
                   <FieldLabel>Pick-up & return dates</FieldLabel>
                   <FieldDescription>
-                    Select a start and end date. Greyed dates are already booked.
+                    Select a start and end date. Amber dates with a strike-through
+                    are already booked.
                   </FieldDescription>
                 </div>
 
@@ -88,7 +89,7 @@ export function BookingDateRangeCalendar<T extends FieldValues>({
                   modifiers={{ booked: bookedDays }}
                   modifiersClassNames={{
                     booked:
-                      "bg-muted text-muted-foreground line-through opacity-55",
+                      "!bg-warning-surface !text-warning !opacity-100 line-through decoration-warning/70 [&_button]:!bg-warning-surface [&_button]:!text-warning [&_button]:!opacity-100",
                   }}
                   numberOfMonths={2}
                   onSelect={(range) => {
@@ -144,9 +145,12 @@ export function BookingDateRangeCalendar<T extends FieldValues>({
                   <p className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span
                       aria-hidden
-                      className="inline-block size-3 rounded-sm bg-muted opacity-70"
+                      className="inline-block size-3 rounded-sm bg-warning-surface ring-1 ring-warning/40"
                     />
-                    Booked / unavailable
+                    <span>
+                      <span className="font-medium text-warning">Booked</span>
+                      {" — not available"}
+                    </span>
                   </p>
                 ) : null}
 

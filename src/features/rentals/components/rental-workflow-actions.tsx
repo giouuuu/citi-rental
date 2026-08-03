@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarCheck2,
-  CheckCircle2,
+  ClipboardCheck,
   LoaderCircle,
-  Play,
   XCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,21 +17,20 @@ import {
   type RentalWorkflowStatus,
 } from "@/features/rentals/lib/booking-gates";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
+import { RentalInspectionSheet } from "@/features/inspections/components/rental-inspection-sheet";
+import type {
+  InspectionChecklist,
+  RentalInspection,
+  VehicleKnownDamage,
+} from "@/features/inspections/types/inspection";
 
 const ACTIONS: {
   status: RentalTransitionTarget;
   label: string;
   variant: "outline" | "destructive";
-  icon: "reserve" | "start" | "complete" | "cancel";
+  icon: "reserve" | "cancel";
 }[] = [
   { status: "reserved", label: "Reserve", variant: "outline", icon: "reserve" },
-  { status: "active", label: "Start", variant: "outline", icon: "start" },
-  {
-    status: "completed",
-    label: "Complete",
-    variant: "outline",
-    icon: "complete",
-  },
   {
     status: "cancelled",
     label: "Cancel",
@@ -48,35 +46,40 @@ function ActionIcon({
   icon: (typeof ACTIONS)[number]["icon"];
   pending: boolean;
 }) {
-  if (pending && icon === "start") {
-    return <LoaderCircle className="animate-spin" />;
-  }
+  if (pending) return <LoaderCircle className="animate-spin" />;
   if (icon === "reserve") return <CalendarCheck2 />;
-  if (icon === "start") return <Play />;
-  if (icon === "complete") return <CheckCircle2 />;
   return <XCircle />;
 }
 
 export function RentalWorkflowActions({
   id,
   status,
+  checklist = null,
+  knownDamages = [],
+  inspections = [],
+  startingOdometer = null,
 }: {
   id: string;
   status: RentalWorkflowStatus;
+  checklist?: InspectionChecklist | null;
+  knownDamages?: VehicleKnownDamage[];
+  inspections?: RentalInspection[];
+  startingOdometer?: number | null;
 }) {
   const [error, setError] = useState("");
   const { isPending, runMutation } = useMutationCoordinator();
   const router = useRouter();
 
+  const hasPickup = inspections.some((row) => row.inspectionType === "pickup");
+  const hasReturn = inspections.some((row) => row.inspectionType === "return");
+  const pickup = inspections.find((row) => row.inspectionType === "pickup");
+
   function transition(next: RentalTransitionTarget) {
     if (!canTransitionRental(status, next)) return;
     if (
-      next !== "active" &&
       next !== "reserved" &&
       !window.confirm(
-        next === "completed"
-          ? "Complete this rental and release the vehicle?"
-          : "Cancel this rental? This action keeps the record for history.",
+        "Cancel this rental? This action keeps the record for history.",
       )
     ) {
       return;
@@ -85,9 +88,6 @@ export function RentalWorkflowActions({
     const data = new FormData();
     data.set("id", id);
     data.set("status", next);
-    if (next === "completed") {
-      data.set("actual_return_at", new Date().toISOString());
-    }
 
     runMutation(async () => {
       const result = await transitionRentalAction(data);
@@ -100,11 +100,13 @@ export function RentalWorkflowActions({
     });
   }
 
+  const canStart = canTransitionRental(status, "active") && !hasPickup;
+  const canComplete = canTransitionRental(status, "completed") && !hasReturn;
   const visible = ACTIONS.filter((action) =>
     canTransitionRental(status, action.status),
   );
 
-  if (visible.length === 0) {
+  if (visible.length === 0 && !canStart && !canComplete) {
     return (
       <p className="text-sm text-muted-foreground">
         No booking actions available for a {status} rental.
@@ -119,17 +121,53 @@ export function RentalWorkflowActions({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
+
+      {canStart ? (
+        <RentalInspectionSheet
+          checklist={checklist}
+          inspectionType="pickup"
+          knownDamages={knownDamages}
+          rentalId={id}
+          startingOdometer={startingOdometer}
+          triggerLabel="Start with inspection"
+        />
+      ) : null}
+
+      {canComplete ? (
+        <RentalInspectionSheet
+          checklist={checklist}
+          inspectionType="return"
+          knownDamages={knownDamages}
+          referenceInspection={pickup ?? null}
+          rentalId={id}
+          startingOdometer={startingOdometer}
+          triggerLabel="Complete with inspection"
+        />
+      ) : null}
+
       {visible.map((action) => (
         <Button
-          disabled={isPending}
           key={action.status}
-          onClick={() => transition(action.status)}
+          disabled={isPending}
+          type="button"
           variant={action.variant}
+          onClick={() => transition(action.status)}
         >
           <ActionIcon icon={action.icon} pending={isPending} />
           {action.label}
         </Button>
       ))}
+
+      {hasPickup || hasReturn ? (
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <ClipboardCheck className="size-3.5" />
+          {hasPickup && hasReturn
+            ? "Pickup & return inspected"
+            : hasPickup
+              ? "Pickup inspected — use Complete with inspection to finish"
+              : "Return inspected"}
+        </span>
+      ) : null}
     </div>
   );
 }

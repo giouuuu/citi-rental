@@ -118,15 +118,26 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
             </p>
           ) : null}
 
-          {awaiting ? (
-            <Button asChild className="w-full sm:w-auto" size="sm">
-              <Link href={payHref}>
-                {booking.paymentStatus === "proof_submitted"
-                  ? "View payment status"
-                  : "Pay deposit"}
-              </Link>
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {awaiting ? (
+              <Button asChild className="w-full sm:w-auto" size="sm">
+                <Link href={payHref}>
+                  {booking.paymentStatus === "proof_submitted"
+                    ? "View payment status"
+                    : "Pay deposit"}
+                </Link>
+              </Button>
+            ) : null}
+            {booking.status === "active" ||
+            booking.status === "completed" ||
+            booking.status === "overdue" ? (
+              <Button asChild className="w-full sm:w-auto" size="sm" variant="outline">
+                <Link href={`/account/bookings/${booking.id}/condition`}>
+                  Condition report
+                </Link>
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
     </article>

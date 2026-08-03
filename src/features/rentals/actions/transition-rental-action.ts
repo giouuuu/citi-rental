@@ -73,8 +73,20 @@ export async function transitionRentalAction(
     }
 
     if (
-      parsed.data.status === "reserved" ||
       parsed.data.status === "active" ||
+      parsed.data.status === "completed"
+    ) {
+      return {
+        success: false,
+        message:
+          parsed.data.status === "active"
+            ? "Use Start with inspection to begin this rental."
+            : "Use Complete with inspection to finish this rental.",
+      };
+    }
+
+    if (
+      parsed.data.status === "reserved" ||
       parsed.data.status === "overdue"
     ) {
       const { data: availability, error: availabilityError } =
@@ -96,12 +108,8 @@ export async function transitionRentalAction(
       }
     }
 
-    // Staff starting a rental implies tracking consent at pickup.
-    // Customer online bookings lock the form, so consent must be set here.
-    if (
-      (parsed.data.status === "active" || parsed.data.status === "overdue") &&
-      !rental.tracking_consent_at
-    ) {
+    // Overdue transitions may still need tracking consent stamped.
+    if (parsed.data.status === "overdue" && !rental.tracking_consent_at) {
       const { data: customer } = await supabase
         .from("customers")
         .select("tracking_consent_at")

@@ -11,6 +11,12 @@ import type { RentalWorkflowStatus } from "@/features/rentals/lib/booking-gates"
 import { isPublicCustomerBooking } from "@/features/rentals/lib/is-public-customer-booking";
 import { needsDepositConfirmation } from "@/features/rentals/lib/needs-deposit-confirmation";
 import { listRentalPayments } from "@/features/rentals/services/list-rental-payments";
+import {
+  getInspectionChecklistForRental,
+  listRentalInspections,
+  listVehicleKnownDamages,
+  RentalInspectionsTab,
+} from "@/features/inspections";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,15 +37,22 @@ export default async function Page({
   let depositPercent: number | null = null;
   let paymentReference: string | null = null;
   let customerLabel: string | null = null;
+  let vehicleId: string | null = null;
+  let startingOdometer: number | null = null;
   let payments: Awaited<ReturnType<typeof listRentalPayments>> = [];
+  let inspections: Awaited<ReturnType<typeof listRentalInspections>> = [];
+  let checklist: Awaited<ReturnType<typeof getInspectionChecklistForRental>> =
+    null;
+  let knownDamages: Awaited<ReturnType<typeof listVehicleKnownDamages>> = [];
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
-    const [{ data }, paymentRows] = await Promise.all([
-      supabase
-        .from("rentals")
-        .select(
-          `
+    const [{ data }, paymentRows, inspectionRows, checklistData] =
+      await Promise.all([
+        supabase
+          .from("rentals")
+          .select(
+            `
           status,
           payment_status,
           quoted_total,
@@ -47,14 +60,20 @@ export default async function Page({
           balance_due,
           deposit_percent,
           payment_reference,
+          vehicle_id,
+          starting_odometer,
           customers ( full_name, phone_number )
         `,
-        )
-        .eq("id", id)
-        .maybeSingle(),
-      listRentalPayments(id),
-    ]);
+          )
+          .eq("id", id)
+          .maybeSingle(),
+        listRentalPayments(id),
+        listRentalInspections(id),
+        getInspectionChecklistForRental(id),
+      ]);
     payments = paymentRows;
+    inspections = inspectionRows;
+    checklist = checklistData;
     if (data?.status) status = data.status as RentalWorkflowStatus;
     paymentStatus = data?.payment_status ?? null;
     quotedTotal =
@@ -68,6 +87,10 @@ export default async function Page({
       typeof data?.payment_reference === "string"
         ? data.payment_reference
         : null;
+    vehicleId =
+      typeof data?.vehicle_id === "string" ? data.vehicle_id : null;
+    startingOdometer =
+      data?.starting_odometer != null ? Number(data.starting_odometer) : null;
 
     const customer = Array.isArray(data?.customers)
       ? data.customers[0]
@@ -82,6 +105,10 @@ export default async function Page({
           ? customer.phone_number
           : null;
       customerLabel = [name, phone].filter(Boolean).join(" · ") || null;
+    }
+
+    if (vehicleId) {
+      knownDamages = await listVehicleKnownDamages(vehicleId);
     }
   } else {
     const demo = rentalDefinition.demoRows?.find((row) => row.id === id);
@@ -101,7 +128,16 @@ export default async function Page({
   return (
     <ResourceDetailScreen
       action={saveRentalAction}
-      actions={<RentalWorkflowActions id={id} status={status} />}
+      actions={
+        <RentalWorkflowActions
+          checklist={checklist}
+          id={id}
+          inspections={inspections}
+          knownDamages={knownDamages}
+          startingOdometer={startingOdometer}
+          status={status}
+        />
+      }
       definition={rentalDefinition}
       formReadOnly={(row) => isPublicCustomerBooking(row)}
       id={id}
@@ -124,6 +160,9 @@ export default async function Page({
           }
           customerBookingLocked={isPublicCustomerBooking(row)}
           info={form}
+          inspections={
+            <RentalInspectionsTab inspections={inspections} rentalId={id} />
+          }
           payments={
             <RentalPaymentPanel
               balanceDue={balanceDue}

@@ -120,7 +120,7 @@ export const vehicleDefinition: ResourceDefinition = {
       type: "select",
       required: true,
       description:
-        "Operational status only. Reservations come from booking dates, not this field.",
+        "Operational status only. Reservations come from booking dates, not this field. Available requires all 6 gallery photos.",
       options: ["available", "maintenance", "inactive"].map((value) => ({
         value,
         label: value.replaceAll("_", " "),
@@ -128,9 +128,10 @@ export const vehicleDefinition: ResourceDefinition = {
     },
     {
       name: "photo",
-      label: "Vehicle photo",
+      label: "Cover photo (optional)",
       type: "image",
-      description: "Upload a JPEG, PNG, WebP, or GIF up to 5MB. Stored in Supabase Storage.",
+      description:
+        "Optional shortcut for the front gallery slot. Prefer the Photo gallery tab — all 6 angles are required before Available.",
       className: "md:col-span-2",
     },
     {

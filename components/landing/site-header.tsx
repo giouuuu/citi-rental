@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ZekeMark } from "@/components/brand/zeke-mark";
 import { SiteHeaderAccountMenu } from "@/components/landing/site-header-account-menu";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -60,9 +61,7 @@ export async function SiteHeader() {
           className="flex items-center gap-3 text-white"
           href="/"
         >
-          <span className="flex size-10 items-center justify-center rounded-lg bg-teal-500 text-lg font-black text-brand-950">
-            Z
-          </span>
+          <ZekeMark className="size-10" variant="teal" />
           <span>
             <span className="block text-sm font-bold tracking-[0.16em] uppercase">
               Zeke Car Rentals
@@ -95,10 +94,21 @@ export async function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {accountUser ? (
+            <SiteHeaderAccountMenu user={accountUser} />
+          ) : (
+            <Button
+              asChild
+              className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              size="default"
+              variant="outline"
+            >
+              <Link href="/login">Sign in</Link>
+            </Button>
+          )}
           <Button asChild size="default">
             <Link href="/#find-a-car">Find a car</Link>
           </Button>
-          {accountUser ? <SiteHeaderAccountMenu user={accountUser} /> : null}
         </div>
       </div>
     </header>

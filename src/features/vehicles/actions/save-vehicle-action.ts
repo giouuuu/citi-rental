@@ -7,6 +7,10 @@ import type { ActionResult } from "@/features/shared/types/resource";
 import { vehicleDefinition } from "@/features/vehicles/schemas/vehicle-definition";
 import { uploadVehiclePhoto } from "@/features/vehicles/lib/upload-vehicle-photo";
 import { isVehicleRateLockedByBookings } from "@/features/vehicles/lib/vehicle-rate-lock";
+import {
+  isCompleteVehicleGallery,
+  missingVehicleGalleryLabels,
+} from "@/features/vehicles/lib/vehicle-gallery";
 
 export async function saveVehicleAction(
   formData: FormData,
@@ -71,11 +75,12 @@ export async function saveVehicleAction(
       throw new Error("Your role cannot modify vehicles.");
 
     let savedId = id;
+    const requestedStatus = parsed.data.status;
 
     if (id) {
       const { data: current, error: currentError } = await supabase
         .from("vehicles")
-        .select("daily_rate")
+        .select("daily_rate, status")
         .eq("id", id)
         .eq("organization_id", profile.organization_id)
         .maybeSingle();
@@ -111,6 +116,29 @@ export async function saveVehicleAction(
         };
       }
 
+      if (
+        requestedStatus === "available" &&
+        current.status !== "available"
+      ) {
+        const { data: gallery } = await supabase
+          .from("vehicle_photos")
+          .select("kind")
+          .eq("vehicle_id", id)
+          .eq("organization_id", profile.organization_id);
+        if (!isCompleteVehicleGallery(gallery ?? [])) {
+          const missing = missingVehicleGalleryLabels(gallery ?? []);
+          return {
+            success: false,
+            message: `Upload all 6 required photos before setting status to available. Missing: ${missing.join(", ")}.`,
+            fieldErrors: {
+              status: [
+                `Upload the gallery first. Missing: ${missing.join(", ")}.`,
+              ],
+            },
+          };
+        }
+      }
+
       const updatePayload = rateLocked
         ? Object.fromEntries(
             Object.entries(payload).filter(([key]) => key !== "daily_rate"),
@@ -128,9 +156,16 @@ export async function saveVehicleAction(
       if (!data) throw new Error("The vehicle was not found in your organization.");
       savedId = data.id;
     } else {
+      // New vehicles cannot be Available until the 6-photo gallery is complete.
+      const createStatus =
+        requestedStatus === "available" ? "maintenance" : requestedStatus;
       const { data, error } = await supabase
         .from("vehicles")
-        .insert({ ...payload, organization_id: profile.organization_id })
+        .insert({
+          ...payload,
+          status: createStatus,
+          organization_id: profile.organization_id,
+        })
         .select("id")
         .single();
       if (error) throw error;
@@ -138,18 +173,32 @@ export async function saveVehicleAction(
     }
 
     if (photoFile && savedId) {
-      const publicUrl = await uploadVehiclePhoto({
+      const uploaded = await uploadVehiclePhoto({
         supabase,
         organizationId: profile.organization_id,
         vehicleId: savedId,
         file: photoFile,
+        kind: "front",
       });
       const { error: photoError } = await supabase
         .from("vehicles")
-        .update({ photo_url: publicUrl })
+        .update({ photo_url: uploaded.publicUrl })
         .eq("id", savedId)
         .eq("organization_id", profile.organization_id);
       if (photoError) throw photoError;
+
+      const { error: galleryError } = await supabase.from("vehicle_photos").upsert(
+        {
+          organization_id: profile.organization_id,
+          vehicle_id: savedId,
+          kind: "front",
+          storage_path: uploaded.path,
+          public_url: uploaded.publicUrl,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "vehicle_id,kind" },
+      );
+      if (galleryError) throw galleryError;
     }
 
     return {
@@ -172,6 +221,9 @@ export async function saveVehicleAction(
         success: false,
         message: "This vehicle is still linked to another active record.",
       };
+    if (message.includes("6 required vehicle photos")) {
+      return { success: false, message };
+    }
     return { success: false, message };
   }
 }

@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { VehiclePhotoKind } from "@/features/vehicles/lib/vehicle-gallery";
+
 export const VEHICLE_PHOTOS_BUCKET = "vehicle-photos";
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
@@ -28,8 +30,9 @@ export async function uploadVehiclePhoto(options: {
   organizationId: string;
   vehicleId: string;
   file: File;
-}): Promise<string> {
-  const { supabase, organizationId, vehicleId, file } = options;
+  kind?: VehiclePhotoKind | "cover";
+}): Promise<{ path: string; publicUrl: string }> {
+  const { supabase, organizationId, vehicleId, file, kind = "cover" } = options;
 
   if (!file.size) {
     throw new Error("Choose a vehicle photo to upload.");
@@ -41,7 +44,7 @@ export async function uploadVehiclePhoto(options: {
     throw new Error("Use a JPEG, PNG, WebP, or GIF image.");
   }
 
-  const path = `${organizationId}/${vehicleId}/cover-${Date.now()}.${extensionFor(file)}`;
+  const path = `${organizationId}/${vehicleId}/${kind}-${Date.now()}.${extensionFor(file)}`;
   const { error } = await supabase.storage
     .from(VEHICLE_PHOTOS_BUCKET)
     .upload(path, file, {
@@ -54,5 +57,5 @@ export async function uploadVehiclePhoto(options: {
   const { data } = supabase.storage
     .from(VEHICLE_PHOTOS_BUCKET)
     .getPublicUrl(path);
-  return data.publicUrl;
+  return { path, publicUrl: data.publicUrl };
 }
