@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { geofenceDefinition } from "@/features/geofences/schemas/geofence-definition";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 export async function saveGeofenceAction(formData: FormData): Promise<ActionResult<{ id: string; href: string }>> {
   if (!isSupabaseConfigured()) return { success: false, message: "Connect Supabase to create or update geofences." };
   const values = Object.fromEntries(geofenceDefinition.fields.map((field) => {
@@ -28,11 +29,13 @@ export async function saveGeofenceAction(formData: FormData): Promise<ActionResu
       const { data, error } = await supabase.from("geofences").update(payload).eq("id", id).eq("organization_id", profile.organization_id).select("id").maybeSingle();
       if (error) throw error;
       if (!data) throw new Error("The geofence was not found in your organization.");
+      revalidateResource(geofenceDefinition.route);
       return { success: true, data: { id, href: `${geofenceDefinition.route}/${id}` } };
     }
     const { data, error } = await supabase.from("geofences").insert({ ...payload, organization_id: profile.organization_id }).select("id").single();
     if (error) throw error;
     const savedId = String(data.id);
+    revalidateResource(geofenceDefinition.route);
     return { success: true, data: { id: savedId, href: `${geofenceDefinition.route}/${savedId}` } };
   } catch (error) {
     const message = error instanceof Error ? error.message : "The geofence could not be saved.";

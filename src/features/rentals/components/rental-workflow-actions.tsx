@@ -17,12 +17,14 @@ import {
   type RentalWorkflowStatus,
 } from "@/features/rentals/lib/booking-gates";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
+import { ConfirmActionDialog } from "@/features/shared/components/confirm-action-dialog";
 import { RentalInspectionSheet } from "@/features/inspections/components/rental-inspection-sheet";
 import type {
   InspectionChecklist,
   RentalInspection,
   VehicleKnownDamage,
 } from "@/features/inspections/types/inspection";
+import { toast } from "sonner";
 
 const ACTIONS: {
   status: RentalTransitionTarget;
@@ -38,6 +40,13 @@ const ACTIONS: {
     icon: "cancel",
   },
 ];
+
+const TRANSITION_TOAST: Record<RentalTransitionTarget, string> = {
+  reserved: "Rental reserved.",
+  active: "Rental started.",
+  completed: "Rental completed.",
+  cancelled: "Rental cancelled.",
+};
 
 function ActionIcon({
   icon,
@@ -76,14 +85,6 @@ export function RentalWorkflowActions({
 
   function transition(next: RentalTransitionTarget) {
     if (!canTransitionRental(status, next)) return;
-    if (
-      next !== "reserved" &&
-      !window.confirm(
-        "Cancel this rental? This action keeps the record for history.",
-      )
-    ) {
-      return;
-    }
 
     const data = new FormData();
     data.set("id", id);
@@ -93,6 +94,7 @@ export function RentalWorkflowActions({
       const result = await transitionRentalAction(data);
       if (result.success) {
         setError("");
+        toast.success(TRANSITION_TOAST[next]);
         router.refresh();
       } else {
         setError(result.message);
@@ -145,18 +147,37 @@ export function RentalWorkflowActions({
         />
       ) : null}
 
-      {visible.map((action) => (
-        <Button
-          key={action.status}
-          disabled={isPending}
-          type="button"
-          variant={action.variant}
-          onClick={() => transition(action.status)}
-        >
-          <ActionIcon icon={action.icon} pending={isPending} />
-          {action.label}
-        </Button>
-      ))}
+      {visible.map((action) =>
+        action.status === "cancelled" ? (
+          <ConfirmActionDialog
+            key={action.status}
+            confirmLabel="Cancel rental"
+            cancelLabel="Keep rental"
+            description="The record is kept for history and the vehicle is released for the booked dates."
+            error={error}
+            icon={XCircle}
+            title="Cancel this rental?"
+            trigger={
+              <Button disabled={isPending} type="button" variant="destructive">
+                <ActionIcon icon={action.icon} pending={isPending} />
+                {action.label}
+              </Button>
+            }
+            onConfirm={() => transition("cancelled")}
+          />
+        ) : (
+          <Button
+            key={action.status}
+            disabled={isPending}
+            type="button"
+            variant={action.variant}
+            onClick={() => transition(action.status)}
+          >
+            <ActionIcon icon={action.icon} pending={isPending} />
+            {action.label}
+          </Button>
+        ),
+      )}
 
       {hasPickup || hasReturn ? (
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

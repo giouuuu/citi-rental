@@ -19,6 +19,7 @@ import { RentalPaymentHistoryList } from "@/features/rentals/components/rental-p
 import type { RentalPayment } from "@/features/rentals/types/rental-payment";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
+import { toast } from "sonner";
 
 type RentalPaymentPanelProps = {
   rentalId: string;
@@ -50,6 +51,7 @@ export function RentalPaymentPanel({
       if (result.success) {
         setError("");
         setShowRecord(false);
+        toast.success("Payment recorded.");
         router.refresh();
       } else {
         setError(result.message);

@@ -26,7 +26,13 @@ export async function listVehiclePhotos(
     .select("id, vehicle_id, kind, storage_path, public_url")
     .eq("vehicle_id", vehicleId)
     .order("kind");
-  if (error) throw error;
+  // The gallery is one panel on the vehicle page. Throwing here takes the whole
+  // page down — including the form and rental history — so degrade to an empty
+  // gallery and log instead, matching listVehicleKnownDamages.
+  if (error) {
+    console.error("listVehiclePhotos failed", error.message);
+    return [];
+  }
 
   return ((data ?? []) as VehiclePhotoRow[]).map((row) => ({
     id: row.id,

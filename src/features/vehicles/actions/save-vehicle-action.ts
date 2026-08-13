@@ -11,6 +11,7 @@ import {
   isCompleteVehicleGallery,
   missingVehicleGalleryLabels,
 } from "@/features/vehicles/lib/vehicle-gallery";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 export async function saveVehicleAction(
   formData: FormData,
@@ -201,6 +202,7 @@ export async function saveVehicleAction(
       if (galleryError) throw galleryError;
     }
 
+    revalidateResource("/vehicles");
     return {
       success: true,
       data: {

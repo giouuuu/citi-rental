@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2, LoaderCircle, Save } from "lucide-react";
+import { AlertCircle, LoaderCircle, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,11 @@ export function ResourceForm({
         applyServerFieldErrors(form.setError, result.fieldErrors);
       }
       if (result.success) {
+        toast.success(
+          row
+            ? `${definition.singular} saved.`
+            : `${definition.singular} created.`,
+        );
         if (!row && result.data?.href) router.replace(result.data.href);
         else router.refresh();
       }
@@ -108,12 +114,9 @@ export function ResourceForm({
               <AlertDescription>{state.message}</AlertDescription>
             </Alert>
           ) : null}
-          {state?.success ? (
-            <Alert className="border-success/20 bg-success-surface">
-              <CheckCircle2 className="text-success" />
-              <AlertTitle>Saved</AlertTitle>
-            </Alert>
-          ) : null}
+          {/* Success is a toast, not an inline alert — on create the user is
+              already being routed to the new record's page. Errors stay inline,
+              next to the fields that need fixing. */}
           <FieldGroup className="grid gap-5 md:grid-cols-2">
             {definition.fields.map((fieldDef) => {
               const lockSource = fieldDef.lockWhen

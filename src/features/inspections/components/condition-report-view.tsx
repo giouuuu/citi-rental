@@ -94,6 +94,7 @@ export function ConditionReportView({
               ? `₱${Number(ret.fuelChargeAmount).toLocaleString()}`
               : "—"}
             {ret.fuelChargeNote ? ` — ${ret.fuelChargeNote}` : ""}
+            {ret.fuelPaymentId ? " (recorded on payment ledger)" : ""}
           </p>
           <p>
             Damage penalty:{" "}
@@ -101,9 +102,7 @@ export function ConditionReportView({
               ? `₱${Number(ret.damageChargeAmount).toLocaleString()}`
               : "—"}
             {ret.damageChargeNote ? ` — ${ret.damageChargeNote}` : ""}
-            {ret.damageChargeAmount != null && Number(ret.damageChargeAmount) > 0
-              ? " (recorded on payment ledger)"
-              : ""}
+            {ret.damagePaymentId ? " (recorded on payment ledger)" : ""}
           </p>
         </section>
       ) : null}

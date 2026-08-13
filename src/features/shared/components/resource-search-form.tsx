@@ -1,52 +1,91 @@
 "use client";
 
-import { Search } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { Search, X } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 
-type ResourceSearchFormValues = {
-  q: string;
-};
-
+/**
+ * Search applies as you type — there is no submit button. Feedback comes from
+ * the loading bar above the table, and Enter skips the debounce.
+ *
+ * The input is deliberately uncontrolled: a controlled value fed from server
+ * props would clobber characters typed while a response is in flight.
+ */
 export function ResourceSearchForm({
-  plural,
   defaultQuery,
-  pageSize,
-  sort,
-  direction,
+  onCommit,
+  onSearch,
+  plural,
 }: {
-  plural: string;
   defaultQuery: string;
-  pageSize: number;
-  sort: string;
-  direction: "asc" | "desc";
+  /** Apply immediately — Enter, or clearing the field. */
+  onCommit: (value: string) => void;
+  /** Apply after the debounce. */
+  onSearch: (value: string) => void;
+  plural: string;
 }) {
-  const { register } = useForm<ResourceSearchFormValues>({
-    defaultValues: { q: defaultQuery },
-  });
+  const inputRef = useRef<HTMLInputElement>(null);
+  const label = `Search ${plural.toLowerCase()}`;
+
+  // Keep the field in step with the URL on back/forward, but never while the
+  // user is typing in it.
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input || document.activeElement === input) return;
+    input.value = defaultQuery;
+  }, [defaultQuery]);
+
+  const clear = () => {
+    const input = inputRef.current;
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    onCommit("");
+  };
 
   return (
-    <form className="flex w-full max-w-md gap-2" method="get" role="search">
-      <input name="page_size" type="hidden" value={pageSize} />
-      <input name="sort" type="hidden" value={sort} />
-      <input name="direction" type="hidden" value={direction} />
-      <div className="relative min-w-0 flex-1">
-        <Search
-          aria-hidden="true"
-          className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+    <form
+      className="w-full max-w-md"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onCommit(inputRef.current?.value.trim() ?? "");
+      }}
+      role="search"
+    >
+      <InputGroup className="h-9">
+        <InputGroupAddon>
+          <Search aria-hidden="true" />
+        </InputGroupAddon>
+        <InputGroupInput
+          aria-label={label}
+          defaultValue={defaultQuery}
+          name="q"
+          onChange={(event) => onSearch(event.target.value.trim())}
+          placeholder={`${label}…`}
+          ref={inputRef}
+          type="search"
         />
-        <Input
-          aria-label={`Search ${plural.toLowerCase()}`}
-          className="pl-9"
-          placeholder={`Search ${plural.toLowerCase()}…`}
-          {...register("q")}
-        />
-      </div>
-      <Button type="submit" variant="outline">
-        Search
-      </Button>
+        {defaultQuery ? (
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton
+              aria-label="Clear search"
+              onClick={clear}
+              size="icon-xs"
+              type="button"
+              variant="ghost"
+            >
+              <X aria-hidden="true" />
+            </InputGroupButton>
+          </InputGroupAddon>
+        ) : null}
+      </InputGroup>
     </form>
   );
 }

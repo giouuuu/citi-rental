@@ -25,6 +25,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import {
   applyServerFieldErrors,
@@ -105,13 +106,10 @@ export function RegisterForm() {
   return (
     <div aria-busy={pending}>
       {pending ? (
-        <div
+        <Progress
           aria-label="Creating account"
-          className="fixed inset-x-0 top-0 z-50 h-1 overflow-hidden bg-primary/20"
-          role="progressbar"
-        >
-          <div className="h-full w-1/2 animate-pulse bg-primary motion-reduce:animate-none" />
-        </div>
+          className="fixed inset-x-0 top-0 z-50 h-1 rounded-none bg-primary/20"
+        />
       ) : null}
       <div className="mb-8 lg:hidden">
         <span className="flex size-10 items-center justify-center rounded-md bg-brand-900 text-sm font-black text-white">

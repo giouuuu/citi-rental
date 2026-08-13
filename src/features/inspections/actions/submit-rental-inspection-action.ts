@@ -9,6 +9,7 @@ import {
   uploadInspectionPhoto,
   uploadInspectionPhotoFromDataUrl,
 } from "@/features/inspections/services/upload-inspection-photo";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 function parseJsonField<T>(value: FormDataEntryValue | null, fallback: T): T {
   if (typeof value !== "string" || !value.trim()) return fallback;
@@ -171,6 +172,7 @@ export async function submitRentalInspectionAction(
     });
     if (error) throw error;
 
+    revalidateResource("/rentals");
     return {
       success: true,
       data: { inspectionId: data as string },
@@ -213,6 +215,7 @@ export async function resolveVehicleKnownDamageAction(
       .eq("id", id)
       .eq("organization_id", profile.organization_id);
     if (error) throw error;
+    revalidateResource("/rentals");
     return { success: true };
   } catch (error) {
     return { success: false, message: mapRentalDbError(error) };
@@ -238,6 +241,7 @@ export async function cloneInspectionTemplateAction(
       },
     );
     if (error) throw error;
+    revalidateResource("/rentals");
     return { success: true, data: { templateId: data as string } };
   } catch (error) {
     return { success: false, message: mapRentalDbError(error) };

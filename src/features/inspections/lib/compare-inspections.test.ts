@@ -20,6 +20,8 @@ function baseInspection(
     fuelChargeNote: null,
     damageChargeAmount: null,
     damageChargeNote: null,
+    fuelPaymentId: null,
+    damagePaymentId: null,
     customerSignaturePath: null,
     customerAcknowledgedAt: null,
     inspectedBy: null,

@@ -6,6 +6,7 @@ import { isStaffRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 const schema = z.object({
   rentalId: z.uuid("Select a rental."),
@@ -75,6 +76,7 @@ export async function recordRentalPaymentAction(
       throw new Error(payload?.message || "Could not record payment.");
     }
 
+    revalidateResource("/rentals");
     return { success: true, data: { paymentId: payload.payment_id } };
   } catch (error) {
     return {

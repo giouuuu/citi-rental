@@ -8,6 +8,9 @@ import {
   useTransition,
 } from "react";
 
+import { Progress } from "@/components/ui/progress";
+import { useDelayedPending } from "@/hooks/use-delayed-pending";
+
 type MutationContextValue = {
   isPending: boolean;
   runMutation: (operation: () => Promise<void>) => void;
@@ -24,17 +27,18 @@ export function MutationProvider({ children }: { children: React.ReactNode }) {
     () => ({ isPending, runMutation }),
     [isPending, runMutation],
   );
+  // Writes get the viewport-level bar; a table re-query gets its own bar above
+  // the rows. Same primitive, different position, so the two never read as the
+  // same event.
+  const showBar = useDelayedPending(isPending);
 
   return (
     <MutationContext.Provider value={value}>
-      {isPending ? (
-        <div
+      {showBar ? (
+        <Progress
           aria-label="Saving changes"
-          className="fixed inset-x-0 top-14 z-50 h-1 overflow-hidden bg-primary/15"
-          role="progressbar"
-        >
-          <div className="h-full w-1/3 animate-pulse bg-primary" />
-        </div>
+          className="fixed inset-x-0 top-14 z-50 h-1 rounded-none bg-primary/15"
+        />
       ) : null}
       <div aria-busy={isPending}>{children}</div>
     </MutationContext.Provider>

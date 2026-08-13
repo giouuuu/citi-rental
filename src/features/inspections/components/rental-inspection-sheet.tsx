@@ -51,8 +51,11 @@ export function RentalInspectionSheet({
         {triggerLabel}
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl" side="right">
-          <SheetHeader>
+        <SheetContent
+          className="flex w-full flex-col gap-0 p-0 sm:max-w-2xl lg:max-w-4xl"
+          side="right"
+        >
+          <SheetHeader className="shrink-0 gap-1 border-b border-border px-5 py-4 pr-14">
             <SheetTitle>
               {inspectionType === "pickup" ? "Pickup inspection" : "Return inspection"}
             </SheetTitle>
@@ -63,17 +66,15 @@ export function RentalInspectionSheet({
               rental.
             </SheetDescription>
           </SheetHeader>
-          <div className="mt-4 px-4 pb-6">
-            <RentalInspectionForm
-              checklist={checklist}
-              inspectionType={inspectionType}
-              knownDamages={knownDamages}
-              referenceInspection={referenceInspection}
-              rentalId={rentalId}
-              startingOdometer={startingOdometer}
-              onDone={() => setOpen(false)}
-            />
-          </div>
+          <RentalInspectionForm
+            checklist={checklist}
+            inspectionType={inspectionType}
+            knownDamages={knownDamages}
+            referenceInspection={referenceInspection}
+            rentalId={rentalId}
+            startingOdometer={startingOdometer}
+            onDone={() => setOpen(false)}
+          />
         </SheetContent>
       </Sheet>
     </>

@@ -28,6 +28,7 @@ import {
   valuesToFormData,
 } from "@/features/shared/lib/form-utils";
 import type { ActionResult } from "@/features/shared/types/resource";
+import { toast } from "sonner";
 
 export function AlertResolutionForm({
   id,
@@ -57,7 +58,10 @@ export function AlertResolutionForm({
       if (!result.success && result.fieldErrors) {
         applyServerFieldErrors(form.setError, result.fieldErrors);
       }
-      if (result.success) router.refresh();
+      if (result.success) {
+        toast.success("Alert acknowledged.");
+        router.refresh();
+      }
     });
   }
 

@@ -82,6 +82,8 @@ export type RentalInspection = {
   fuelChargeNote: string | null;
   damageChargeAmount: number | null;
   damageChargeNote: string | null;
+  fuelPaymentId: string | null;
+  damagePaymentId: string | null;
   customerSignaturePath: string | null;
   customerAcknowledgedAt: string | null;
   inspectedBy: string | null;

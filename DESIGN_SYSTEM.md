@@ -1,9 +1,11 @@
-# Car Rental GPS Tracking Application
+# Car Rental Application
 ## Elegant Professional Design System
 
 **Design direction:** Premium fleet operations, trustworthy, calm, precise, and modern.
 
-This design system is intended for the car-rental GPS tracking application defined in `APPLICATION_FEATURES.md`. It is optimized for a Next.js, TypeScript, Tailwind CSS, Supabase, and map-based administrative interface.
+This design system serves the car-rental application defined in `APPLICATION_FEATURES.md`. It is optimized for a Next.js, TypeScript, Tailwind CSS, and Supabase administrative interface plus the public booking site.
+
+Map-related patterns in this document belong to the parked tracking scope (`GPS_TRACKING_FEATURES.md`) — keep the tokens, but do not build map UI while that scope is parked.
 
 ---
 

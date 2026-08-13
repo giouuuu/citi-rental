@@ -9,6 +9,7 @@ import {
   type VehiclePhotoKind,
 } from "@/features/vehicles/lib/vehicle-gallery";
 import { uploadVehiclePhoto } from "@/features/vehicles/lib/upload-vehicle-photo";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 const KIND_SET = new Set<string>(VEHICLE_GALLERY_KINDS.map((slot) => slot.value));
 
@@ -102,6 +103,7 @@ export async function saveVehicleGalleryAction(
       };
     }
 
+    revalidateResource("/vehicles");
     return { success: true, data: { uploaded } };
   } catch (error) {
     return {

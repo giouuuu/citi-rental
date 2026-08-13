@@ -150,6 +150,8 @@ export async function getMyBookingConditionReport(
       fuelChargeNote: null,
       damageChargeAmount: null,
       damageChargeNote: null,
+      fuelPaymentId: null,
+      damagePaymentId: null,
       customerSignaturePath: null,
       customerAcknowledgedAt: inspection.customer_acknowledged_at,
       inspectedBy: null,

@@ -2,7 +2,10 @@
 
 import { cn } from "@/lib/utils";
 import type { InspectionItemStatus } from "@/features/inspections/types/inspection";
-import { isDamageStatus } from "@/features/inspections/lib/checklist-areas";
+import {
+  isDamageStatus,
+  statusLabel,
+} from "@/features/inspections/lib/checklist-areas";
 
 type ZoneState = {
   zone: string;
@@ -40,9 +43,8 @@ const ZONES: Array<{
 ];
 
 function fillFor(status: InspectionItemStatus | undefined) {
-  if (!status || status === "ok") return "color-mix(in oklab, var(--color-muted) 70%, white)";
-  if (isDamageStatus(status)) {
-    return "color-mix(in oklab, var(--color-destructive) 35%, white)";
+  if (status && isDamageStatus(status)) {
+    return "color-mix(in oklab, var(--color-destructive) 30%, white)";
   }
   return "color-mix(in oklab, var(--color-muted) 70%, white)";
 }
@@ -59,29 +61,49 @@ export function InspectionBodyMap({
   className?: string;
 }) {
   const byZone = new Map(zones.map((entry) => [entry.zone, entry.status]));
+  const flaggedCount = zones.filter((entry) => isDamageStatus(entry.status)).length;
+  const selected = ZONES.find((zone) => zone.id === selectedZone);
+  const selectedStatus = selectedZone ? byZone.get(selectedZone) : undefined;
 
   return (
-    <div className={cn("rounded-lg border border-border bg-muted/20 p-3", className)}>
-      <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        Body map — tap a panel
-      </p>
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-muted/20 p-4",
+        className,
+      )}
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Body map
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {flaggedCount > 0
+            ? `${flaggedCount} flagged`
+            : "Tap a panel to jump"}
+        </p>
+      </div>
+
       <svg
         aria-label="Vehicle body condition map"
-        className="mx-auto h-auto w-full max-w-xs"
+        className="mx-auto h-auto w-full max-w-70"
         role="img"
         viewBox="0 0 200 190"
       >
         {ZONES.map((zone) => {
           const status = byZone.get(zone.id);
-          const selected = selectedZone === zone.id;
+          const isSelected = selectedZone === zone.id;
           return (
             <path
               key={zone.id}
+              className={cn(
+                "transition-[stroke,fill]",
+                onSelect && "cursor-pointer hover:brightness-95 focus:outline-none",
+              )}
               d={zone.d}
               fill={fillFor(status)}
               role={onSelect ? "button" : undefined}
-              stroke={selected ? "var(--color-brand-700, #0f766e)" : "var(--color-border)"}
-              strokeWidth={selected ? 2.5 : 1}
+              stroke={isSelected ? "var(--color-primary)" : "var(--color-border)"}
+              strokeWidth={isSelected ? 2.5 : 1}
               tabIndex={onSelect ? 0 : undefined}
               onClick={() => onSelect?.(zone.id)}
               onKeyDown={(event) => {
@@ -97,6 +119,48 @@ export function InspectionBodyMap({
           );
         })}
       </svg>
+
+      <div
+        aria-live="polite"
+        className="mt-3 min-h-8 rounded-lg border border-border/60 bg-background px-3 py-1.5 text-xs"
+      >
+        {selected ? (
+          <span className="flex items-center justify-between gap-2">
+            <span className="truncate font-medium text-foreground">
+              {selected.label}
+            </span>
+            <span
+              className={cn(
+                "shrink-0",
+                selectedStatus && isDamageStatus(selectedStatus)
+                  ? "text-destructive"
+                  : "text-muted-foreground",
+              )}
+            >
+              {selectedStatus ? statusLabel(selectedStatus) : "Not on checklist"}
+            </span>
+          </span>
+        ) : (
+          <span className="text-muted-foreground">No panel selected</span>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="size-2.5 rounded-[3px] border border-border bg-muted"
+          />
+          OK
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="size-2.5 rounded-[3px] border border-destructive/30 bg-destructive/30"
+          />
+          Flagged
+        </span>
+      </div>
     </div>
   );
 }

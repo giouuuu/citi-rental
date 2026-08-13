@@ -16,6 +16,7 @@ import {
 } from "@tanstack/react-table";
 import { Search, Settings2 } from "lucide-react";
 
+import { DataTableLoadingBar } from "@/components/data-table/data-table-loading-bar";
 import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,9 +40,14 @@ import { cn } from "@/lib/utils";
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  /**
+   * Client-side column filter over the rows currently in `data`. Only correct
+   * for fully-loaded tables — never use it on a server-paginated resource list,
+   * where it would silently search one page and report the rest as absent.
+   */
   filterKey?: string;
   filterPlaceholder?: string;
-  emptyMessage?: string;
+  emptyMessage?: React.ReactNode;
   toolbar?: React.ReactNode;
   className?: string;
   controlledSorting?: SortingState;
@@ -99,7 +105,11 @@ export function DataTable<TData, TValue>({
   const hasToolbar = Boolean(filterKey || toolbar);
 
   return (
-    <div aria-busy={isPending} className={cn("space-y-4", className)}>
+    <div
+      aria-busy={isPending}
+      className={cn("space-y-3", className)}
+      data-pending={isPending || undefined}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {filterKey ? (
@@ -152,7 +162,16 @@ export function DataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
+      <DataTableLoadingBar pending={isPending} />
+      {/* The toolbar above stays crisp so the search field keeps focus and
+          keystrokes stay legible; only the rows dim while they are stale. */}
+      <div
+        className={cn(
+          "overflow-x-auto rounded-lg border border-border bg-card shadow-xs",
+          "transition-opacity duration-150 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+          isPending && "pointer-events-none opacity-60 select-none",
+        )}
+      >
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -195,7 +214,7 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))
             ) : (
-              <TableRow>
+              <TableRow className="hover:bg-transparent">
                 <TableCell
                   className="h-32 text-center text-muted-foreground"
                   colSpan={columns.length}

@@ -6,6 +6,7 @@ import { isStaffRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 const schema = z.object({
   id: z.uuid("Select a rental."),
@@ -48,6 +49,7 @@ export async function confirmRentalDepositAction(
       throw new Error(payload?.message || "Could not confirm deposit.");
     }
 
+    revalidateResource("/rentals");
     return { success: true, data: { id: parsed.data.id } };
   } catch (error) {
     return {

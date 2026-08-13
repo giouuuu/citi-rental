@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/design-system/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ResourceSearchForm } from "@/features/shared/components/resource-search-form";
 import { ResourceTable } from "@/features/shared/components/resource-table";
 import type {
   ResourceDefinition,
@@ -45,6 +44,7 @@ export function ResourceList({
       <Card>
         <CardContent className="pt-5">
           <ResourceTable
+            canWrite={canWrite}
             columns={definition.columns}
             hasNextPage={result.hasNextPage}
             page={result.page}
@@ -55,15 +55,6 @@ export function ResourceList({
             rows={result.rows}
             singular={definition.singular}
             titleField={definition.titleField}
-            toolbar={
-              <ResourceSearchForm
-                defaultQuery={query.q}
-                direction={query.direction}
-                pageSize={query.pageSize}
-                plural={definition.plural}
-                sort={query.sort}
-              />
-            }
           />
         </CardContent>
       </Card>

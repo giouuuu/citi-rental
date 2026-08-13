@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isStaffRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 export async function archiveCustomerAction(formData: FormData): Promise<ActionResult> {
   const id = String(formData.get("id") ?? "");
   if (!id) return { success: false, message: "The customer ID is missing." };
@@ -16,6 +17,7 @@ export async function archiveCustomerAction(formData: FormData): Promise<ActionR
     const { data, error } = await supabase.from("customers").update({ is_blocked: true }).eq("id", id).eq("organization_id", profile.organization_id).select("id").maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("The customer was not found in your organization.");
+    revalidateResource("/customers");
     return { success: true };
   } catch (error) { return { success: false, message: error instanceof Error ? error.message : "The customer could not be blocked." }; }
 }

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { deviceDefinition } from "@/features/devices/schemas/device-definition";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 export async function saveDeviceAction(formData: FormData): Promise<ActionResult<{ id: string; href: string }>> {
   if (!isSupabaseConfigured()) return { success: false, message: "Connect Supabase to create or update GPS devices." };
   const vehicleId = String(formData.get("vehicle_id") ?? "");
@@ -38,6 +39,7 @@ export async function saveDeviceAction(formData: FormData): Promise<ActionResult
     }
     const { error: assignmentError } = await supabase.rpc("assign_gps_device", { p_device_id: savedId, p_vehicle_id: vehicleId || null });
     if (assignmentError) throw assignmentError;
+    revalidateResource(deviceDefinition.route);
     return { success: true, data: { id: savedId, href: `${deviceDefinition.route}/${savedId}` } };
   } catch (error) {
     const message = error instanceof Error ? error.message : "The GPS device could not be saved.";

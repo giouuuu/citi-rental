@@ -1,8 +1,6 @@
 "use client";
 
-import { LoaderCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,14 +17,12 @@ export function InspectionSignoffStep({
   damageChargeAmount,
   damageChargeNote,
   newDamageCount = 0,
-  pending,
   onSignature,
   onAcknowledged,
   onFuelChargeAmount,
   onFuelChargeNote,
   onDamageChargeAmount,
   onDamageChargeNote,
-  onSubmit,
 }: {
   inspectionType: InspectionType;
   signature: string | null;
@@ -36,31 +32,30 @@ export function InspectionSignoffStep({
   damageChargeAmount: string;
   damageChargeNote: string;
   newDamageCount?: number;
-  pending: boolean;
   onSignature: (value: string | null) => void;
   onAcknowledged: (value: boolean) => void;
   onFuelChargeAmount: (value: string) => void;
   onFuelChargeNote: (value: string) => void;
   onDamageChargeAmount: (value: string) => void;
   onDamageChargeNote: (value: string) => void;
-  onSubmit: () => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-2xl space-y-6">
       {inspectionType === "return" ? (
-        <div className="space-y-3">
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold">Charges</h3>
           {newDamageCount > 0 ? (
             <Alert>
               <AlertTitle>New damage detected</AlertTitle>
               <AlertDescription>
                 {newDamageCount} panel
                 {newDamageCount === 1 ? "" : "s"} worsened since pickup. Enter a
-                damage penalty below — it posts to the rental payment ledger.
-                Use 0 to waive.
+                damage penalty below — it posts to the rental payment ledger. Use
+                0 to waive.
               </AlertDescription>
             </Alert>
           ) : null}
-          <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
+          <div className="grid gap-4 @md:grid-cols-2 @md:items-start">
             <div className="space-y-1.5">
               <Label htmlFor="fuel-charge">Fuel shortfall charge (₱)</Label>
               <Input
@@ -81,7 +76,9 @@ export function InspectionSignoffStep({
             <div className="space-y-1.5">
               <Label htmlFor="damage-charge">
                 Damage penalty (₱)
-                {newDamageCount > 0 ? " *" : ""}
+                {newDamageCount > 0 ? (
+                  <span className="text-destructive"> *</span>
+                ) : null}
               </Label>
               <Input
                 id="damage-charge"
@@ -99,15 +96,15 @@ export function InspectionSignoffStep({
               />
             </div>
           </div>
-        </div>
+        </section>
       ) : null}
 
-      <div className="space-y-2">
-        <Label>Customer signature</Label>
+      <section className="space-y-2">
+        <h3 className="text-sm font-semibold">Customer signature</h3>
         <InspectionSignaturePad value={signature} onChange={onSignature} />
-      </div>
+      </section>
 
-      <label className="flex items-start gap-2 text-sm">
+      <label className="flex items-start gap-2.5 rounded-lg border border-border bg-card p-3 text-sm">
         <Checkbox
           checked={acknowledged}
           onCheckedChange={(value) => onAcknowledged(value === true)}
@@ -116,13 +113,6 @@ export function InspectionSignoffStep({
           Customer acknowledges this {inspectionType} condition report.
         </span>
       </label>
-
-      <Button disabled={pending} type="button" onClick={onSubmit}>
-        {pending ? <LoaderCircle className="animate-spin" /> : null}
-        {inspectionType === "pickup"
-          ? "Submit pickup & start rental"
-          : "Submit return & complete rental"}
-      </Button>
     </div>
   );
 }

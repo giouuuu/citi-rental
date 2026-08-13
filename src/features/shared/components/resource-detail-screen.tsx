@@ -145,6 +145,7 @@ export async function ResourceDetailScreen({
                   href={definition.route}
                   id={id}
                   label={definition.archive.label}
+                  successMessage={`${definition.singular} updated — ${definition.archive.label.toLowerCase()} applied.`}
                 />
               ) : null}
             </>

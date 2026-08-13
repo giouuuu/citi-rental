@@ -137,15 +137,14 @@ export function InspectionComparison({
             <p>
               Fuel: ₱{Number(ret.fuelChargeAmount).toLocaleString()}
               {ret.fuelChargeNote ? ` — ${ret.fuelChargeNote}` : ""}
+              {ret.fuelPaymentId ? " (posted to payment ledger)" : ""}
             </p>
           ) : null}
           {ret.damageChargeAmount != null ? (
             <p>
               Damage penalty: ₱{Number(ret.damageChargeAmount).toLocaleString()}
               {ret.damageChargeNote ? ` — ${ret.damageChargeNote}` : ""}
-              {Number(ret.damageChargeAmount) > 0
-                ? " (posted to payment ledger)"
-                : ""}
+              {ret.damagePaymentId ? " (posted to payment ledger)" : ""}
             </p>
           ) : null}
         </div>

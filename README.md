@@ -1,10 +1,12 @@
 # City Rentals
 
-Car-rental operations and GPS fleet tracking built with Next.js 16, TypeScript, Tailwind CSS, shadcn/ui, TanStack Table, and Supabase.
+Car-rental operations and public booking built with Next.js 16, TypeScript, Tailwind CSS, shadcn/ui, TanStack Table, and Supabase.
 
-## Current milestone
+## Scope
 
-Milestone 1 provides the reusable design system, responsive protected shell, authentication and password recovery flows, organization/profile RLS migration, simulator-ready dashboard, and internal component preview at `/design-system`.
+The current build is **rental-first**: fleet records, customers, rentals, and the public booking flow. The spec is `APPLICATION_FEATURES.md`.
+
+GPS tracking (devices, live map, route history, geofences, tracking alerts, Traccar) is **parked** — its spec lives in `GPS_TRACKING_FEATURES.md`. Tracking code already in the repo stays compiling but is not being extended.
 
 Feature destinations from later milestones are intentionally represented by clear placeholder states. Their data services, validation, permissions, and tests will be introduced together in the milestone that owns them.
 

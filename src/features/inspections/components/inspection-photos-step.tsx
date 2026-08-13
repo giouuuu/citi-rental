@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { CheckIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,6 +12,90 @@ import {
 } from "@/features/inspections/lib/checklist-areas";
 import type { ChecklistDraftItem } from "@/features/inspections/components/inspection-checklist-panel";
 import type { RentalInspection } from "@/features/inspections/types/inspection";
+import { cn } from "@/lib/utils";
+
+/** Everything still missing before the photos step can be left. */
+export function missingInspectionPhotos({
+  items,
+  overviewFiles,
+  damageFiles,
+}: {
+  items: ChecklistDraftItem[];
+  overviewFiles: Record<string, File | null>;
+  damageFiles: Record<string, File | null>;
+}) {
+  const missingRequired = REQUIRED_OVERVIEW_PHOTO_KINDS.filter(
+    (kind) => !overviewFiles[kind.value],
+  );
+  const missingDamage = items.filter(
+    (item) => isDamageStatus(item.status) && !damageFiles[item.areaCode],
+  );
+  return { missingRequired, missingDamage };
+}
+
+function PhotoSlot({
+  id,
+  label,
+  required = false,
+  file,
+  referenceUrl,
+  referenceLabel,
+  onFile,
+}: {
+  id: string;
+  label: string;
+  required?: boolean;
+  file: File | null;
+  referenceUrl?: string | null;
+  referenceLabel?: string;
+  onFile: (file: File | null) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "space-y-2 rounded-lg border border-border bg-card p-3 transition-colors",
+        file && "border-primary/40 bg-primary/5",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <Label className="min-w-0 truncate" htmlFor={id}>
+          {label}
+          {required ? <span className="text-destructive"> *</span> : null}
+        </Label>
+        {file ? (
+          <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-primary">
+            <CheckIcon className="size-3.5" />
+            Added
+          </span>
+        ) : null}
+      </div>
+
+      {referenceUrl ? (
+        <div className="relative aspect-video overflow-hidden rounded-md border bg-muted">
+          <Image
+            alt={referenceLabel ?? "Reference photo"}
+            className="object-cover"
+            fill
+            sizes="240px"
+            src={referenceUrl}
+            unoptimized
+          />
+          <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
+            {referenceLabel ?? "Pickup reference"}
+          </span>
+        </div>
+      ) : null}
+
+      <Input
+        accept="image/*"
+        capture="environment"
+        id={id}
+        type="file"
+        onChange={(event) => onFile(event.target.files?.[0] ?? null)}
+      />
+    </div>
+  );
+}
 
 export function InspectionPhotosStep({
   items,
@@ -20,7 +104,6 @@ export function InspectionPhotosStep({
   referenceInspection = null,
   onOverview,
   onDamage,
-  onContinue,
 }: {
   items: ChecklistDraftItem[];
   overviewFiles: Record<string, File | null>;
@@ -28,7 +111,6 @@ export function InspectionPhotosStep({
   referenceInspection?: RentalInspection | null;
   onOverview: (kind: string, file: File | null) => void;
   onDamage: (areaCode: string, file: File | null) => void;
-  onContinue: () => void;
 }) {
   const damaged = items.filter((item) => isDamageStatus(item.status));
   const pickupPhotos = referenceInspection?.photos ?? [];
@@ -49,136 +131,79 @@ export function InspectionPhotosStep({
     if (areaCode) pickupDamageByArea.set(areaCode, photo);
   }
 
-  const missingRequired = REQUIRED_OVERVIEW_PHOTO_KINDS.filter(
-    (kind) => !overviewFiles[kind.value],
-  );
-  const missingDamage = damaged.filter((item) => !damageFiles[item.areaCode]);
-  const canContinue =
-    missingRequired.length === 0 && missingDamage.length === 0;
+  const capturedRequired = REQUIRED_OVERVIEW_PHOTO_KINDS.filter(
+    (kind) => overviewFiles[kind.value],
+  ).length;
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold">Required angles</h3>
-        <p className="text-xs text-muted-foreground">
-          Capture front, rear, both sides, interior, and dashboard on every
-          inspection.
-        </p>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
-        {REQUIRED_OVERVIEW_PHOTO_KINDS.map((kind) => {
-          const pickup = pickupByKind.get(kind.value);
-          return (
-            <div key={kind.value} className="space-y-1.5">
-              <Label htmlFor={kind.value}>
-                {kind.label} *
-                {overviewFiles[kind.value] ? " ✓" : ""}
-              </Label>
-              {pickup?.signedUrl ? (
-                <div className="relative mb-1 aspect-video overflow-hidden rounded-md border bg-muted">
-                  <Image
-                    alt={`Pickup ${kind.label}`}
-                    className="object-cover"
-                    fill
-                    sizes="240px"
-                    src={pickup.signedUrl}
-                    unoptimized
-                  />
-                  <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
-                    Pickup reference
-                  </span>
-                </div>
-              ) : null}
-              <Input
-                accept="image/*"
-                capture="environment"
-                id={kind.value}
-                type="file"
-                onChange={(event) =>
-                  onOverview(kind.value, event.target.files?.[0] ?? null)
-                }
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      <div>
-        <h3 className="mb-2 text-sm font-semibold">Optional readings photos</h3>
-        <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
-          {OPTIONAL_OVERVIEW_PHOTO_KINDS.map((kind) => (
-            <div key={kind.value} className="space-y-1.5">
-              <Label htmlFor={kind.value}>
-                {kind.label}
-                {overviewFiles[kind.value] ? " ✓" : ""}
-              </Label>
-              <Input
-                accept="image/*"
-                capture="environment"
-                id={kind.value}
-                type="file"
-                onChange={(event) =>
-                  onOverview(kind.value, event.target.files?.[0] ?? null)
-                }
-              />
-            </div>
+    <div className="space-y-6">
+      <section className="space-y-3">
+        <header className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold">Required angles</h3>
+            <p className="text-xs text-muted-foreground">
+              Front, rear, both sides, interior, and dashboard.
+            </p>
+          </div>
+          <span className="text-xs font-medium text-muted-foreground">
+            {capturedRequired} / {REQUIRED_OVERVIEW_PHOTO_KINDS.length} captured
+          </span>
+        </header>
+        <div className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
+          {REQUIRED_OVERVIEW_PHOTO_KINDS.map((kind) => (
+            <PhotoSlot
+              key={kind.value}
+              file={overviewFiles[kind.value] ?? null}
+              id={kind.value}
+              label={kind.label}
+              referenceLabel="Pickup reference"
+              referenceUrl={pickupByKind.get(kind.value)?.signedUrl}
+              required
+              onFile={(file) => onOverview(kind.value, file)}
+            />
           ))}
         </div>
-      </div>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold">Optional readings photos</h3>
+        <div className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
+          {OPTIONAL_OVERVIEW_PHOTO_KINDS.map((kind) => (
+            <PhotoSlot
+              key={kind.value}
+              file={overviewFiles[kind.value] ?? null}
+              id={kind.value}
+              label={kind.label}
+              onFile={(file) => onOverview(kind.value, file)}
+            />
+          ))}
+        </div>
+      </section>
 
       {damaged.length > 0 ? (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold">Damage close-ups (required)</h3>
-          {damaged.map((item) => {
-            const prior = pickupDamageByArea.get(item.areaCode);
-            return (
-              <div key={item.areaCode} className="space-y-1.5">
-                <Label htmlFor={`damage-${item.areaCode}`}>
-                  {item.label} *
-                  {damageFiles[item.areaCode] ? " ✓" : ""}
-                </Label>
-                {prior?.signedUrl ? (
-                  <div className="relative mb-1 aspect-video max-w-xs overflow-hidden rounded-md border bg-muted">
-                    <Image
-                      alt={`Pickup ${item.label}`}
-                      className="object-cover"
-                      fill
-                      sizes="240px"
-                      src={prior.signedUrl}
-                      unoptimized
-                    />
-                    <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
-                      Pickup close-up
-                    </span>
-                  </div>
-                ) : null}
-                <Input
-                  accept="image/*"
-                  capture="environment"
-                  id={`damage-${item.areaCode}`}
-                  type="file"
-                  onChange={(event) =>
-                    onDamage(item.areaCode, event.target.files?.[0] ?? null)
-                  }
-                />
-              </div>
-            );
-          })}
-        </div>
+        <section className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold">Damage close-ups</h3>
+            <p className="text-xs text-muted-foreground">
+              One photo per panel flagged on the condition step.
+            </p>
+          </div>
+          <div className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
+            {damaged.map((item) => (
+              <PhotoSlot
+                key={item.areaCode}
+                file={damageFiles[item.areaCode] ?? null}
+                id={`damage-${item.areaCode}`}
+                label={item.label}
+                referenceLabel="Pickup close-up"
+                referenceUrl={pickupDamageByArea.get(item.areaCode)?.signedUrl}
+                required
+                onFile={(file) => onDamage(item.areaCode, file)}
+              />
+            ))}
+          </div>
+        </section>
       ) : null}
-
-      <Button disabled={!canContinue} type="button" onClick={onContinue}>
-        {canContinue
-          ? "Continue to sign-off"
-          : `Add ${[
-              ...missingRequired.map((kind) => kind.label),
-              ...missingDamage.map((item) => item.label),
-            ]
-              .slice(0, 3)
-              .join(", ")}${
-              missingRequired.length + missingDamage.length > 3 ? "…" : ""
-            }`}
-      </Button>
     </div>
   );
 }

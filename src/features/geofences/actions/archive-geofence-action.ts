@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 export async function archiveGeofenceAction(formData: FormData): Promise<ActionResult> {
   const id = String(formData.get("id") ?? "");
   if (!id) return { success: false, message: "The geofence ID is missing." };
@@ -16,6 +17,7 @@ export async function archiveGeofenceAction(formData: FormData): Promise<ActionR
     const { data, error } = await supabase.from("geofences").update({ is_active: false }).eq("id", id).eq("organization_id", profile.organization_id).select("id").maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("The geofence was not found in your organization.");
+    revalidateResource("/geofences");
     return { success: true };
   } catch (error) { return { success: false, message: error instanceof Error ? error.message : "The geofence could not be disabled." }; }
 }

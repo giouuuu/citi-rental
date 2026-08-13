@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import { settingsSchema } from "@/features/settings/schemas/settings-schema";
 import type { ActionResult } from "@/features/shared/types/resource";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 export async function saveSettingsAction(
   formData: FormData,
@@ -63,6 +64,7 @@ export async function saveSettingsAction(
       .eq("id", profile.organization_id);
     if (paymentError) throw paymentError;
 
+    revalidateResource("/settings");
     return { success: true };
   } catch (error) {
     return {

@@ -11,6 +11,15 @@ const supabaseHostname = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Client Cache lifetimes. `dynamic` defaults to 0, so today every return to
+    // a list re-queries Postgres; 30s absorbs the open-a-record-then-go-back
+    // loop without a round trip. Safe only because every mutation action calls
+    // revalidateResource() — see src/features/shared/lib/revalidate-resource.ts.
+    // Trade-off: another admin's edit can take up to 30s to appear for a user
+    // who is navigating rather than reloading. Lower this to 10 if that bites.
+    staleTimes: { dynamic: 30, static: 300 },
+  },
   transpilePackages: [
     "@fullcalendar/core",
     "@fullcalendar/react",

@@ -10,6 +10,7 @@ import {
   parseAvailabilityResult,
   type RentalWorkflowStatus,
 } from "@/features/rentals/lib/booking-gates";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 const transitionSchema = z.object({
   id: z.uuid(),
@@ -136,6 +137,7 @@ export async function transitionRentalAction(
       p_notes: parsed.data.notes || null,
     });
     if (error) throw error;
+    revalidateResource("/rentals");
     return { success: true };
   } catch (error) {
     return { success: false, message: mapRentalDbError(error) };

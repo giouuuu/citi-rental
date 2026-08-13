@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, LoaderCircle, Save, TriangleAlert } from "lucide-react";
+import { LoaderCircle, Save, TriangleAlert } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -44,6 +44,7 @@ import {
 } from "@/features/shared/lib/form-utils";
 import type { ActionResult } from "@/features/shared/types/resource";
 import type { z } from "zod";
+import { toast } from "sonner";
 
 type SettingsFormValues = z.input<typeof settingsSchema>;
 type SettingsParsed = z.output<typeof settingsSchema>;
@@ -76,7 +77,10 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
       if (!result.success && result.fieldErrors) {
         applyServerFieldErrors(form.setError, result.fieldErrors);
       }
-      if (result.success) router.refresh();
+      if (result.success) {
+        toast.success("Settings saved.");
+        router.refresh();
+      }
     });
   }
 
@@ -95,26 +99,12 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
           noValidate
           onSubmit={form.handleSubmit(onSubmit)}
         >
-          {state ? (
-            <Alert
-              className={
-                state.success
-                  ? "border-success/20 bg-success-surface"
-                  : undefined
-              }
-              variant={state.success ? "default" : "destructive"}
-            >
-              {state.success ? (
-                <CheckCircle2 className="text-success" />
-              ) : (
-                <TriangleAlert />
-              )}
-              <AlertTitle>
-                {state.success ? "Settings saved" : "Unable to save"}
-              </AlertTitle>
-              <AlertDescription>
-                {state.success ? "Organization settings saved." : state.message}
-              </AlertDescription>
+          {/* Success is a toast; only failures stay pinned next to the fields. */}
+          {state && !state.success ? (
+            <Alert variant="destructive">
+              <TriangleAlert />
+              <AlertTitle>Unable to save</AlertTitle>
+              <AlertDescription>{state.message}</AlertDescription>
             </Alert>
           ) : null}
           <FieldGroup className="grid gap-5 md:grid-cols-2">

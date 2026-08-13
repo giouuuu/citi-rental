@@ -27,6 +27,8 @@ type InspectionRow = {
   fuel_charge_note: string | null;
   damage_charge_amount: number | string | null;
   damage_charge_note: string | null;
+  fuel_payment_id: string | null;
+  damage_payment_id: string | null;
   customer_signature_path: string | null;
   customer_acknowledged_at: string | null;
   inspected_by: string | null;
@@ -72,6 +74,8 @@ function mapInspection(
         ? null
         : Number(row.damage_charge_amount),
     damageChargeNote: row.damage_charge_note,
+    fuelPaymentId: row.fuel_payment_id,
+    damagePaymentId: row.damage_payment_id,
     customerSignaturePath: row.customer_signature_path,
     customerAcknowledgedAt: row.customer_acknowledged_at,
     inspectedBy: row.inspected_by,
@@ -120,6 +124,8 @@ export async function listRentalInspections(
       fuel_charge_note,
       damage_charge_amount,
       damage_charge_note,
+      fuel_payment_id,
+      damage_payment_id,
       customer_signature_path,
       customer_acknowledged_at,
       inspected_by,

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { userDefinition } from "@/features/users/schemas/user-definition";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 export async function saveUserAction(formData: FormData): Promise<ActionResult<{ id: string; href: string }>> {
   if (!isSupabaseConfigured()) return { success: false, message: "Connect Supabase to create or update users." };
   const values = Object.fromEntries(userDefinition.fields.map((field) => {
@@ -28,8 +29,10 @@ export async function saveUserAction(formData: FormData): Promise<ActionResult<{
     if (!data) {
       const { data: inserted, error: insertError } = await supabase.from("profiles").insert({ ...parsed.data, organization_id: profile.organization_id }).select("id").single();
       if (insertError) throw insertError;
+      revalidateResource("/settings/users");
       return { success: true, data: { id: String(inserted.id), href: `${userDefinition.route}/${inserted.id}` } };
     }
+    revalidateResource("/settings/users");
     return { success: true, data: { id, href: `${userDefinition.route}/${id}` } };
   } catch (error) {
     const message = error instanceof Error ? error.message : "The user could not be saved.";

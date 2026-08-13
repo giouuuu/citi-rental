@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { resolveFallbackSort } from "@/features/shared/lib/resource-table-url";
 import type {
   ResourceDefinition,
   ResourceQuery,
@@ -24,11 +25,7 @@ export function parseResourceQuery(
   );
   const parsed = querySchema.parse(values);
   const allowedSorts = new Set(definition.columns.map((column) => column.key));
-  const fallbackSort = definition.columns.some(
-    (column) => column.key === "updated_at",
-  )
-    ? "updated_at"
-    : (definition.columns[0]?.key ?? "id");
+  const fallbackSort = resolveFallbackSort(definition.columns);
   return {
     q: parsed.q,
     page: parsed.page,

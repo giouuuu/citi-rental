@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/card";
 import { confirmRentalDepositAction } from "@/features/rentals/actions/confirm-rental-deposit-action";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
+import { ConfirmActionDialog } from "@/features/shared/components/confirm-action-dialog";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
+import { toast } from "sonner";
 
 type ConfirmDepositCardProps = {
   rentalId: string;
@@ -38,19 +40,13 @@ export function ConfirmDepositCard({
   const router = useRouter();
 
   function confirmDeposit() {
-    if (
-      !window.confirm(
-        "Confirm that the deposit payment was received? This will reserve the car.",
-      )
-    ) {
-      return;
-    }
     const data = new FormData();
     data.set("id", rentalId);
     runMutation(async () => {
       const result = await confirmRentalDepositAction(data);
       if (result.success) {
         setError("");
+        toast.success("Deposit confirmed.");
         router.refresh();
       } else {
         setError(result.message);
@@ -119,14 +115,26 @@ export function ConfirmDepositCard({
         ) : null}
       </CardContent>
       <CardFooter>
-        <Button disabled={isPending} onClick={confirmDeposit} type="button">
-          {isPending ? (
-            <LoaderCircle className="animate-spin" />
-          ) : (
-            <CheckCircle2 />
-          )}
-          Confirm deposit → reserve
-        </Button>
+        <ConfirmActionDialog
+          confirmLabel="Confirm deposit"
+          description={`Confirm the deposit${
+            depositAmount != null ? ` of ${formatPhp(Number(depositAmount))}` : ""
+          } was received. This reserves the car for the booked dates.`}
+          icon={CheckCircle2}
+          title="Confirm the deposit was received?"
+          trigger={
+            <Button disabled={isPending} type="button">
+              {isPending ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <CheckCircle2 />
+              )}
+              Confirm deposit → reserve
+            </Button>
+          }
+          variant="default"
+          onConfirm={confirmDeposit}
+        />
       </CardFooter>
     </Card>
   );

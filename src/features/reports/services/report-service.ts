@@ -6,42 +6,67 @@ import { createClient } from "@/lib/supabase/server";
 export type ReportSummary = {
   activeRentals: number;
   overdueRentals: number;
-  unresolvedAlerts: number;
-  offlineTrackers: number;
+  returnsDueToday: number;
+  revenueThisMonth: number;
 };
+
+function startOfMonth(now: Date): string {
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+  ).toISOString();
+}
+
+function endOfDay(now: Date): string {
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59),
+  ).toISOString();
+}
 
 export async function getReportSummary(): Promise<ReportSummary> {
   if (!isSupabaseConfigured())
     return {
       activeRentals: 11,
       overdueRentals: 1,
-      unresolvedAlerts: 3,
-      offlineTrackers: 2,
+      returnsDueToday: 3,
+      revenueThisMonth: 148_500,
     };
+
   const supabase = await createClient();
-  const [active, overdue, alerts, offline] = await Promise.all([
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  const [active, overdue, dueToday, revenue] = await Promise.all([
     supabase
       .from("rentals")
       .select("id", { count: "exact", head: true })
       .eq("status", "active"),
+    // Counts stored `overdue` plus active rentals already past due, so the
+    // number agrees with isRentalOverdue() even between sweeps.
     supabase
       .from("rentals")
       .select("id", { count: "exact", head: true })
-      .eq("status", "overdue"),
+      .or(`status.eq.overdue,and(status.eq.active,expected_return_at.lt.${nowIso})`),
     supabase
-      .from("tracking_events")
+      .from("rentals")
       .select("id", { count: "exact", head: true })
-      .eq("is_acknowledged", false),
+      .in("status", ["active", "overdue"])
+      .lte("expected_return_at", endOfDay(now)),
     supabase
-      .from("gps_devices")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "offline")
-      .eq("is_active", true),
+      .from("payments")
+      .select("amount, payment_type")
+      .eq("status", "confirmed")
+      .gte("confirmed_at", startOfMonth(now)),
   ]);
+
+  const revenueThisMonth = (revenue.data ?? []).reduce((total, row) => {
+    const amount = Number(row.amount) || 0;
+    return row.payment_type === "refund" ? total - amount : total + amount;
+  }, 0);
+
   return {
     activeRentals: active.count ?? 0,
     overdueRentals: overdue.count ?? 0,
-    unresolvedAlerts: alerts.count ?? 0,
-    offlineTrackers: offline.count ?? 0,
+    returnsDueToday: dueToday.count ?? 0,
+    revenueThisMonth: Math.round(revenueThisMonth * 100) / 100,
   };
 }

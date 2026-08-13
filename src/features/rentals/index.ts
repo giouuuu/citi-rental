@@ -8,6 +8,9 @@ export { RentalDetailTabs } from "./components/rental-detail-tabs";
 export { ConfirmDepositCard } from "./components/confirm-deposit-card";
 export { needsDepositConfirmation } from "./lib/needs-deposit-confirmation";
 export { listRentalPayments } from "./services/list-rental-payments";
+export { sweepOverdueRentals } from "./services/sweep-overdue-rentals";
+export { isRentalOverdue, overdueHours } from "./lib/overdue";
+export type { OverdueCandidate } from "./lib/overdue";
 export {
   allowedRentalTransitions,
   canTransitionRental,

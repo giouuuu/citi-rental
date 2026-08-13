@@ -10,6 +10,7 @@ import {
 } from "@/features/rentals/lib/booking-gates";
 import { isPublicCustomerBooking } from "@/features/rentals/lib/is-public-customer-booking";
 import { isStaffRole } from "@/features/shared/lib/app-roles";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 function toTimestamptz(value: string): string {
   const date = new Date(value);
@@ -143,6 +144,7 @@ export async function saveRentalAction(
         .maybeSingle();
       if (error) throw error;
       if (!data) throw new Error("The rental was not found in your organization.");
+      revalidateResource("/rentals");
       return {
         success: true,
         data: { id, href: `${rentalDefinition.route}/${id}` },
@@ -156,6 +158,7 @@ export async function saveRentalAction(
       .single();
     if (error) throw error;
     const savedId = String(data.id);
+    revalidateResource("/rentals");
     return {
       success: true,
       data: { id: savedId, href: `${rentalDefinition.route}/${savedId}` },

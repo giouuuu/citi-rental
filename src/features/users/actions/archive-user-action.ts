@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 export async function archiveUserAction(formData: FormData): Promise<ActionResult> {
   const id = String(formData.get("id") ?? "");
   if (!id) return { success: false, message: "The user ID is missing." };
@@ -15,6 +16,7 @@ export async function archiveUserAction(formData: FormData): Promise<ActionResul
     const { data, error } = await supabase.from("profiles").update({ is_active: false }).eq("id", id).eq("organization_id", profile.organization_id).select("id").maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("The user was not found in your organization.");
+    revalidateResource("/settings/users");
     return { success: true };
   } catch (error) { return { success: false, message: error instanceof Error ? error.message : "The user could not be disabled." }; }
 }

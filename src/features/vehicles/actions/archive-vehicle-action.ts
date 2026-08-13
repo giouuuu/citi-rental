@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 export async function archiveVehicleAction(
   formData: FormData,
@@ -35,6 +36,7 @@ export async function archiveVehicleAction(
       .maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("The vehicle was not found in your organization.");
+    revalidateResource("/vehicles");
     return { success: true };
   } catch (error) {
     const message =

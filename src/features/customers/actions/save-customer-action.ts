@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isStaffRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { customerDefinition } from "@/features/customers/schemas/customer-definition";
+import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 export async function saveCustomerAction(formData: FormData): Promise<ActionResult<{ id: string; href: string }>> {
   if (!isSupabaseConfigured()) return { success: false, message: "Connect Supabase to create or update customers." };
@@ -29,11 +30,13 @@ export async function saveCustomerAction(formData: FormData): Promise<ActionResu
       const { data, error } = await supabase.from("customers").update(payload).eq("id", id).eq("organization_id", profile.organization_id).select("id").maybeSingle();
       if (error) throw error;
       if (!data) throw new Error("The customer was not found in your organization.");
+      revalidateResource(customerDefinition.route);
       return { success: true, data: { id, href: `${customerDefinition.route}/${id}` } };
     }
     const { data, error } = await supabase.from("customers").insert({ ...payload, organization_id: profile.organization_id }).select("id").single();
     if (error) throw error;
     const savedId = String(data.id);
+    revalidateResource(customerDefinition.route);
     return { success: true, data: { id: savedId, href: `${customerDefinition.route}/${savedId}` } };
   } catch (error) {
     const message = error instanceof Error ? error.message : "The customer could not be saved.";

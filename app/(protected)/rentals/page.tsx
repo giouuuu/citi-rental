@@ -1,10 +1,13 @@
-import { rentalDefinition } from "@/features/rentals";
+import { rentalDefinition, sweepOverdueRentals } from "@/features/rentals";
 import { ResourceIndexScreen } from "@/features/shared";
-export default function Page({
+
+export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await sweepOverdueRentals();
+
   return (
     <ResourceIndexScreen
       definition={rentalDefinition}
