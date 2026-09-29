@@ -24,9 +24,19 @@ Without Supabase environment variables, the app runs in a clearly labeled UI dem
 ## Verification
 
 - `npm run lint`
-- `npm run typecheck`
+- `npm run typecheck` (run `npx next typegen` first on a fresh clone)
 - `npm test`
 - `npm run build`
+- `npm run test:e2e` — Playwright against the app in demo mode (Supabase env vars forced empty, so it never touches a real database). Needs Chromium: `npx playwright install chromium`.
+- `npm run db:verify` — applies every migration to a throwaway `supabase/postgres` Docker container and runs the pgTAP suites in `supabase/tests/` (RLS, public booking identity, cancellation, analytics). Needs Docker running.
+
+## Analytics
+
+`/analytics` (owner/admin) reports revenue, bookings by source, fleet utilization, per-car performance, idle cars, customer mix, top customers, and how full the next 30 days are. Numbers come from the `analytics_*` RPCs in `20260929103000_analytics_rpcs.sql`, bucketed by Manila day. Definitions that matter:
+
+- **Collected** = confirmed deposits, balances, and adjustments minus refunds, dated by confirmation. Penalties are billed charges, not money — they never count as collected.
+- **Utilization** = rented car-days ÷ available car-days (non-inactive cars), a partial day counting as a day.
+- **Outstanding** = what cars that have gone out still owe (quote + penalties − collected). Reserved balances are due at pickup, so they are excluded.
 
 ## Security notes
 

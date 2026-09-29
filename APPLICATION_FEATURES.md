@@ -302,6 +302,25 @@ Do not implement complex accounting or financial reporting.
 
 ---
 
+## 5.8 Analytics (ops)
+
+Owner/admin only (`/analytics`). Filters: period preset or custom dates (Manila, inclusive,
+≤ 400 days) and grouping (day/week/month); every filter lives in the URL.
+
+- Headline numbers with period-over-period change: collected revenue, bookings (and website
+  share), fleet utilization, outstanding balance, cancellation rate, late-return rate, average
+  rental length and lead time, penalties billed.
+- Trends: collected revenue, bookings by source (website vs front desk), utilization.
+- Booked ahead: share of the fleet reserved for each of the next 30 days.
+- Cars: collected, utilization, revenue per day, penalties per car; idle available cars.
+- Customers: active, first-time vs returning, repeat rate, blocked; top customers with lifetime
+  value, balance owed, and late returns. Customer detail has a Rentals tab with the same figures.
+
+Metric definitions live in `20260929103000_analytics_rpcs.sql` and `README.md` §Analytics.
+Cancellations capture a structured reason (`rentals.cancellation_reason`).
+
+---
+
 ## 6. Database Schema
 
 Use UUID primary keys and `timestamptz`. Tables in this scope:

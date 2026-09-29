@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEMO_CUSTOMERS } from "@/features/shared/lib/demo-workspace";
 import {
   optionalEmail,
   optionalText,
@@ -105,14 +106,13 @@ export const customerDefinition: ResourceDefinition = {
     { key: "is_blocked", label: "Blocked", format: "boolean" },
     { key: "updated_at", label: "Last updated", format: "datetime" },
   ],
-  demoRows: [
-    {
-      id: "demo-customer",
-      full_name: "Mika Santos",
-      phone_number: "+63 917 555 0184",
-      drivers_license_number: "N01-23-456789",
-      is_blocked: false,
-      updated_at: "2026-07-15T00:40:00Z",
-    },
-  ],
+  demoRows: DEMO_CUSTOMERS.map((customer) => ({
+    id: customer.id,
+    full_name: customer.fullName,
+    phone_number: customer.phoneNumber,
+    email: customer.email,
+    drivers_license_number: customer.driversLicenseNumber,
+    is_blocked: customer.isBlocked,
+    updated_at: customer.createdAt,
+  })),
 };

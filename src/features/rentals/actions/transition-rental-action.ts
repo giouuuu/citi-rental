@@ -11,6 +11,7 @@ import {
   type RentalWorkflowStatus,
 } from "@/features/rentals/lib/booking-gates";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
+import { CANCELLATION_REASON_VALUES } from "@/features/rentals/lib/cancellation-reasons";
 
 const transitionSchema = z.object({
   id: z.uuid(),
@@ -19,6 +20,10 @@ const transitionSchema = z.object({
   ending_odometer: z.coerce.number().min(0).optional(),
   ending_fuel_level: z.coerce.number().min(0).max(100).optional(),
   notes: z.string().trim().max(2000).optional(),
+  cancellation_reason: z.enum(CANCELLATION_REASON_VALUES).optional(),
+}).refine((value) => value.status !== "cancelled" || value.cancellation_reason, {
+  path: ["cancellation_reason"],
+  message: "Choose why the rental is being cancelled.",
 });
 
 export async function transitionRentalAction(
@@ -28,7 +33,9 @@ export async function transitionRentalAction(
   if (!parsed.success) {
     return {
       success: false,
-      message: "The rental transition data is invalid.",
+      message:
+        parsed.error.flatten().fieldErrors.cancellation_reason?.[0] ??
+        "The rental transition data is invalid.",
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -135,6 +142,11 @@ export async function transitionRentalAction(
       p_ending_odometer: parsed.data.ending_odometer ?? null,
       p_ending_fuel_level: parsed.data.ending_fuel_level ?? null,
       p_notes: parsed.data.notes || null,
+      // Only cancellations send a reason, so other transitions keep working
+      // against a database that predates the cancellation-reason migration.
+      ...(parsed.data.status === "cancelled"
+        ? { p_cancellation_reason: parsed.data.cancellation_reason }
+        : {}),
     });
     if (error) throw error;
     revalidateResource("/rentals");

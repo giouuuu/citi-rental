@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { buildDemoWorkspace } from "@/features/shared/lib/demo-workspace";
 import {
   optionalNumber,
   optionalText,
@@ -155,14 +156,19 @@ export const rentalDefinition: ResourceDefinition = {
     { key: "payment_status", label: "Payment", format: "status" },
     { key: "updated_at", label: "Updated", format: "datetime" },
   ],
-  demoRows: [
-    {
-      id: "demo-rental",
-      reference_number: "RNT-260715-001",
-      start_at: "2026-07-15T00:00:00Z",
-      expected_return_at: "2026-07-15T10:00:00Z",
-      status: "active",
-      updated_at: "2026-07-15T01:05:00Z",
-    },
-  ],
+  // Built once per server start; ids are stable so dashboard links resolve.
+  demoRows: buildDemoWorkspace()
+    .rentals.toSorted((a, b) => b.startAt.localeCompare(a.startAt))
+    .map((rental) => ({
+      id: rental.id,
+      reference_number: rental.referenceNumber,
+      customer_id: rental.customerId,
+      vehicle_id: rental.vehicleId,
+      start_at: rental.startAt,
+      expected_return_at: rental.expectedReturnAt,
+      actual_return_at: rental.actualReturnAt,
+      pickup_location: rental.pickupLocation,
+      status: rental.status,
+      updated_at: rental.createdAt,
+    })),
 };

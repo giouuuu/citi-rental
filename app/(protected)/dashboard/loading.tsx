@@ -13,8 +13,13 @@ export default function DashboardLoading() {
         ))}
       </div>
       <div className="grid gap-4 xl:grid-cols-12">
-        <Skeleton className="h-[430px] rounded-lg xl:col-span-8" />
-        <Skeleton className="h-[430px] rounded-lg xl:col-span-4" />
+        <Skeleton className="h-80 rounded-lg xl:col-span-8" />
+        <Skeleton className="h-80 rounded-lg xl:col-span-4" />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-12">
+        <Skeleton className="h-72 rounded-lg xl:col-span-5" />
+        <Skeleton className="h-72 rounded-lg xl:col-span-4" />
+        <Skeleton className="h-72 rounded-lg xl:col-span-3" />
       </div>
       <span className="sr-only">Loading dashboard content</span>
     </div>

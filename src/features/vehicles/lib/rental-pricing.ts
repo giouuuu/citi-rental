@@ -1,10 +1,6 @@
 import { differenceInCalendarDays, parseISO } from "date-fns";
 
-const phpFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  maximumFractionDigits: 0,
-});
+export { formatPhp } from "@/features/shared/lib/money";
 
 /** Inclusive calendar days between start and end (min 1). */
 export function rentalDayCount(
@@ -39,10 +35,6 @@ export function quoteDeposit(total: number, percent = 30) {
     deposit,
     balance: Math.max(0, total - deposit),
   };
-}
-
-export function formatPhp(amount: number) {
-  return phpFormatter.format(amount);
 }
 
 function parseFlexibleDate(value: string) {

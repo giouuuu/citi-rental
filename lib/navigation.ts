@@ -2,6 +2,7 @@ import {
   BellRing,
   CarFront,
   ChartNoAxesCombined,
+  FileSpreadsheet,
   IdCard,
   KeyRound,
   LayoutDashboard,
@@ -33,6 +34,8 @@ export const navigationGroups: NavigationGroup[] = [
     label: "Overview",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Analytics", href: "/analytics", icon: ChartNoAxesCombined },
+      { title: "Reports", href: "/reports", icon: FileSpreadsheet },
       { title: "Live map", href: "/map", icon: Map },
     ],
   },
@@ -56,7 +59,6 @@ export const navigationGroups: NavigationGroup[] = [
         icon: TriangleAlert,
         badge: "3",
       },
-      { title: "Reports", href: "/reports", icon: ChartNoAxesCombined },
     ],
   },
   {

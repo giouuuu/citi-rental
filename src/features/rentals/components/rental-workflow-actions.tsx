@@ -10,12 +10,24 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { transitionRentalAction } from "@/features/rentals/actions/actions";
 import {
   canTransitionRental,
   type RentalTransitionTarget,
   type RentalWorkflowStatus,
 } from "@/features/rentals/lib/booking-gates";
+import {
+  CANCELLATION_REASONS,
+  type CancellationReason,
+} from "@/features/rentals/lib/cancellation-reasons";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
 import { ConfirmActionDialog } from "@/features/shared/components/confirm-action-dialog";
 import { RentalInspectionSheet } from "@/features/inspections/components/rental-inspection-sheet";
@@ -76,6 +88,7 @@ export function RentalWorkflowActions({
   startingOdometer?: number | null;
 }) {
   const [error, setError] = useState("");
+  const [cancelReason, setCancelReason] = useState<CancellationReason | "">("");
   const { isPending, runMutation } = useMutationCoordinator();
   const router = useRouter();
 
@@ -89,6 +102,7 @@ export function RentalWorkflowActions({
     const data = new FormData();
     data.set("id", id);
     data.set("status", next);
+    if (next === "cancelled" && cancelReason) data.set("cancellation_reason", cancelReason);
 
     runMutation(async () => {
       const result = await transitionRentalAction(data);
@@ -156,6 +170,7 @@ export function RentalWorkflowActions({
             description="The record is kept for history and the vehicle is released for the booked dates."
             error={error}
             icon={XCircle}
+            confirmDisabled={!cancelReason}
             title="Cancel this rental?"
             trigger={
               <Button disabled={isPending} type="button" variant="destructive">
@@ -164,7 +179,26 @@ export function RentalWorkflowActions({
               </Button>
             }
             onConfirm={() => transition("cancelled")}
-          />
+          >
+            <Field>
+              <FieldLabel htmlFor="cancellation-reason">Reason</FieldLabel>
+              <Select
+                onValueChange={(value) => setCancelReason(value as CancellationReason)}
+                value={cancelReason}
+              >
+                <SelectTrigger id="cancellation-reason">
+                  <SelectValue placeholder="Choose a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CANCELLATION_REASONS.map((reason) => (
+                    <SelectItem key={reason.value} value={reason.value}>
+                      {reason.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </ConfirmActionDialog>
         ) : (
           <Button
             key={action.status}

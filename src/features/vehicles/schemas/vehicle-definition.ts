@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEMO_VEHICLES } from "@/features/shared/lib/demo-workspace";
 
 import {
   optionalNumber,
@@ -150,16 +151,14 @@ export const vehicleDefinition: ResourceDefinition = {
     { key: "status", label: "Status", format: "status" },
     { key: "updated_at", label: "Last updated", format: "datetime" },
   ],
-  demoRows: [
-    {
-      id: "demo-vehicle",
-      plate_number: "NCR 1842",
-      name: "Toyota Vios 01",
-      category: "Sedan",
-      daily_rate: 2000,
-      status: "available",
-      photo_url: null,
-      updated_at: "2026-07-15T01:12:00Z",
-    },
-  ],
+  demoRows: DEMO_VEHICLES.map((vehicle) => ({
+    id: vehicle.id,
+    plate_number: vehicle.plateNumber,
+    name: vehicle.name,
+    category: vehicle.category,
+    daily_rate: vehicle.dailyRate,
+    status: vehicle.status,
+    photo_url: null,
+    updated_at: vehicle.createdAt,
+  })),
 };

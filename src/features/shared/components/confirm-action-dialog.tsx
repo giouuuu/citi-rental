@@ -27,6 +27,8 @@ export function ConfirmActionDialog({
   icon: Icon,
   error,
   onConfirm,
+  children,
+  confirmDisabled = false,
 }: {
   trigger: ReactNode;
   title: string;
@@ -37,6 +39,9 @@ export function ConfirmActionDialog({
   icon?: LucideIcon;
   error?: string;
   onConfirm: () => void;
+  /** Extra input the decision needs (e.g. a reason), shown above the buttons. */
+  children?: ReactNode;
+  confirmDisabled?: boolean;
 }) {
   const { isPending } = useMutationCoordinator();
 
@@ -58,9 +63,10 @@ export function ConfirmActionDialog({
             </p>
           ) : null}
         </AlertDialogHeader>
+        {children}
         <AlertDialogFooter>
           <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
-          <Button disabled={isPending} onClick={onConfirm} variant={variant}>
+          <Button disabled={isPending || confirmDisabled} onClick={onConfirm} variant={variant}>
             {isPending ? "Working…" : confirmLabel}
           </Button>
         </AlertDialogFooter>

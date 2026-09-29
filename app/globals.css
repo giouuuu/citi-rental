@@ -172,6 +172,9 @@
   --offline: #94a3b8;
   --offline-surface: #1e293b;
   --danger-surface: #321815;
+  /* Chart series 1 (teal) + 4 (blue) are the validated two-series pair;
+     the light-mode blue sits below the lightness band on the dark card. */
+  --chart-4: #3b82f6;
   --sidebar: #07111f;
   --sidebar-foreground: #f1f5f9;
   --sidebar-accent: #11233a;

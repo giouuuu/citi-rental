@@ -12,8 +12,11 @@ Tracking items appear here only where parked code leaks into a rental surface.
 convention break · `low` = polish.
 **Status:** `open` · `fixed` · `wontfix` · `parked`.
 
-Last swept: 2026-08-10. Migrations through `20260810093000` are applied to `citi-rentals`
-(`oyphktvlxfklfrdxknit`, giouuuu's Org).
+Last swept: 2026-09-29. Migrations through `20260810120000` are applied to `citi-rentals`
+(`oyphktvlxfklfrdxknit`, giouuuu's Org). **`20260929100000`–`20260929103000` are written and
+verified locally (`npm run db:verify`) but not yet applied** — the hosted project was paused.
+Apply them before deploying this app version: the analytics screen and the cancel-with-reason
+flow call functions they create.
 
 ---
 
@@ -24,15 +27,18 @@ Last swept: 2026-08-10. Migrations through `20260810093000` are applied to `citi
 | M-1 | Return-inspection **fuel charge** never reached the payments ledger. `rental_inspections.fuel_charge_amount` was stored and shown on the condition report, but no `payments` row was created, so `balance_due` and `payment_status` ignored it. (Damage charges already posted correctly — only fuel was orphaned.) | Staff saw a charge on the condition report that the invoice did not reflect. Under-billing. | high | **fixed** — `20260810090000_inspection_fuel_charge_ledger.sql`, incl. backfill |
 | M-2 | Penalty rows are written with `method = 'other'` for money that never moved. The payments panel shows a payment method for an accrued charge. | Mildly misleading ledger copy. Kept for consistency with existing damage rows; changing it needs a data migration. | low | open |
 | M-3 | No way to waive or reverse an inspection penalty from the UI. The only path is a manual `refund`/`adjustment` payment. | Staff must know the ledger to correct a mistaken charge. | medium | open |
+| M-4 | "Revenue this month" on /reports counted `penalty` rows as money received, then counted the customer's later `balance` settlement again. It also used UTC month/day boundaries. | Revenue overstated by every penalty; month and "due today" cut over 8 hours late. | medium | **fixed** — `report-service.ts` excludes penalties and uses Manila boundaries |
 
 ## Rentals
 
 | ID | Gap | Impact | Severity | Status |
 |----|-----|--------|----------|--------|
 | R-1 | Rentals were never marked overdue automatically, despite the spec requiring it. Nothing moved `active → overdue`, so every overdue count read zero unless staff transitioned by hand. | Overdue rentals were invisible on the dashboard and in reports. | high | **fixed** — `20260810093000_overdue_rental_sweep.sql` + `sweepOverdueRentals()` |
-| R-2 | `transition_rental` still accepts `active`/`completed` at the **database** level. The inspection requirement is enforced in `transitionRentalAction` only, so a direct RPC call skips the checklist entirely. | The condition checklist is bypassable by anything that isn't the ops UI. | medium | open |
+| R-2 | `transition_rental` still accepts `active`/`completed` at the **database** level. The inspection requirement is enforced in `transitionRentalAction` only, so a direct RPC call skips the checklist entirely. | The condition checklist is bypassable by anything that isn't the ops UI. | medium | **partly fixed** — the RPC now refuses without the inspection (`20260803120000`), but the `rentals_update_staff` policy still allows a direct `UPDATE … SET status` |
 | R-3 | The overdue sweep skips rows whose booking-rule trigger rejects the update (e.g. a customer blocked after pickup) and does so silently. `isRentalOverdue()` covers the display side, but nothing tells staff a row is stuck. | A permanently-`active` rental with no visible signal. | medium | open |
 | R-4 | The sweep runs on `/rentals` and `/dashboard` renders. A workspace nobody opens never sweeps. | Overdue status is only as fresh as the last ops page view. Acceptable for one branch; revisit if a scheduled job becomes available. | low | open |
+| R-5 | Draft (awaiting-deposit) bookings are excluded from the overlap check and the exclusion constraint, and never expire. | Two customers can both pay a deposit for the same car and dates; only the first confirmed wins. Abandoned drafts pile up. | high | open |
+| R-6 | Cancellations recorded no reason and no timestamp. | Cancellation analytics impossible. | medium | **fixed** — `20260929102000` adds `cancelled_at` (trigger-stamped) + `cancellation_reason`; the cancel dialog requires a reason |
 
 ## Inspections
 
@@ -49,7 +55,8 @@ Last swept: 2026-08-10. Migrations through `20260810093000` are applied to `citi
 |----|-----|--------|----------|--------|
 | P-1 | The reports screen queried `tracking_events` and `gps_devices` for "Unresolved alerts" and "Offline trackers", and exported tracking-event and GPS-point CSVs. | Parked GPS scope presented as live product on a rental surface. | medium | **fixed** — replaced with rental metrics + vehicle revenue/utilization report |
 | P-2 | No print-friendly report page. The spec asks for one; only the inspection report prints today. | Minor — CSV covers most needs. | low | open |
-| P-3 | Reports have no "rentals by period" breakdown separate from the per-vehicle view. | The per-vehicle report covers most of it; a time series would need a chart. | low | open |
+| P-3 | Reports have no "rentals by period" breakdown separate from the per-vehicle view. | The per-vehicle report covers most of it; a time series would need a chart. | low | **fixed** — `/analytics` trends (daily/weekly/monthly revenue, bookings by source, utilization) |
+| P-4 | The per-vehicle revenue report sends up to 10,000 rental ids in one `payments … .in()` call and throws on error. | Request URL overflows as history grows; one failure 500s /reports. | medium | open — `/analytics` aggregates in SQL instead; /reports still uses the old path |
 
 ## UI conventions
 
@@ -58,21 +65,33 @@ Last swept: 2026-08-10. Migrations through `20260810093000` are applied to `citi
 | U-1 | `window.confirm` used for cancel-rental and confirm-deposit, violating the confirm-dialog convention in `AGENTS.md` §9.14. | Native browser dialog, unstyled, untestable, inconsistent with every other destructive action. | medium | **fixed** — `ConfirmActionDialog` in `features/shared`; `ArchiveButton` now delegates to it |
 | U-2 | Ops nav (`lib/navigation.ts`) still lists Live map, GPS devices, Geofences, Alerts, and Integrations. | Parked scope presented as working navigation. Clicking leads to surfaces nobody maintains. | medium | open |
 | U-3 | Brand naming splits across Zeke (public), City Rentals (ops), and leftover demo "Northline" copy. | Inconsistent identity across surfaces. | low | open |
+| U-4 | The ops dashboard was entirely hardcoded demo data — fleet counts, rentals due, a GPS map, tracker alerts, and the date "Monday · 13 July 2026". | Owners saw fake numbers; the overdue count from R-1 never reached the dashboard. | high | **fixed** — live snapshot service (Manila-day buckets), GPS panels removed, demo mode reads the shared demo workspace |
+| U-5 | Customer detail had no rental history despite spec §5.4. | Staff couldn't see a renter's track record or balance. | medium | **fixed** — Rentals tab with lifetime value, balance owed, late returns |
 
 ## Resilience
 
 | ID | Gap | Impact | Severity | Status |
 |----|-----|--------|----------|--------|
 | E-1 | `listVehiclePhotos` did `if (error) throw error` while every sibling service (`listVehicleKnownDamages`, `listVehicleRentals`) logs and returns an empty list. A missing `vehicle_photos` table took the entire vehicle detail page down — form, rental history, damages and all. | One optional panel's query could 500 a whole ops page. | high | **fixed** — degrades to an empty gallery and logs |
-| E-2 | Deployed schema drifted three migrations behind the repo with no signal in the app. The first symptom was a 500 on a detail page. | Nothing surfaces "your database is behind" until something breaks. A startup schema check or a CI `db push --dry-run` gate would catch it. | medium | open |
+| E-2 | Deployed schema drifted three migrations behind the repo with no signal in the app. The first symptom was a 500 on a detail page. | Nothing surfaces "your database is behind" until something breaks. A startup schema check or a CI `db push --dry-run` gate would catch it. | medium | open — analytics panels now say "needs the latest database migration" instead of failing blank |
 | E-3 | `tracking-service.ts` and `settings-service.ts` still `throw new Error(error.message)` on query failure (parked GPS scope, so not fixed here). Same failure mode as E-1 if their tables drift. | A schema gap on those tables 500s their pages. | low | open |
+
+## Security
+
+| ID | Gap | Impact | Severity | Status |
+|----|-----|--------|----------|--------|
+| S-1 | Google-signed-in customers get a `customer` profile inside the business's org, and most org-scoped SELECT policies only checked the org — not the role. | Any signed-in customer could read every customer's name, phone and licence, every rental, drivers, and staff profiles through PostgREST. | high | **fixed** — `20260929100000` requires `private.is_org_staff()`; profiles become own-row-or-staff (pgTAP: `01_rls_staff_only_reads`) |
+| S-2 | `create_public_booking` matched an existing customer by phone/licence/email and overwrote their name, phone, licence **and email**; "my bookings" matches on email. | Anyone knowing a phone number could attach their email to that customer and read their bookings and inspection photos. | high | **fixed** — `20260929101000`: matched customers are never overwritten; differing details go to the rental notes (pgTAP: `02_public_booking_identity`) |
+| S-3 | Any admin can make anyone, including themselves, an owner, or disable the last owner; role changes and disables write nothing to `audit_logs`, and nothing shows `audit_logs`. | Privilege escalation with no trail. | medium | open |
+| S-4 | With no Supabase env vars the proxy and protected layout skip auth and serve the ops shell in demo mode. | A production deploy missing its env vars is an open ops UI (demo data only, but still). | medium | open |
+| S-5 | `create_public_booking` is callable anonymously with no throttle. | Spam drafts (which also block nothing — see R-5). | low | open |
 
 ## Booking and roles
 
 | ID | Gap | Impact | Severity | Status |
 |----|-----|--------|----------|--------|
 | B-1 | `/register` creates an **ops workspace** (admin + organization), not a customer account. | A customer who clicks "register" provisions an org. | high | open |
-| B-2 | Customer Google sign-in works, but email-based customer signup and the "my bookings" portal are incomplete. | Customers can't self-serve their own bookings. | medium | open |
+| B-2 | Customer Google sign-in works, but email-based customer signup and the "my bookings" portal are incomplete. | Customers can't self-serve their own bookings. | medium | **partly fixed** — `/account` lists bookings; still no email signup, booking detail, or customer cancel |
 | B-3 | Self-drive vs with-driver is landing-page copy only — not a rental domain field. | The booking cannot record what the customer actually chose. | medium | **partly addressed** — a `drivers` roster + CRUD now exists; the rental link below is what remains |
 | B-5 | `rentals` has no `driver_id` and no self-drive/with-driver flag, so a driver cannot yet be assigned to a booking. The `drivers` table already carries a composite `(organization_id, id)` key so that FK can be added without rework. | Drivers can be managed but not actually booked; `daily_rate` doesn't reach any quote. | medium | open |
 | B-6 | No double-booking guard for drivers. Once `driver_id` exists, a driver needs the same date-range exclusion `rentals` already enforces for vehicles. | The same driver could be assigned to two overlapping rentals. | medium | open |
@@ -82,9 +101,9 @@ Last swept: 2026-08-10. Migrations through `20260810093000` are applied to `citi
 
 | ID | Gap | Impact | Severity | Status |
 |----|-----|--------|----------|--------|
-| T-1 | No `vitest.config.*`, no jsdom, no Testing Library. Vitest runs bare in node, so **no component test is possible today** — only pure-lib tests. | Every form, dialog, and screen is untested. Adding the config + `jsdom` + `@testing-library/react` is a prerequisite for testing anything with JSX. | high | open |
-| T-2 | No end-to-end test for the core loop (login → vehicle → customer → booking → start → complete). The spec asks for one. | Regressions in the main workflow surface only in manual testing. | medium | open |
-| T-3 | No RLS policy tests. Authorization correctness rests on review alone. | A policy regression would be silent. | medium | open |
+| T-1 | No `vitest.config.*`, no jsdom, no Testing Library. Vitest runs bare in node, so **no component test is possible today** — only pure-lib tests. | Every form, dialog, and screen is untested. Adding the config + `jsdom` + `@testing-library/react` is a prerequisite for testing anything with JSX. | high | **partly fixed** — `vitest.config.mts` exists (aliases only); still no jsdom. Playwright now covers screens end to end |
+| T-2 | No end-to-end test for the core loop (login → vehicle → customer → booking → start → complete). The spec asks for one. | Regressions in the main workflow surface only in manual testing. | medium | **partly fixed** — Playwright (`npm run test:e2e`, demo mode) covers dashboard, analytics, customer history; the write loop needs a seeded database |
+| T-3 | No RLS policy tests. Authorization correctness rests on review alone. | A policy regression would be silent. | medium | **partly fixed** — `supabase/tests/*.test.sql` (pgTAP, 126 assertions) run against every migration in Docker via `npm run db:verify`; not yet in CI |
 
 ---
 

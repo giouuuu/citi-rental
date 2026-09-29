@@ -2,6 +2,11 @@ import "server-only";
 
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import {
+  manilaDateKey,
+  manilaDayEnd,
+  manilaDayStart,
+} from "@/features/shared/lib/manila-time";
 
 export type ReportSummary = {
   activeRentals: number;
@@ -10,16 +15,13 @@ export type ReportSummary = {
   revenueThisMonth: number;
 };
 
+// Manila boundaries: a UTC month or day starts eight hours late on the floor.
 function startOfMonth(now: Date): string {
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-  ).toISOString();
+  return manilaDayStart(`${manilaDateKey(now).slice(0, 7)}-01`).toISOString();
 }
 
 function endOfDay(now: Date): string {
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59),
-  ).toISOString();
+  return new Date(manilaDayEnd(manilaDateKey(now)).getTime() - 1000).toISOString();
 }
 
 export async function getReportSummary(): Promise<ReportSummary> {
@@ -58,8 +60,11 @@ export async function getReportSummary(): Promise<ReportSummary> {
       .gte("confirmed_at", startOfMonth(now)),
   ]);
 
+  // Penalties are accrued charges, not money received — the customer's
+  // settlement arrives later as a balance row. Counting both double-counts.
   const revenueThisMonth = (revenue.data ?? []).reduce((total, row) => {
     const amount = Number(row.amount) || 0;
+    if (row.payment_type === "penalty") return total;
     return row.payment_type === "refund" ? total - amount : total + amount;
   }, 0);
 

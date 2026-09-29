@@ -10,6 +10,7 @@ export { needsDepositConfirmation } from "./lib/needs-deposit-confirmation";
 export { listRentalPayments } from "./services/list-rental-payments";
 export { sweepOverdueRentals } from "./services/sweep-overdue-rentals";
 export { isRentalOverdue, overdueHours } from "./lib/overdue";
+export { isPublicCustomerBooking } from "./lib/is-public-customer-booking";
 export type { OverdueCandidate } from "./lib/overdue";
 export {
   allowedRentalTransitions,
