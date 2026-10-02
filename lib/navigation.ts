@@ -8,6 +8,7 @@ import {
   Map,
   MapPinned,
   RadioTower,
+  ReceiptText,
   Settings,
   ShieldCheck,
   TriangleAlert,
@@ -41,6 +42,7 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       { title: "Vehicles", href: "/vehicles", icon: CarFront },
       { title: "Rentals", href: "/rentals", icon: KeyRound },
+      { title: "Expenses", href: "/expenses", icon: ReceiptText },
       { title: "Customers", href: "/customers", icon: UsersRound },
       { title: "Drivers", href: "/drivers", icon: IdCard },
       { title: "GPS devices", href: "/devices", icon: RadioTower },

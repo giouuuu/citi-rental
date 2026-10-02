@@ -17,6 +17,10 @@ import {
   listVehicleKnownDamages,
   VehicleKnownDamagesPanel,
 } from "@/features/inspections";
+import {
+  listVehicleExpenses,
+  VehicleCostsPanel,
+} from "@/features/vehicle-costs";
 
 export default async function Page({
   params,
@@ -32,6 +36,7 @@ export default async function Page({
     ? await listVehicleKnownDamages(id, { includeResolved: true })
     : [];
   const photos = isSupabaseConfigured() ? await listVehiclePhotos(id) : [];
+  const expenses = isSupabaseConfigured() ? await listVehicleExpenses(id) : [];
 
   return (
     <ResourceDetailScreen
@@ -69,6 +74,7 @@ export default async function Page({
               vehicleId={id}
             />
           }
+          costs={<VehicleCostsPanel expenses={expenses} />}
           info={form}
           rentals={rentals}
         />

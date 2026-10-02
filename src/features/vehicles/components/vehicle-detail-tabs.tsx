@@ -11,11 +11,13 @@ export function VehicleDetailTabs({
   rentals,
   gallery,
   damages,
+  costs,
 }: {
   info: ReactNode;
   rentals: VehicleRental[];
   gallery?: ReactNode;
   damages?: ReactNode;
+  costs?: ReactNode;
 }) {
   return (
     <div className="space-y-4">
@@ -32,6 +34,9 @@ export function VehicleDetailTabs({
           },
           ...(damages
             ? [{ value: "damages", label: "Prior damage", content: damages }]
+            : []),
+          ...(costs
+            ? [{ value: "costs", label: "Costs", content: costs }]
             : []),
         ]}
       />
