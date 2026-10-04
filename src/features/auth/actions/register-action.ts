@@ -30,7 +30,6 @@ export async function registerAction(
 ): Promise<RegisterActionResult> {
   const parsed = registerSchema.safeParse({
     fullName: formData.get("fullName"),
-    organizationName: formData.get("organizationName"),
     email: formData.get("email"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
@@ -47,7 +46,6 @@ export async function registerAction(
   try {
     const status = await registerWithEmail({
       fullName: parsed.data.fullName,
-      organizationName: parsed.data.organizationName,
       email: parsed.data.email,
       password: parsed.data.password,
     });

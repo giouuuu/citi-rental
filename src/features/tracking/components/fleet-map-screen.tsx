@@ -27,15 +27,14 @@ async function listVehicles() {
   if (!userId) throw new Error("Your session expired. Sign in and try again.");
   const { data: profile } = await supabase
     .from("profiles")
-    .select("organization_id, is_active")
+    .select("is_active")
     .eq("id", userId)
     .maybeSingle();
   if (!profile?.is_active)
-    throw new Error("Your profile is not active for this organization.");
+    throw new Error("Your profile is not active.");
   const { data, error } = await supabase
     .from("vehicles")
     .select("id, name, plate_number, status, updated_at")
-    .eq("organization_id", profile.organization_id)
     .order("updated_at", { ascending: false })
     .limit(50);
   if (error) throw new Error(error.message);

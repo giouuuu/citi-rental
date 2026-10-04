@@ -16,7 +16,7 @@ export async function cancelRentalAction(formData: FormData): Promise<ActionResu
     const userId = claims?.claims?.sub;
     if (!userId) throw new Error("Your session expired. Sign in and try again.");
     const { data: profile } = await supabase.from("profiles").select("role, is_active").eq("id", userId).maybeSingle();
-    if (!profile?.is_active) throw new Error("Your profile is not active for this organization.");
+    if (!profile?.is_active) throw new Error("Your profile is not active.");
     if (!isStaffRole(profile.role)) throw new Error("Your role cannot modify rentals.");
     const { error } = await supabase.rpc("transition_rental", { p_rental_id: id.data, p_status: "cancelled", p_actual_return_at: null, p_ending_odometer: null, p_ending_fuel_level: null, p_notes: null, p_cancellation_reason: reason.data });
     if (error) throw error;

@@ -7,7 +7,6 @@ export type RentalPaymentStatus =
 
 export type BookingPaymentDetails = {
   rentalId: string;
-  organizationId: string;
   referenceNumber: string;
   status: string;
   startAt: string;
@@ -27,7 +26,7 @@ export type BookingPaymentDetails = {
   vehicleModel: string;
   paymentQrUrl: string | null;
   paymentInstructions: string | null;
-  organizationName: string;
+  companyName: string;
 };
 
 export type PublicBookingResult = {

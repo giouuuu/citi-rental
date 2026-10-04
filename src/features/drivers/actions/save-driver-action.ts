@@ -43,11 +43,11 @@ export async function saveDriverAction(
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("organization_id, role, is_active")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (!profile?.is_active)
-      throw new Error("Your profile is not active for this organization.");
+      throw new Error("Your profile is not active.");
     if (!isStaffRole(profile.role))
       throw new Error("Your role cannot modify drivers.");
 
@@ -62,12 +62,11 @@ export async function saveDriverAction(
         .from("drivers")
         .update(payload)
         .eq("id", id)
-        .eq("organization_id", profile.organization_id)
         .select("id")
         .maybeSingle();
       if (error) throw error;
       if (!data)
-        throw new Error("The driver was not found in your organization.");
+        throw new Error("The driver was not found.");
       revalidateResource("/drivers");
       return {
         success: true,
@@ -77,7 +76,7 @@ export async function saveDriverAction(
 
     const { data, error } = await supabase
       .from("drivers")
-      .insert({ ...payload, organization_id: profile.organization_id })
+      .insert(payload)
       .select("id")
       .single();
     if (error) throw error;

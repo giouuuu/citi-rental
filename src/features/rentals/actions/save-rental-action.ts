@@ -57,11 +57,11 @@ export async function saveRentalAction(
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("organization_id, role, is_active")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (!profile?.is_active) {
-      throw new Error("Your profile is not active for this organization.");
+      throw new Error("Your profile is not active.");
     }
     if (!isStaffRole(profile.role)) {
       throw new Error("Your role cannot modify rentals.");
@@ -116,10 +116,9 @@ export async function saveRentalAction(
         .from("rentals")
         .select("id, status, reference_number")
         .eq("id", id)
-        .eq("organization_id", profile.organization_id)
         .maybeSingle();
       if (existingError) throw existingError;
-      if (!existing) throw new Error("The rental was not found in your organization.");
+      if (!existing) throw new Error("The rental was not found.");
       if (isPublicCustomerBooking(existing)) {
         return {
           success: false,
@@ -139,11 +138,10 @@ export async function saveRentalAction(
         .from("rentals")
         .update(payload)
         .eq("id", id)
-        .eq("organization_id", profile.organization_id)
         .select("id")
         .maybeSingle();
       if (error) throw error;
-      if (!data) throw new Error("The rental was not found in your organization.");
+      if (!data) throw new Error("The rental was not found.");
       revalidateResource("/rentals");
       return {
         success: true,
@@ -153,7 +151,7 @@ export async function saveRentalAction(
 
     const { data, error } = await supabase
       .from("rentals")
-      .insert({ ...payload, organization_id: profile.organization_id })
+      .insert(payload)
       .select("id")
       .single();
     if (error) throw error;

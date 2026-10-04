@@ -180,7 +180,7 @@ export function DesignSystemShowcase() {
             <div className="space-y-2">
               <Label htmlFor="preview-plate">Plate number</Label>
               <Input className="font-mono" defaultValue="NCR 1842" id="preview-plate" />
-              <p className="text-xs text-muted-foreground">Unique within this organization.</p>
+              <p className="text-xs text-muted-foreground">Must be unique.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="preview-status">Vehicle status</Label>

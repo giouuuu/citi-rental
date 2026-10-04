@@ -19,11 +19,11 @@ export async function archiveVehicleAction(
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("organization_id, role, is_active")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (profileError || !profile || !profile.is_active)
-      throw new Error("Your profile is not active for this organization.");
+      throw new Error("Your profile is not active.");
     if (!isAdminRole(profile.role))
       throw new Error("Your role cannot modify vehicles.");
 
@@ -31,11 +31,10 @@ export async function archiveVehicleAction(
       .from("vehicles")
       .update({ status: "inactive" })
       .eq("id", id)
-      .eq("organization_id", profile.organization_id)
       .select("id")
       .maybeSingle();
     if (error) throw error;
-    if (!data) throw new Error("The vehicle was not found in your organization.");
+    if (!data) throw new Error("The vehicle was not found.");
     revalidateResource("/vehicles");
     return { success: true };
   } catch (error) {

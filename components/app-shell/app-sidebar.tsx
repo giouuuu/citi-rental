@@ -31,13 +31,13 @@ import {
 import { navigationGroups } from "@/lib/navigation";
 
 type AppSidebarProps = {
-  organizationName: string;
+  companyName: string;
   userName: string;
   userRole: string;
 };
 
 export function AppSidebar({
-  organizationName,
+  companyName,
   userName,
   userRole,
 }: AppSidebarProps) {
@@ -69,7 +69,7 @@ export function AppSidebar({
                     City Rentals
                   </span>
                   <span className="truncate text-[11px] text-sidebar-foreground/65">
-                    {organizationName}
+                    {companyName}
                   </span>
                 </span>
               </Link>
@@ -147,7 +147,7 @@ export function AppSidebar({
                 <DropdownMenuLabel>
                   <span className="block text-sm">{userName}</span>
                   <span className="block text-xs font-normal text-muted-foreground">
-                    {organizationName}
+                    {companyName}
                   </span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

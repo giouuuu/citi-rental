@@ -25,12 +25,11 @@ function extensionFor(file: File): string {
 
 export async function uploadInspectionPhoto(options: {
   supabase: SupabaseClient;
-  organizationId: string;
   rentalId: string;
   file: File;
   kind: string;
 }): Promise<string> {
-  const { supabase, organizationId, rentalId, file, kind } = options;
+  const { supabase, rentalId, file, kind } = options;
 
   if (!file.size) throw new Error("Choose a photo to upload.");
   if (file.size > MAX_BYTES) {
@@ -41,7 +40,7 @@ export async function uploadInspectionPhoto(options: {
   }
 
   const safeKind = kind.replace(/[^a-z0-9_-]/gi, "").slice(0, 40) || "photo";
-  const path = `${organizationId}/${rentalId}/${safeKind}-${Date.now()}.${extensionFor(file)}`;
+  const path = `${rentalId}/${safeKind}-${Date.now()}.${extensionFor(file)}`;
 
   const { error } = await supabase.storage
     .from(INSPECTION_PHOTOS_BUCKET)
@@ -56,7 +55,6 @@ export async function uploadInspectionPhoto(options: {
 
 export async function uploadInspectionPhotoFromDataUrl(options: {
   supabase: SupabaseClient;
-  organizationId: string;
   rentalId: string;
   dataUrl: string;
   kind: string;

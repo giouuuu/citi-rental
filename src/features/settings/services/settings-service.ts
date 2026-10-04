@@ -31,25 +31,21 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims?.sub) throw new Error("Unauthorized");
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select(
-      "organization_id, organizations(name, timezone, deposit_percent, payment_qr_url, payment_instructions)",
-    )
-    .eq("id", claims.claims.sub)
+  const { data: company, error } = await supabase
+    .from("company_profile")
+    .select("name, timezone, deposit_percent, payment_qr_url, payment_instructions")
     .single();
   if (error) throw new Error(error.message);
   const { data: appSettings } = await supabase
     .from("app_settings")
     .select("setting_key, setting_value")
-    .eq("organization_id", profile.organization_id)
     .in("setting_key", [
       "tracker.online_threshold_minutes",
       "tracker.delayed_threshold_minutes",
       "location.retention_days",
       "gps.provider",
     ]);
-  const organization = profile.organizations as unknown as {
+  const organization = company as unknown as {
     name: string;
     timezone: string;
     deposit_percent: number | null;

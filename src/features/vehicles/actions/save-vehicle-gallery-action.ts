@@ -36,11 +36,11 @@ export async function saveVehicleGalleryAction(
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("organization_id, role, is_active")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (profileError || !profile?.is_active) {
-      throw new Error("Your profile is not active for this organization.");
+      throw new Error("Your profile is not active.");
     }
     if (!isAdminRole(profile.role)) {
       throw new Error("Your role cannot modify vehicle photos.");
@@ -50,10 +50,9 @@ export async function saveVehicleGalleryAction(
       .from("vehicles")
       .select("id, status")
       .eq("id", vehicleId)
-      .eq("organization_id", profile.organization_id)
       .maybeSingle();
     if (vehicleError) throw vehicleError;
-    if (!vehicle) throw new Error("The vehicle was not found in your organization.");
+    if (!vehicle) throw new Error("The vehicle was not found.");
 
     const uploaded: string[] = [];
 
@@ -65,7 +64,6 @@ export async function saveVehicleGalleryAction(
       const kind = slot.value as VehiclePhotoKind;
       const { path, publicUrl } = await uploadVehiclePhoto({
         supabase,
-        organizationId: profile.organization_id,
         vehicleId,
         file,
         kind,
@@ -73,7 +71,6 @@ export async function saveVehicleGalleryAction(
 
       const { error: upsertError } = await supabase.from("vehicle_photos").upsert(
         {
-          organization_id: profile.organization_id,
           vehicle_id: vehicleId,
           kind,
           storage_path: path,
@@ -88,8 +85,7 @@ export async function saveVehicleGalleryAction(
         const { error: coverError } = await supabase
           .from("vehicles")
           .update({ photo_url: publicUrl })
-          .eq("id", vehicleId)
-          .eq("organization_id", profile.organization_id);
+          .eq("id", vehicleId);
         if (coverError) throw coverError;
       }
 

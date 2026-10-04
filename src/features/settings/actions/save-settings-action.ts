@@ -37,14 +37,14 @@ export async function saveSettingsAction(
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, is_active, organization_id")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (!profile?.is_active || !isAdminRole(profile.role)) {
-      throw new Error("Only owners or admins can update organization settings.");
+      throw new Error("Only owners or admins can update company settings.");
     }
 
-    const { error } = await supabase.rpc("update_organization_settings", {
+    const { error } = await supabase.rpc("update_company_settings", {
       p_name: parsed.data.name,
       p_timezone: parsed.data.timezone,
       p_online_threshold: parsed.data.tracker_online_threshold_minutes,
@@ -54,14 +54,20 @@ export async function saveSettingsAction(
     });
     if (error) throw error;
 
+    const { data: company } = await supabase
+      .from("company_profile")
+      .select("id")
+      .single();
+    if (!company) throw new Error("Company profile is missing.");
+
     const { error: paymentError } = await supabase
-      .from("organizations")
+      .from("company_profile")
       .update({
         deposit_percent: parsed.data.deposit_percent,
         payment_qr_url: parsed.data.payment_qr_url || null,
         payment_instructions: parsed.data.payment_instructions?.trim() || null,
       })
-      .eq("id", profile.organization_id);
+      .eq("id", company.id);
     if (paymentError) throw paymentError;
 
     revalidateResource("/settings");

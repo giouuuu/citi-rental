@@ -20,20 +20,20 @@ export async function saveCustomerAction(formData: FormData): Promise<ActionResu
     const { data: claims } = await supabase.auth.getClaims();
     const userId = claims?.claims?.sub;
     if (!userId) throw new Error("Your session expired. Sign in and try again.");
-    const { data: profile } = await supabase.from("profiles").select("organization_id, role, is_active").eq("id", userId).maybeSingle();
-    if (!profile?.is_active) throw new Error("Your profile is not active for this organization.");
+    const { data: profile } = await supabase.from("profiles").select("role, is_active").eq("id", userId).maybeSingle();
+    if (!profile?.is_active) throw new Error("Your profile is not active.");
     if (!isStaffRole(profile.role)) throw new Error("Your role cannot modify customers.");
     const idValue = formData.get("__id");
     const id = typeof idValue === "string" && idValue ? idValue : undefined;
     const payload = Object.fromEntries(Object.entries(parsed.data).filter(([, value]) => value !== undefined));
     if (id) {
-      const { data, error } = await supabase.from("customers").update(payload).eq("id", id).eq("organization_id", profile.organization_id).select("id").maybeSingle();
+      const { data, error } = await supabase.from("customers").update(payload).eq("id", id).select("id").maybeSingle();
       if (error) throw error;
-      if (!data) throw new Error("The customer was not found in your organization.");
+      if (!data) throw new Error("The customer was not found.");
       revalidateResource(customerDefinition.route);
       return { success: true, data: { id, href: `${customerDefinition.route}/${id}` } };
     }
-    const { data, error } = await supabase.from("customers").insert({ ...payload, organization_id: profile.organization_id }).select("id").single();
+    const { data, error } = await supabase.from("customers").insert(payload).select("id").single();
     if (error) throw error;
     const savedId = String(data.id);
     revalidateResource(customerDefinition.route);

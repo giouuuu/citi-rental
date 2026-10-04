@@ -60,11 +60,11 @@ export async function ResourceDetailScreen({
       throw new Error("Your session expired. Sign in and try again.");
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("organization_id, role, is_active")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (profileError || !profile?.is_active)
-      throw new Error("Your profile is not active for this organization.");
+      throw new Error("Your profile is not active.");
     role = profile.role as AppRole;
 
     const detailColumns = [
@@ -81,7 +81,6 @@ export async function ResourceDetailScreen({
     const rowRequest = supabase
       .from(definition.table)
       .select(detailColumns)
-      .eq("organization_id", profile.organization_id)
       .eq("id", id)
       .maybeSingle();
     const referenceRequests = definition.fields.map(async (field) => {
@@ -98,8 +97,7 @@ export async function ResourceDetailScreen({
         .join(",");
       let request = supabase
         .from(table)
-        .select(columns)
-        .eq("organization_id", profile.organization_id);
+        .select(columns);
       if (activeColumn) request = request.eq(activeColumn, true);
       // Keep current linked records visible on edit, even if normally excluded.
       const { data, error } = await request.limit(200);

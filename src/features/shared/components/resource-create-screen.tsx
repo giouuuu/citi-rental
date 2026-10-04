@@ -37,11 +37,11 @@ export async function ResourceCreateScreen({
       throw new Error("Your session expired. Sign in and try again.");
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("organization_id, role, is_active")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (profileError || !profile?.is_active)
-      throw new Error("Your profile is not active for this organization.");
+      throw new Error("Your profile is not active.");
     role = profile.role as AppRole;
 
     await Promise.all(
@@ -61,8 +61,7 @@ export async function ResourceCreateScreen({
           .join(",");
         let request = supabase
           .from(table)
-          .select(columns)
-          .eq("organization_id", profile.organization_id);
+          .select(columns);
         if (activeColumn) request = request.eq(activeColumn, true);
         if (equals) {
           for (const [column, value] of Object.entries(equals)) {
@@ -103,7 +102,7 @@ export async function ResourceCreateScreen({
           { label: definition.plural, href: definition.route },
           { label: `New ${definition.singular.toLowerCase()}` },
         ]}
-        description={`Create a ${definition.singular.toLowerCase()} for this organization.`}
+        description={`Create a ${definition.singular.toLowerCase()}.`}
         title={`New ${definition.singular.toLowerCase()}`}
       />
       <Button asChild variant="ghost">

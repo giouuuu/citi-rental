@@ -67,7 +67,7 @@ export function GoogleSignInButton({
       const supabase = createClient();
       const redirectUrl = new URL(`${window.location.origin}/auth/callback`);
       redirectUrl.searchParams.set("next", postAuthNext);
-      // Never set provision=organization — Google users become customers
+      // Never set provision=owner — Google users become customers
       // via the auth trigger, not owner self-service registration.
 
       const { error } = await supabase.auth.signInWithOAuth({

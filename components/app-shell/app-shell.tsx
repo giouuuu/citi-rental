@@ -7,7 +7,7 @@ import { MutationProvider } from "@/features/shared/components/mutation-provider
 
 type AppShellProps = {
   children: ReactNode;
-  organizationName: string;
+  companyName: string;
   userName: string;
   userRole: string;
   demoMode: boolean;
@@ -15,7 +15,7 @@ type AppShellProps = {
 
 export function AppShell({
   children,
-  organizationName,
+  companyName,
   userName,
   userRole,
   demoMode,
@@ -30,7 +30,7 @@ export function AppShell({
       }
     >
       <AppSidebar
-        organizationName={organizationName}
+        companyName={companyName}
         userName={userName}
         userRole={userRole}
       />

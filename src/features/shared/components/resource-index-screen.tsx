@@ -49,11 +49,11 @@ export async function ResourceIndexScreen({
   if (!userId) throw new Error("Your session expired. Sign in and try again.");
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("organization_id, role, is_active")
+    .select("role, is_active")
     .eq("id", userId)
     .maybeSingle();
   if (profileError || !profile?.is_active)
-    throw new Error("Your profile is not active for this organization.");
+    throw new Error("Your profile is not active.");
 
   const columns = [
     ...new Set(
@@ -69,8 +69,7 @@ export async function ResourceIndexScreen({
   const to = from + resourceQuery.pageSize;
   let request = supabase
     .from(definition.table)
-    .select(columns)
-    .eq("organization_id", profile.organization_id);
+    .select(columns);
   if (resourceQuery.q)
     request = request.ilike(
       definition.searchColumn,

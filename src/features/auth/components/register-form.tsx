@@ -43,13 +43,6 @@ const fields = [
     type: "text",
   },
   {
-    name: "organizationName" as const,
-    label: "Organization name",
-    autoComplete: "organization",
-    placeholder: "Northline Rentals",
-    type: "text",
-  },
-  {
     name: "email" as const,
     label: "Work email",
     autoComplete: "email",
@@ -60,7 +53,6 @@ const fields = [
 
 const emptyValues: RegisterFormValues = {
   fullName: "",
-  organizationName: "",
   email: "",
   password: "",
   confirmPassword: "",

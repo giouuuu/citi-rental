@@ -29,7 +29,7 @@ describe("parseResourceQuery", () => {
         {
           page: "-3",
           page_size: "500",
-          sort: "organization_id",
+          sort: "plate_number",
           q: "  fleet  ",
         },
         definition,

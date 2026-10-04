@@ -8,12 +8,12 @@ type Profile = {
   full_name: string;
   role: string;
   is_active: boolean;
-  organizations: { name: string } | null;
 };
 
 export default async function ProtectedLayout({ children }: LayoutProps<"/">) {
   const configured = isSupabaseConfigured();
   let profile: Profile | null = null;
+  let companyName = "City Rentals";
 
   if (configured) {
     const supabase = await createClient();
@@ -22,10 +22,16 @@ export default async function ProtectedLayout({ children }: LayoutProps<"/">) {
     if (claimsData?.claims?.sub) {
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, role, is_active, organizations(name)")
+        .select("full_name, role, is_active")
         .eq("id", claimsData.claims.sub)
         .maybeSingle();
       profile = data as Profile | null;
+
+      const { data: company } = await supabase
+        .from("company_profile")
+        .select("name")
+        .maybeSingle();
+      companyName = company?.name ?? companyName;
     }
 
     if (!profile) {
@@ -44,7 +50,7 @@ export default async function ProtectedLayout({ children }: LayoutProps<"/">) {
   return (
     <AppShell
       demoMode={!configured}
-      organizationName={profile?.organizations?.name ?? "Northline Rentals"}
+      companyName={companyName}
       userName={profile?.full_name ?? "Alex Rivera"}
       userRole={profile?.role ?? "owner"}
     >

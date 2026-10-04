@@ -68,9 +68,9 @@ export async function registerWithEmail(
       options: {
         data: {
           full_name: input.fullName,
-          organization_name: input.organizationName,
+          ops_registration: "true",
         },
-        emailRedirectTo: `${siteUrl}/auth/callback?next=/dashboard&provision=organization`,
+        emailRedirectTo: `${siteUrl}/auth/callback?next=/dashboard&provision=owner`,
       },
     });
 
@@ -84,7 +84,6 @@ export async function registerWithEmail(
       "complete_self_service_registration",
       {
         p_full_name: input.fullName,
-        p_organization_name: input.organizationName,
       },
     );
     if (provisioningError) {

@@ -19,19 +19,11 @@ export async function listVehicleRentals(
   const userId = claims?.claims?.sub;
   if (!userId) return [];
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("organization_id")
-    .eq("id", userId)
-    .maybeSingle();
-  if (!profile) return [];
-
   const { data, error } = await supabase
     .from("rentals")
     .select(
       "id, reference_number, status, start_at, expected_return_at, customers(full_name)",
     )
-    .eq("organization_id", profile.organization_id)
     .eq("vehicle_id", vehicleId)
     .in("status", ["reserved", "active", "overdue", "completed"])
     .order("start_at", { ascending: false });

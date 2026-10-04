@@ -4,7 +4,6 @@ import { registerSchema } from "./register-schema";
 
 const validRegistration = {
   fullName: "Alex Rivera",
-  organizationName: "Northline Rentals",
   email: "alex@example.com",
   password: "fleetpass1",
   confirmPassword: "fleetpass1",

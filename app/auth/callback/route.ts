@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
  * Google email, Supabase may reject the Google signup unless identity linking
  * is enabled in the project. Users should sign in with the original method or
  * link identities from an authenticated session. Booking Google signup never
- * sets `provision=organization` (owner self-service stays on the email RPC path).
+ * sets `provision=owner` (owner self-service stays on the email RPC path).
  */
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -28,15 +28,10 @@ export async function GET(request: NextRequest) {
       const metadata = userData.user?.user_metadata;
       const fullName =
         typeof metadata?.full_name === "string" ? metadata.full_name : "New User";
-      const organizationName =
-        typeof metadata?.organization_name === "string"
-          ? metadata.organization_name
-          : `${fullName} Rentals`;
       const { error: provisioningError } = await supabase.rpc(
         "complete_self_service_registration",
         {
           p_full_name: fullName,
-          p_organization_name: organizationName,
         },
       );
 

@@ -32,7 +32,6 @@ function num(value: unknown, fallback = 0) {
 function mapPaymentDetails(row: Record<string, unknown>): BookingPaymentDetails {
   return {
     rentalId: String(row.rental_id),
-    organizationId: String(row.organization_id),
     referenceNumber: String(row.reference_number),
     status: String(row.status),
     startAt: String(row.start_at),
@@ -60,7 +59,7 @@ function mapPaymentDetails(row: Record<string, unknown>): BookingPaymentDetails 
       typeof row.payment_instructions === "string"
         ? row.payment_instructions
         : null,
-    organizationName: String(row.organization_name ?? ""),
+    companyName: String(row.company_name ?? ""),
   };
 }
 
@@ -213,16 +212,9 @@ export async function submitBookingPaymentProof(input: {
   if (details.status !== "draft") {
     throw new Error("This booking is already confirmed or closed.");
   }
-  if (!details.organizationId) {
-    throw new Error(
-      "Payment setup is incomplete. Please contact support with your booking reference.",
-    );
-  }
-
   const supabase = await createClient();
   const path = await uploadPaymentProof({
     supabase,
-    organizationId: details.organizationId,
     rentalId: input.rentalId,
     file: input.proof,
   });

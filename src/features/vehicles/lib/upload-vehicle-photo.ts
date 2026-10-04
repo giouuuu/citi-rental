@@ -27,12 +27,11 @@ function extensionFor(file: File): string {
 
 export async function uploadVehiclePhoto(options: {
   supabase: SupabaseClient;
-  organizationId: string;
   vehicleId: string;
   file: File;
   kind?: VehiclePhotoKind | "cover";
 }): Promise<{ path: string; publicUrl: string }> {
-  const { supabase, organizationId, vehicleId, file, kind = "cover" } = options;
+  const { supabase, vehicleId, file, kind = "cover" } = options;
 
   if (!file.size) {
     throw new Error("Choose a vehicle photo to upload.");
@@ -44,7 +43,7 @@ export async function uploadVehiclePhoto(options: {
     throw new Error("Use a JPEG, PNG, WebP, or GIF image.");
   }
 
-  const path = `${organizationId}/${vehicleId}/${kind}-${Date.now()}.${extensionFor(file)}`;
+  const path = `${vehicleId}/${kind}-${Date.now()}.${extensionFor(file)}`;
   const { error } = await supabase.storage
     .from(VEHICLE_PHOTOS_BUCKET)
     .upload(path, file, {

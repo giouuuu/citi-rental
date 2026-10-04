@@ -48,11 +48,11 @@ export async function transitionRentalAction(
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("organization_id, role, is_active")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (!profile?.is_active) {
-      throw new Error("Your profile is not active for this organization.");
+      throw new Error("Your profile is not active.");
     }
     if (!isStaffRole(profile.role)) {
       throw new Error("Your role cannot modify rentals.");
@@ -64,10 +64,9 @@ export async function transitionRentalAction(
         "id, status, vehicle_id, start_at, expected_return_at, tracking_consent_at, customer_id",
       )
       .eq("id", parsed.data.id)
-      .eq("organization_id", profile.organization_id)
       .maybeSingle();
     if (rentalError) throw rentalError;
-    if (!rental) throw new Error("The rental was not found in your organization.");
+    if (!rental) throw new Error("The rental was not found.");
 
     const currentStatus = rental.status as RentalWorkflowStatus;
     if (
@@ -122,15 +121,13 @@ export async function transitionRentalAction(
         .from("customers")
         .select("tracking_consent_at")
         .eq("id", rental.customer_id)
-        .eq("organization_id", profile.organization_id)
         .maybeSingle();
 
       if (!customer?.tracking_consent_at) {
         const { error: consentError } = await supabase
           .from("rentals")
           .update({ tracking_consent_at: new Date().toISOString() })
-          .eq("id", rental.id)
-          .eq("organization_id", profile.organization_id);
+          .eq("id", rental.id);
         if (consentError) throw consentError;
       }
     }

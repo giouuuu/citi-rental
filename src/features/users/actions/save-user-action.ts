@@ -19,15 +19,15 @@ export async function saveUserAction(formData: FormData): Promise<ActionResult<{
     const { data: claims } = await supabase.auth.getClaims();
     const userId = claims?.claims?.sub;
     if (!userId) throw new Error("Your session expired. Sign in and try again.");
-    const { data: profile } = await supabase.from("profiles").select("organization_id, role, is_active").eq("id", userId).maybeSingle();
+    const { data: profile } = await supabase.from("profiles").select("role, is_active").eq("id", userId).maybeSingle();
     if (!profile?.is_active || !isAdminRole(profile.role)) throw new Error("Only owners or admins can modify users.");
     const idValue = formData.get("__id");
     const id = typeof idValue === "string" && idValue ? idValue : String(parsed.data.id);
     const payload = Object.fromEntries(Object.entries(parsed.data).filter(([key, value]) => key !== "id" && value !== undefined));
-    const { data, error } = await supabase.from("profiles").update(payload).eq("id", id).eq("organization_id", profile.organization_id).select("id").maybeSingle();
+    const { data, error } = await supabase.from("profiles").update(payload).eq("id", id).select("id").maybeSingle();
     if (error) throw error;
     if (!data) {
-      const { data: inserted, error: insertError } = await supabase.from("profiles").insert({ ...parsed.data, organization_id: profile.organization_id }).select("id").single();
+      const { data: inserted, error: insertError } = await supabase.from("profiles").insert(parsed.data).select("id").single();
       if (insertError) throw insertError;
       revalidateResource("/settings/users");
       return { success: true, data: { id: String(inserted.id), href: `${userDefinition.route}/${inserted.id}` } };

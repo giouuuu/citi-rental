@@ -15,7 +15,7 @@ export async function acknowledgeAlertAction(formData: FormData): Promise<Action
     const userId = claims?.claims?.sub;
     if (!userId) throw new Error("Your session expired. Sign in and try again.");
     const { data: profile } = await supabase.from("profiles").select("role, is_active").eq("id", userId).maybeSingle();
-    if (!profile?.is_active) throw new Error("Your profile is not active for this organization.");
+    if (!profile?.is_active) throw new Error("Your profile is not active.");
     if (!isStaffRole(profile.role)) throw new Error("Your role cannot acknowledge alerts.");
     const { error } = await supabase.rpc("acknowledge_tracking_event", { p_event_id: parsed.data.id, p_resolution_note: parsed.data.resolution_note ?? null });
     if (error) throw error;

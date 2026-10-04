@@ -25,11 +25,10 @@ function extensionFor(file: File): string {
 
 export async function uploadPaymentProof(options: {
   supabase: SupabaseClient;
-  organizationId: string;
   rentalId: string;
   file: File;
 }): Promise<string> {
-  const { supabase, organizationId, rentalId, file } = options;
+  const { supabase, rentalId, file } = options;
 
   if (!file.size) {
     throw new Error("Choose a payment screenshot to upload.");
@@ -41,7 +40,7 @@ export async function uploadPaymentProof(options: {
     throw new Error("Use a JPEG, PNG, WebP, or GIF image.");
   }
 
-  const path = `${organizationId}/${rentalId}/proof-${Date.now()}.${extensionFor(file)}`;
+  const path = `${rentalId}/proof-${Date.now()}.${extensionFor(file)}`;
   const { error } = await supabase.storage
     .from(PAYMENT_PROOFS_BUCKET)
     .upload(path, file, {

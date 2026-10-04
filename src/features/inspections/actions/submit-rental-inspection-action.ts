@@ -67,11 +67,11 @@ export async function submitRentalInspectionAction(
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("organization_id, role, is_active")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (!profile?.is_active) {
-      throw new Error("Your profile is not active for this organization.");
+      throw new Error("Your profile is not active.");
     }
     if (!isStaffRole(profile.role)) {
       throw new Error("Your role cannot submit inspections.");
@@ -90,7 +90,6 @@ export async function submitRentalInspectionAction(
       if (!(file instanceof File) || file.size === 0) continue;
       const path = await uploadInspectionPhoto({
         supabase,
-        organizationId: profile.organization_id,
         rentalId: parsed.data.rental_id,
         file,
         kind: meta.kind,
@@ -108,7 +107,6 @@ export async function submitRentalInspectionAction(
     if (typeof signatureDataUrl === "string" && signatureDataUrl.startsWith("data:")) {
       signaturePath = await uploadInspectionPhotoFromDataUrl({
         supabase,
-        organizationId: profile.organization_id,
         rentalId: parsed.data.rental_id,
         dataUrl: signatureDataUrl,
         kind: "signature",
@@ -198,7 +196,7 @@ export async function resolveVehicleKnownDamageAction(
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("organization_id, role, is_active")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (!profile?.is_active || !isStaffRole(profile.role)) {
@@ -212,8 +210,7 @@ export async function resolveVehicleKnownDamageAction(
         resolved_at: new Date().toISOString(),
         resolved_by: userId,
       })
-      .eq("id", id)
-      .eq("organization_id", profile.organization_id);
+      .eq("id", id);
     if (error) throw error;
     revalidateResource("/rentals");
     return { success: true };

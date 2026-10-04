@@ -20,20 +20,20 @@ export async function saveDeviceAction(formData: FormData): Promise<ActionResult
     const { data: claims } = await supabase.auth.getClaims();
     const userId = claims?.claims?.sub;
     if (!userId) throw new Error("Your session expired. Sign in and try again.");
-    const { data: profile } = await supabase.from("profiles").select("organization_id, role, is_active").eq("id", userId).maybeSingle();
-    if (!profile?.is_active) throw new Error("Your profile is not active for this organization.");
+    const { data: profile } = await supabase.from("profiles").select("role, is_active").eq("id", userId).maybeSingle();
+    if (!profile?.is_active) throw new Error("Your profile is not active.");
     if (!isAdminRole(profile.role)) throw new Error("Your role cannot modify GPS devices.");
     const idValue = formData.get("__id");
     const id = typeof idValue === "string" && idValue ? idValue : undefined;
     const payload = Object.fromEntries(Object.entries(parsed.data).filter(([key, value]) => key !== "vehicle_id" && value !== undefined));
     let savedId: string;
     if (id) {
-      const { data, error } = await supabase.from("gps_devices").update(payload).eq("id", id).eq("organization_id", profile.organization_id).select("id").maybeSingle();
+      const { data, error } = await supabase.from("gps_devices").update(payload).eq("id", id).select("id").maybeSingle();
       if (error) throw error;
-      if (!data) throw new Error("The GPS device was not found in your organization.");
+      if (!data) throw new Error("The GPS device was not found.");
       savedId = id;
     } else {
-      const { data, error } = await supabase.from("gps_devices").insert({ ...payload, organization_id: profile.organization_id }).select("id").single();
+      const { data, error } = await supabase.from("gps_devices").insert(payload).select("id").single();
       if (error) throw error;
       savedId = String(data.id);
     }

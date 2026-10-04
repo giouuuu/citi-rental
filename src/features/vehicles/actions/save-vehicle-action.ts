@@ -67,11 +67,11 @@ export async function saveVehicleAction(
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("organization_id, role, is_active")
+      .select("role, is_active")
       .eq("id", userId)
       .maybeSingle();
     if (profileError || !profile || !profile.is_active)
-      throw new Error("Your profile is not active for this organization.");
+      throw new Error("Your profile is not active.");
     if (!isAdminRole(profile.role))
       throw new Error("Your role cannot modify vehicles.");
 
@@ -83,17 +83,15 @@ export async function saveVehicleAction(
         .from("vehicles")
         .select("daily_rate, status")
         .eq("id", id)
-        .eq("organization_id", profile.organization_id)
         .maybeSingle();
       if (currentError) throw currentError;
       if (!current)
-        throw new Error("The vehicle was not found in your organization.");
+        throw new Error("The vehicle was not found.");
 
       const { data: occupancy, error: occupancyError } = await supabase
         .from("rentals")
         .select("status")
         .eq("vehicle_id", id)
-        .eq("organization_id", profile.organization_id)
         .in("status", ["reserved", "active", "overdue"]);
       if (occupancyError) throw occupancyError;
 
@@ -124,8 +122,7 @@ export async function saveVehicleAction(
         const { data: gallery } = await supabase
           .from("vehicle_photos")
           .select("kind")
-          .eq("vehicle_id", id)
-          .eq("organization_id", profile.organization_id);
+          .eq("vehicle_id", id);
         if (!isCompleteVehicleGallery(gallery ?? [])) {
           const missing = missingVehicleGalleryLabels(gallery ?? []);
           return {
@@ -150,11 +147,10 @@ export async function saveVehicleAction(
         .from("vehicles")
         .update(updatePayload)
         .eq("id", id)
-        .eq("organization_id", profile.organization_id)
         .select("id")
         .maybeSingle();
       if (error) throw error;
-      if (!data) throw new Error("The vehicle was not found in your organization.");
+      if (!data) throw new Error("The vehicle was not found.");
       savedId = data.id;
     } else {
       // New vehicles cannot be Available until the 6-photo gallery is complete.
@@ -165,7 +161,6 @@ export async function saveVehicleAction(
         .insert({
           ...payload,
           status: createStatus,
-          organization_id: profile.organization_id,
         })
         .select("id")
         .single();
@@ -176,7 +171,6 @@ export async function saveVehicleAction(
     if (photoFile && savedId) {
       const uploaded = await uploadVehiclePhoto({
         supabase,
-        organizationId: profile.organization_id,
         vehicleId: savedId,
         file: photoFile,
         kind: "front",
@@ -184,13 +178,11 @@ export async function saveVehicleAction(
       const { error: photoError } = await supabase
         .from("vehicles")
         .update({ photo_url: uploaded.publicUrl })
-        .eq("id", savedId)
-        .eq("organization_id", profile.organization_id);
+        .eq("id", savedId);
       if (photoError) throw photoError;
 
       const { error: galleryError } = await supabase.from("vehicle_photos").upsert(
         {
-          organization_id: profile.organization_id,
           vehicle_id: savedId,
           kind: "front",
           storage_path: uploaded.path,
