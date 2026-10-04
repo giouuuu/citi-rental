@@ -292,6 +292,13 @@
   animation-delay: var(--piece-delay, 0ms);
 }
 
+/* Hold the scene on its first frame (everything transparent over the
+   preview) until every layer has loaded. */
+[data-scene="loading"] .scene-piece,
+[data-scene="loading"] .scene-car {
+  animation-play-state: paused;
+}
+
 /* The car drives up from the vanishing point; the road is already there. */
 @keyframes scene-car {
   from {

@@ -1,7 +1,7 @@
 "use client";
 
 import Image, { type StaticImageData } from "next/image";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { HeroCarControls, useHeroFleet } from "@/components/landing/hero-fleet";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import foliageLeft from "./hero-scene/foliage-left.webp";
 import foliageRight from "./hero-scene/foliage-right.webp";
 import hills from "./hero-scene/hills.webp";
 import mountains from "./hero-scene/mountains.webp";
+import preview from "./hero-scene/preview.webp";
 import road from "./hero-scene/road.webp";
 import sky from "./hero-scene/sky.webp";
 import trees from "./hero-scene/trees.webp";
@@ -64,6 +65,11 @@ export function HeroScene({ className }: { className?: string }) {
   const carItemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const shownRef = useRef(active);
   const rootRef = useRef<HTMLDivElement>(null);
+  // Back layers hold painted-in fill under the road and foliage. Revealing
+  // them before every layer has loaded shows that fill as a green smear on a
+  // slow connection, so the intro waits; the preview photo covers the wait.
+  const [loadedLayers, setLoadedLayers] = useState(0);
+  const sceneReady = loadedLayers >= LAYERS.length;
   const layerRefs = useRef<Array<HTMLDivElement | null>>([]);
   const carRef = useRef<HTMLDivElement>(null);
 
@@ -196,8 +202,23 @@ export function HeroScene({ className }: { className?: string }) {
     <div
       aria-hidden="true"
       className={cn("pointer-events-none absolute overflow-hidden", className)}
+      data-scene={sceneReady ? "ready" : "loading"}
       ref={rootRef}
     >
+      {/* The whole photo, tiny and blurred: on screen from the first paint
+          and hidden under the layers once they have loaded. */}
+      <div className="absolute -inset-[4%]">
+        <Image
+          alt=""
+          className={cn(FRAME, "scale-105 blur-md")}
+          fill
+          placeholder="blur"
+          priority
+          sizes="108vw"
+          src={preview}
+        />
+      </div>
+
       {LAYERS.map((layer, index) => (
         <div
           className="absolute -inset-[4%] will-change-transform"
@@ -220,6 +241,7 @@ export function HeroScene({ className }: { className?: string }) {
               className={cn(FRAME, "select-none")}
               draggable={false}
               fill
+              onLoad={() => setLoadedLayers((count) => count + 1)}
               priority
               sizes="108vw"
               src={layer.image}
