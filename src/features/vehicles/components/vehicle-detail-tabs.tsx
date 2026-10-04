@@ -17,6 +17,7 @@ export function VehicleDetailTabs({
   maintenance,
   maintenanceDue = 0,
   notice,
+  costs,
 }: {
   overview: ReactNode;
   /** Owner only: the car loan and purchase cost. */
@@ -30,6 +31,8 @@ export function VehicleDetailTabs({
   maintenanceDue?: number;
   /** Shown above the tabs, whichever one is open. */
   notice?: ReactNode;
+  /** Running costs logged against this car (fuel, repairs, fees). */
+  costs?: ReactNode;
 }) {
   return (
     <div className="space-y-4">
@@ -71,6 +74,9 @@ export function VehicleDetailTabs({
             : []),
           ...(damages
             ? [{ value: "damages", label: "Prior damage", content: damages }]
+            : []),
+          ...(costs
+            ? [{ value: "costs", label: "Costs", content: costs }]
             : []),
         ]}
       />

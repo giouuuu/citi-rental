@@ -15,6 +15,10 @@ import {
   listVehicleKnownDamages,
   VehicleKnownDamagesPanel,
 } from "@/features/inspections";
+import {
+  listVehicleExpenses,
+  VehicleCostsPanel,
+} from "@/features/vehicle-costs";
 import { PanelError } from "@/features/analytics/components/panel-error";
 import { getVehicleMaintenance, MaintenanceDueAlert, VehicleMaintenancePanel } from "@/features/maintenance";
 import { expenseDefinition } from "@/features/finance";
@@ -69,7 +73,7 @@ export default async function Page({
   const role = configured ? await getViewerRole() : null;
   const isOwner = role === "owner";
 
-  const [rentals, damages, photos, vehicle, booksResult, expenseReferences, maintenance] = await Promise.all([
+  const [rentals, damages, photos, vehicle, booksResult, expenseReferences, maintenance, expenses] = await Promise.all([
     configured ? listVehicleRentals(id) : [],
     configured ? listVehicleKnownDamages(id, { includeResolved: true }) : [],
     configured ? listVehiclePhotos(id) : [],
@@ -93,6 +97,7 @@ export default async function Page({
         )
       : ({} as ResourceReferences),
     configured ? getVehicleMaintenance(id) : null,
+    configured ? listVehicleExpenses(id) : [],
   ]);
 
   const books = booksResult?.ok ? booksResult.data : null;
@@ -189,6 +194,7 @@ export default async function Page({
                 vehicleId={id}
               />
             }
+            costs={<VehicleCostsPanel expenses={expenses} />}
             info={form}
             maintenance={
               maintenance === null ? undefined : maintenance.ok ? (

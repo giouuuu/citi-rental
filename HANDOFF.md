@@ -22,12 +22,18 @@ In this order:
 
 1. **Point your Supabase tooling at the right project.** See the warning below — this is a real trap.
 2. **Run the preflight against the real project.** `scripts/single-tenant-preflight.sql` (untracked, read-only, writes nothing) goes into the Supabase SQL editor; read the `verdict` column. Any `BLOCKED` row means the single-tenant migration will abort. It runs in a transaction so a failure rolls back cleanly, but you lose the attempt. The delete script at the bottom — for removing a second organization — is **destructive and irreversible** and is deliberately left commented out. Back up first.
-3. **Apply the five new migrations to the hosted project**, in filename order:
+3. **Apply the pending migrations to the hosted project**, in filename order. Check `list_migrations` first and skip any already applied:
+   - `20260814090000_vehicle_expense_ledger.sql` (from `main`)
    - `20260929100000_restrict_org_reads_to_staff.sql`
    - `20260929101000_public_booking_identity_hardening.sql`
    - `20260929102000_rental_booking_source_and_cancellation.sql`
    - `20260929103000_analytics_rpcs.sql`
+   - `20261004110000_vehicle_expenses_single_tenant.sql` — must run before the next one; it converts the expense ledger, whose policies would otherwise block the drop of `current_organization_id()`
    - `20261004120000_single_tenant_drop_organizations.sql`
+   - `20261005090000_financial_statements.sql`
+   - `20261005100000_vehicle_loans.sql`
+   - `20261006090000_vehicle_maintenance.sql`
+   - `20261007090000_vehicle_showcase_image.sql`
 
    As of `7b0534e` none of these had been applied (the hosted project was paused). **Still unconfirmed** — confirm with `list_migrations` against the correct project before applying.
 4. **Deploy the app only after the migrations land.** The app no longer sends `organization_id` and reads `company_profile`, so this build is broken against the old schema.
