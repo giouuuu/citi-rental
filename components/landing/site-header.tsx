@@ -1,10 +1,12 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 
 import { ZekeMark } from "@/components/brand/zeke-mark";
 import { SiteHeaderAccountMenu } from "@/components/landing/site-header-account-menu";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 function initialsFromName(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -50,23 +52,67 @@ async function getHeaderAccountUser() {
   };
 }
 
-export async function SiteHeader() {
+const NAV_LINKS = [
+  { href: "/#fleet", label: "Cars" },
+  { href: "/#types", label: "Car types" },
+  { href: "/#how-it-works", label: "How it works" },
+  { href: "/#why", label: "Why Zeke" },
+];
+
+export async function SiteHeader({
+  tone = "dark",
+  intro = false,
+}: {
+  /** `light` for pages on a light surface (the landing hero); `dark` for navy banners. */
+  tone?: "dark" | "light";
+  /** Stagger the header items into focus as part of the landing intro. */
+  intro?: boolean;
+}) {
   const accountUser = await getHeaderAccountUser();
+  const light = tone === "light";
+  const enter = (delayMs: number) =>
+    intro
+      ? {
+          className: "focus-in",
+          style: { "--focus-delay": `${delayMs}ms` } as CSSProperties,
+        }
+      : { className: undefined, style: undefined };
+  const navLinkClassName = cn(
+    "rounded-md px-3 py-2 transition-colors",
+    light
+      ? "text-brand-700 hover:bg-brand-950/5 hover:text-brand-950"
+      : "hover:bg-white/5 hover:text-white",
+  );
 
   return (
-    <header className="relative z-30 border-b border-white/10">
+    <header
+      className={cn(
+        "relative z-30",
+        light ? "border-b border-transparent" : "border-b border-white/10",
+      )}
+    >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           aria-label="Zeke Car Rentals home"
-          className="flex items-center gap-3 text-white"
+          className={cn(
+            "flex items-center gap-3",
+            light ? "text-brand-950" : "text-white",
+            enter(250).className,
+          )}
           href="/"
+          style={enter(250).style}
         >
-          <ZekeMark className="size-10" variant="teal" />
+          <ZekeMark className="size-10" variant={light ? "navy" : "teal"} />
           <span>
-            <span className="block text-sm font-bold tracking-[0.16em] uppercase">
+            <span className="block font-display text-[1.0625rem] leading-tight font-semibold tracking-[-0.01em] whitespace-nowrap">
               Zeke Car Rentals
             </span>
-            <span className="block text-[10px] tracking-[0.2em] text-brand-100 uppercase">
+            <span
+              className={cn(
+                "hidden text-xs sm:block",
+                light ? "text-muted-foreground" : "text-brand-100/80",
+              )}
+            >
               Cebu · DTI registered
             </span>
           </span>
@@ -74,39 +120,44 @@ export async function SiteHeader() {
 
         <nav
           aria-label="Primary navigation"
-          className="hidden items-center gap-8 text-sm font-medium text-brand-100 md:flex"
+          className={cn(
+            "hidden items-center gap-1 text-sm font-medium md:flex",
+            !light && "text-brand-100",
+          )}
         >
-          <Link className="transition-colors hover:text-white" href="/#fleet">
-            Our cars
-          </Link>
-          <Link
-            className="transition-colors hover:text-white"
-            href="/#how-it-works"
-          >
-            How it works
-          </Link>
-          <Link className="transition-colors hover:text-white" href="/#rates">
-            Rates
-          </Link>
-          <Link className="transition-colors hover:text-white" href="/#support">
-            Support
-          </Link>
+          {NAV_LINKS.map(({ href, label }, index) => (
+            <Link
+              className={cn(navLinkClassName, enter(330 + index * 60).className)}
+              href={href}
+              key={href}
+              style={enter(330 + index * 60).style}
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div
+          className={cn("flex items-center gap-2 sm:gap-3", enter(580).className)}
+          style={enter(580).style}
+        >
           {accountUser ? (
-            <SiteHeaderAccountMenu user={accountUser} />
+            <SiteHeaderAccountMenu tone={tone} user={accountUser} />
           ) : (
             <Button
               asChild
-              className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              className={
+                light
+                  ? undefined
+                  : "border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              }
               size="default"
               variant="outline"
             >
               <Link href="/login">Sign in</Link>
             </Button>
           )}
-          <Button asChild size="default">
+          <Button asChild className="hidden sm:inline-flex" size="default">
             <Link href="/#find-a-car">Find a car</Link>
           </Button>
         </div>

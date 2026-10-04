@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { BadgeCheck, KeyRound, Search } from "lucide-react";
+import { CalendarCheck, CarFront, KeyRound, MapPin } from "lucide-react";
 
 export const landingSteps: Array<{
   icon: LucideIcon;
@@ -8,22 +8,27 @@ export const landingSteps: Array<{
   description: string;
 }> = [
   {
-    icon: Search,
+    icon: MapPin,
     number: "01",
-    title: "Choose your car",
-    description: "Compare the right size, features, and rate for your trip.",
+    title: "Choose pickup",
+    description: "Mactan–Cebu airport, your hotel, or anywhere in the city.",
   },
   {
-    icon: BadgeCheck,
+    icon: CarFront,
     number: "02",
-    title: "Confirm your booking",
-    description: "Share your schedule and we will confirm availability quickly.",
+    title: "Pick a car",
+    description: "Only cars free for your dates show up, each with its daily rate.",
+  },
+  {
+    icon: CalendarCheck,
+    number: "03",
+    title: "Reserve online",
+    description: "Book as a guest or with Google. We confirm pickup with you.",
   },
   {
     icon: KeyRound,
-    number: "03",
+    number: "04",
     title: "Pick up and drive",
-    description:
-      "Collect a clean, inspected car at the agreed time — support stays available if plans change.",
+    description: "Collect a cleaned, inspected car. We're a message away if plans change.",
   },
 ];

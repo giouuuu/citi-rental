@@ -63,12 +63,13 @@ export function ResourceFormField({
           ) : fieldDef.type === "image" ? (
             <div className="space-y-3">
               <FieldLabel htmlFor={id}>{fieldDef.label}</FieldLabel>
-              {typeof row?.photo_url === "string" && row.photo_url ? (
+              {typeof row?.[fieldDef.previewColumn ?? "photo_url"] === "string" &&
+              row[fieldDef.previewColumn ?? "photo_url"] ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  alt="Current photo"
-                  className="h-40 w-full max-w-sm rounded-lg border object-cover"
-                  src={row.photo_url}
+                  alt="Current image"
+                  className="h-40 w-full max-w-sm rounded-lg border bg-muted object-contain"
+                  src={String(row[fieldDef.previewColumn ?? "photo_url"])}
                 />
               ) : null}
               <Input

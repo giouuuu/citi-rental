@@ -22,13 +22,23 @@ export type SiteHeaderAccountUser = {
   initials: string;
 };
 
-export function SiteHeaderAccountMenu({ user }: { user: SiteHeaderAccountUser }) {
+export function SiteHeaderAccountMenu({
+  user,
+  tone = "dark",
+}: {
+  user: SiteHeaderAccountUser;
+  tone?: "dark" | "light";
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           aria-label={`Account menu for ${user.fullName}`}
-          className="size-10 rounded-full border border-white/15 bg-white/10 p-0 text-white hover:bg-white/15"
+          className={
+            tone === "light"
+              ? "size-10 rounded-full border border-border bg-card p-0 hover:bg-muted"
+              : "size-10 rounded-full border border-white/15 bg-white/10 p-0 text-white hover:bg-white/15"
+          }
           size="icon"
           type="button"
           variant="ghost"

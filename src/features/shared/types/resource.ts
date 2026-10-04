@@ -41,6 +41,8 @@ export type ResourceField = {
   step?: string;
   className?: string;
   accept?: string;
+  /** For `image`: the row column holding the current image URL. Defaults to `photo_url`. */
+  previewColumn?: string;
   /**
    * For `date-range`: this field holds the start and `endField` the end, both
    * `YYYY-MM-DDTHH:mm`. The end field is edited here, not on its own.

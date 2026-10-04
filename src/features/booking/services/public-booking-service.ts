@@ -87,6 +87,8 @@ export async function getPublicVehicle(
     seating_capacity: row.seating_capacity,
     photo_url: row.photo_url,
     daily_rate: Number(row.daily_rate),
+    color: row.color ?? null,
+    showcase_image_url: row.showcase_image_url ?? null,
     status: row.status,
   };
 }

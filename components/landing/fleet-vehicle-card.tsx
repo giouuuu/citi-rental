@@ -64,34 +64,34 @@ export function FleetVehicleCard({
     : bookingContinuePath(vehicle.id, tripQuery);
 
   return (
-    <Card className="group gap-0 overflow-hidden py-0 transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:border-teal-500/40 hover:shadow-md">
-      <div className="relative flex min-h-52 items-center justify-center overflow-hidden bg-brand-50 px-6 pt-6">
-        <Badge className="absolute top-4 left-4 z-10 bg-card text-teal-700 shadow-xs hover:bg-card">
+    <Card className="group gap-0 overflow-hidden rounded-2xl border-0 py-0 shadow-none ring-1 ring-border transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_24px_48px_-28px_rgb(7_17_31/0.4)] hover:ring-teal-500/40">
+      <div className="relative m-2 mb-0 flex aspect-[16/10] items-center justify-center overflow-hidden rounded-xl bg-[radial-gradient(120%_90%_at_50%_100%,var(--brand-100),var(--brand-50)_70%)] px-6 pt-6">
+        <Badge className="absolute top-3 left-3 z-10 rounded-md bg-card text-teal-700 shadow-xs hover:bg-card">
           <CheckCircle2 aria-hidden="true" />
           Available
         </Badge>
         {vehicle.photo_url ? (
           <Image
             alt={vehicle.name}
-            className="object-cover"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
             src={vehicle.photo_url}
           />
         ) : (
           <CarIllustration
-            className={illustrationColor(vehicle.category)}
+            className={`${illustrationColor(vehicle.category)} transition-transform duration-500 ease-out group-hover:translate-x-1`}
             variant={illustrationVariant(vehicle.category)}
           />
         )}
       </div>
 
-      <CardContent className="p-6">
+      <CardContent className="flex flex-1 flex-col p-5 sm:p-6">
         <div>
-          <p className="text-xs font-semibold tracking-wider text-teal-700 uppercase">
-            {categoryLabel}
-          </p>
-          <h3 className="mt-1 text-xl font-bold text-brand-950">{vehicle.name}</h3>
+          <p className="text-sm font-medium text-teal-700">{categoryLabel}</p>
+          <h3 className="mt-0.5 font-display text-xl font-semibold tracking-[-0.015em] text-brand-950">
+            {vehicle.name}
+          </h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {vehicle.make} {vehicle.model} · {vehicle.year}
           </p>
@@ -103,24 +103,26 @@ export function FleetVehicleCard({
           />
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2 border-y border-border py-4 text-center text-xs text-muted-foreground">
-          <span className="flex flex-col items-center gap-1.5">
-            <Users aria-hidden="true" className="size-4 text-brand-600" />
+        <ul className="mt-5 flex flex-wrap gap-2 text-xs text-brand-700">
+          <li className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5">
+            <Users aria-hidden="true" className="size-3.5 text-brand-500" />
             {vehicle.seating_capacity ? `${vehicle.seating_capacity} seats` : "Seats —"}
-          </span>
-          <span className="flex flex-col items-center gap-1.5">
-            <Settings2 aria-hidden="true" className="size-4 text-brand-600" />
+          </li>
+          <li className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5">
+            <Settings2 aria-hidden="true" className="size-3.5 text-brand-500" />
             {transmission}
-          </span>
-          <span className="flex flex-col items-center gap-1.5">
-            <Fuel aria-hidden="true" className="size-4 text-brand-600" />
+          </li>
+          <li className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5">
+            <Fuel aria-hidden="true" className="size-3.5 text-brand-500" />
             {fuel}
-          </span>
-        </div>
+          </li>
+        </ul>
 
-        <Button asChild className="mt-5 w-full" size="lg">
-          <Link href={href}>Book this car</Link>
-        </Button>
+        <div className="mt-auto pt-5">
+          <Button asChild className="w-full" size="lg">
+            <Link href={href}>Book this car</Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

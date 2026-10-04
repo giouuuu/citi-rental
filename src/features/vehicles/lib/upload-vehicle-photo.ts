@@ -29,7 +29,7 @@ export async function uploadVehiclePhoto(options: {
   supabase: SupabaseClient;
   vehicleId: string;
   file: File;
-  kind?: VehiclePhotoKind | "cover";
+  kind?: VehiclePhotoKind | "cover" | "showcase";
 }): Promise<{ path: string; publicUrl: string }> {
   const { supabase, vehicleId, file, kind = "cover" } = options;
 

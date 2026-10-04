@@ -35,6 +35,8 @@ type VehicleListingProps = {
   bookingQuery?: string;
   signedIn?: boolean;
   trip?: FleetTripFilter;
+  /** Category to preselect, e.g. from a "Browse by type" card (`?type=`). */
+  initialCategory?: string;
 };
 
 function formatTripDate(value?: string) {
@@ -53,6 +55,7 @@ export function VehicleListing({
   bookingQuery,
   signedIn = false,
   trip,
+  initialCategory,
 }: VehicleListingProps) {
   const categories = useMemo(() => {
     const fromFleet = Array.from(
@@ -66,7 +69,12 @@ export function VehicleListing({
     return ["All", ...(fromFleet.length ? fromFleet : [...FALLBACK_CATEGORIES])];
   }, [vehicles]);
 
-  const [category, setCategory] = useState("All");
+  const [category, setCategory] = useState(
+    () =>
+      categories.find(
+        (item) => item.toLowerCase() === initialCategory?.trim().toLowerCase(),
+      ) ?? "All",
+  );
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query.trim().toLowerCase());
   const deferredCategory = useDeferredValue(category);
@@ -98,46 +106,43 @@ export function VehicleListing({
   }
 
   return (
-    <section className="relative pt-10 pb-20 sm:pt-12 sm:pb-24" id="fleet">
-      <div className="fleet-dot-grid absolute inset-x-0 top-0 h-52 opacity-50" />
+    <section className="relative scroll-mt-4 py-20 sm:py-24" id="fleet">
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-sm font-semibold tracking-[0.18em] text-teal-700 uppercase">
-              Ready when you are
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="font-display text-3xl font-semibold tracking-[-0.025em] text-balance text-brand-950 sm:text-4xl">
+            {hasTripDates ? "Free for your dates" : "Available cars"}
+          </h2>
+          {hasTrip ? (
+            <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              {trip?.pickup?.trim() ? (
+                <p className="inline-flex items-center gap-1.5">
+                  <MapPin aria-hidden="true" className="size-3.5 text-teal-700" />
+                  <span>{trip.pickup.trim()}</span>
+                </p>
+              ) : null}
+              {hasTripDates ? (
+                <p className="inline-flex items-center gap-1.5">
+                  <CalendarDays aria-hidden="true" className="size-3.5 text-teal-700" />
+                  <span>
+                    {pickupLabel} → {returnLabel}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-3 text-base text-muted-foreground">
+              Choose dates above to see cars free for your trip, then book online.
             </p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-brand-950 sm:text-4xl">
-              Available cars from our fleet
-            </h2>
-            {hasTrip ? (
-              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                {trip?.pickup?.trim() ? (
-                  <p className="inline-flex items-center gap-1.5">
-                    <MapPin aria-hidden="true" className="size-3.5 text-teal-700" />
-                    <span>{trip.pickup.trim()}</span>
-                  </p>
-                ) : null}
-                {hasTripDates ? (
-                  <p className="inline-flex items-center gap-1.5">
-                    <CalendarDays
-                      aria-hidden="true"
-                      className="size-3.5 text-teal-700"
-                    />
-                    <span>
-                      {pickupLabel} → {returnLabel}
-                    </span>
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <p className="mt-3 text-base leading-7 text-muted-foreground sm:text-lg">
-                Choose dates above to see cars free for your trip, then book
-                online.
-              </p>
-            )}
-          </div>
-          <p className="shrink-0 rounded-lg border border-border bg-card px-4 py-3 text-sm text-brand-950">
-            <span className="font-bold tabular-nums">{vehicles.length}</span>
+          )}
+          <p
+            aria-live="polite"
+            className="mt-4 inline-flex items-center gap-2 text-sm text-brand-950"
+          >
+            <span
+              aria-hidden="true"
+              className="size-2 rounded-full bg-teal-500 shadow-[0_0_0_4px_var(--teal-100)]"
+            />
+            <span className="font-semibold tabular-nums">{vehicles.length}</span>
             <span className="text-muted-foreground">
               {hasTripDates
                 ? vehicles.length === 1
@@ -150,7 +155,7 @@ export function VehicleListing({
           </p>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-xs lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div
             aria-label="Filter cars by type"
             className="flex gap-2 overflow-x-auto pb-1 lg:pb-0"
@@ -190,7 +195,7 @@ export function VehicleListing({
         </div>
 
         {filteredVehicles.length ? (
-          <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-8 grid gap-x-6 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
             {filteredVehicles.map((vehicle) => (
               <FleetVehicleCard
                 bookingQuery={bookingQuery}
@@ -201,7 +206,7 @@ export function VehicleListing({
             ))}
           </div>
         ) : (
-          <Empty className="mt-8 min-h-64 border border-dashed border-border bg-card">
+          <Empty className="mt-8 min-h-72 rounded-2xl border border-dashed border-border bg-card">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <CarFront aria-hidden="true" />

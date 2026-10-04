@@ -21,6 +21,8 @@ type BookingDatePickerProps = {
   disabled?: boolean;
   "aria-invalid"?: boolean;
   minDate?: string;
+  /** `inline` drops the field chrome so the picker can sit inside a search bar cell. */
+  appearance?: "field" | "inline";
 };
 
 function parseLocalDate(value: string): Date | undefined {
@@ -41,6 +43,7 @@ export function BookingDatePicker({
   disabled,
   "aria-invalid": ariaInvalid,
   minDate,
+  appearance = "field",
 }: BookingDatePickerProps) {
   const [open, setOpen] = useState(false);
   const selected = parseLocalDate(value);
@@ -53,7 +56,9 @@ export function BookingDatePicker({
         <Button
           aria-invalid={ariaInvalid}
           className={cn(
-            "h-12 w-full justify-start gap-2 px-3.5 text-left font-normal shadow-xs",
+            appearance === "inline"
+              ? "h-auto w-full justify-start border-0 bg-transparent p-0 text-left text-base font-normal text-brand-950 md:text-sm shadow-none hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 active:translate-y-0 aria-invalid:ring-0"
+              : "h-12 w-full justify-start gap-2 px-3.5 text-left font-normal shadow-xs",
             !selected && "text-muted-foreground",
           )}
           disabled={disabled}
@@ -61,7 +66,9 @@ export function BookingDatePicker({
           type="button"
           variant="outline"
         >
-          <CalendarDays aria-hidden="true" className="size-4 text-teal-600" />
+          {appearance === "field" ? (
+            <CalendarDays aria-hidden="true" className="size-4 text-teal-600" />
+          ) : null}
           {selected ? format(selected, "MMM d, yyyy") : placeholder}
         </Button>
       </PopoverTrigger>

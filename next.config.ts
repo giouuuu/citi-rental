@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
     // Trade-off: another admin's edit can take up to 30s to appear for a user
     // who is navigating rather than reloading. Lower this to 10 if that bites.
     staleTimes: { dynamic: 30, static: 300 },
+    // Vehicle photos (up to 5MB) post through Server Actions; the default 1MB
+    // body limit rejected anything larger.
+    serverActions: { bodySizeLimit: "6mb" },
   },
   transpilePackages: [
     "@fullcalendar/core",

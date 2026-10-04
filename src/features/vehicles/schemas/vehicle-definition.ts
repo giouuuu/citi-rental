@@ -54,6 +54,7 @@ export const vehicleDefinition: ResourceDefinition = {
     "current_odometer",
     "status",
     "photo_url",
+    "showcase_image_url",
     "notes",
   ],
   schema: z.object({
@@ -149,6 +150,16 @@ export const vehicleDefinition: ResourceDefinition = {
       type: "image",
       description:
         "Optional shortcut for the front gallery slot. Prefer the Photo gallery tab — all 6 angles are required before Available.",
+      className: "md:col-span-2",
+    },
+    {
+      name: "showcase_image",
+      label: "Landing page image (optional)",
+      type: "image",
+      accept: "image/png,image/webp",
+      previewColumn: "showcase_image_url",
+      description:
+        "Front view of the car with a transparent background (PNG or WebP, up to 5MB). Available cars with this image appear in the homepage hero, where customers flip through them.",
       className: "md:col-span-2",
     },
     {

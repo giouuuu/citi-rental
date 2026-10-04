@@ -55,6 +55,18 @@ export async function saveVehicleAction(
   const id = typeof idValue === "string" && idValue ? idValue : undefined;
   const photo = formData.get("photo");
   const photoFile = photo instanceof File && photo.size > 0 ? photo : null;
+  const showcase = formData.get("showcase_image");
+  const showcaseFile =
+    showcase instanceof File && showcase.size > 0 ? showcase : null;
+  if (showcaseFile && !["image/png", "image/webp"].includes(showcaseFile.type)) {
+    return {
+      success: false,
+      message: "The landing page image must be a PNG or WebP with a transparent background.",
+      fieldErrors: {
+        showcase_image: ["Use a PNG or WebP with a transparent background."],
+      },
+    };
+  }
   const payload = Object.fromEntries(
     Object.entries(parsed.data).filter(([, value]) => value !== undefined),
   );
@@ -192,6 +204,20 @@ export async function saveVehicleAction(
         { onConflict: "vehicle_id,kind" },
       );
       if (galleryError) throw galleryError;
+    }
+
+    if (showcaseFile && savedId) {
+      const uploaded = await uploadVehiclePhoto({
+        supabase,
+        vehicleId: savedId,
+        file: showcaseFile,
+        kind: "showcase",
+      });
+      const { error: showcaseError } = await supabase
+        .from("vehicles")
+        .update({ showcase_image_url: uploaded.publicUrl })
+        .eq("id", savedId);
+      if (showcaseError) throw showcaseError;
     }
 
     revalidateResource("/vehicles");

@@ -11,4 +11,7 @@ export type PublicFleetVehicle = {
   photo_url: string | null;
   /** Base daily rental rate in PHP. */
   daily_rate: number;
+  color: string | null;
+  /** Front-view cutout for the landing-page hero; null when none was uploaded. */
+  showcase_image_url: string | null;
 };

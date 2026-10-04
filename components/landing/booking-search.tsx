@@ -3,10 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, MapPin } from "lucide-react";
+import { CalendarDays, MapPin, Search } from "lucide-react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
 import { BookingDatePicker } from "@/components/landing/booking-date-picker";
+import { HeroCarSummary } from "@/components/landing/hero-fleet";
 import {
   bookingSearchSchema,
   todayDateValue,
@@ -19,12 +20,9 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 type BookingSearchProps = {
   initialPickup?: string;
@@ -71,68 +69,60 @@ export function BookingSearch({
     document.getElementById("fleet")?.scrollIntoView({ behavior: "smooth" });
   }
 
+  const cellClassName =
+    "flex items-start gap-3 rounded-xl px-4 py-3 transition-colors focus-within:bg-brand-50 hover:bg-brand-50/60 md:px-5";
+  const iconClassName = "mt-0.5 size-5 shrink-0 text-muted-foreground";
+
   return (
     <section
       aria-labelledby="find-a-car-title"
-      className="overflow-hidden rounded-xl border border-border bg-card"
+      className="mx-auto w-full max-w-5xl scroll-mt-24"
       id="find-a-car"
     >
-      <div className="flex flex-col gap-4 border-b border-border px-5 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.18em] text-teal-700 uppercase">
-            Start your trip
-          </p>
-          <h2 id="find-a-car-title" className="mt-0.5 text-lg font-bold text-brand-950">
-            Find a car for your dates
-          </h2>
-        </div>
-
-        <Tabs
-          className="w-full lg:max-w-xs"
-          onValueChange={setMode}
-          value={mode}
-        >
-          <TabsList className="h-11! w-full rounded-lg bg-muted p-1">
-            <TabsTrigger className="h-full" value="self-drive">
-              Self-drive
-            </TabsTrigger>
-            <TabsTrigger className="h-full" value="with-driver">
-              With driver
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+      <h2 className="sr-only" id="find-a-car-title">
+        Find a car for your dates
+      </h2>
 
       <form
-        className="p-5 sm:p-6 lg:p-8"
+        className="rounded-2xl bg-card p-2 shadow-[0_30px_60px_-30px_rgb(7_17_31/0.3)] ring-1 ring-brand-950/[0.06]"
         noValidate
         onSubmit={form.handleSubmit(onSubmit)}
       >
-        <FieldGroup className="grid gap-5 lg:grid-cols-[1.4fr_1fr_1fr_auto] lg:items-start">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 pt-1.5 pb-1 md:px-4">
+          <Tabs onValueChange={setMode} value={mode}>
+            <TabsList className="h-8! rounded-full bg-brand-950/[0.05] p-0.5">
+              <TabsTrigger className="h-full rounded-full px-3 text-xs" value="self-drive">
+                Self-drive
+              </TabsTrigger>
+              <TabsTrigger className="h-full rounded-full px-3 text-xs" value="with-driver">
+                With driver
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <HeroCarSummary />
+        </div>
+
+        <FieldGroup className="grid gap-0 md:grid-cols-[1.3fr_1fr_1fr_auto] md:items-center">
           <Controller
             control={form.control}
             name="pickupLocation"
             render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="pickup-location">Pick-up location</FieldLabel>
-                <InputGroup
-                  aria-invalid={fieldState.invalid}
-                  className="h-12!"
-                >
-                  <InputGroupAddon align="inline-start">
-                    <MapPin aria-hidden="true" className="text-teal-600" />
-                  </InputGroupAddon>
-                  <InputGroupInput
+              <div className={cellClassName}>
+                <MapPin aria-hidden="true" className={iconClassName} />
+                <Field className="gap-1" data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="pickup-location">Location</FieldLabel>
+                  <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
+                    className="h-auto border-0 bg-transparent p-0 text-base text-brand-950 shadow-none placeholder:text-muted-foreground focus-visible:ring-0 aria-invalid:ring-0 md:text-sm"
                     id="pickup-location"
-                    placeholder="Airport, city, or hotel"
+                    placeholder="Airport, hotel, or city"
                   />
-                </InputGroup>
-                {fieldState.invalid ? (
-                  <FieldError errors={[fieldState.error]} />
-                ) : null}
-              </Field>
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              </div>
             )}
           />
 
@@ -140,20 +130,24 @@ export function BookingSearch({
             control={form.control}
             name="pickupDate"
             render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="pickup-date">Pick-up date</FieldLabel>
-                <BookingDatePicker
-                  aria-invalid={fieldState.invalid}
-                  id="pickup-date"
-                  minDate={today}
-                  onChange={field.onChange}
-                  placeholder="Pick-up date"
-                  value={field.value}
-                />
-                {fieldState.invalid ? (
-                  <FieldError errors={[fieldState.error]} />
-                ) : null}
-              </Field>
+              <div className={cn(cellClassName, dividerClassName)}>
+                <CalendarDays aria-hidden="true" className={iconClassName} />
+                <Field className="gap-1" data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="pickup-date">Pick-up date</FieldLabel>
+                  <BookingDatePicker
+                    appearance="inline"
+                    aria-invalid={fieldState.invalid}
+                    id="pickup-date"
+                    minDate={today}
+                    onChange={field.onChange}
+                    placeholder="Add date"
+                    value={field.value}
+                  />
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              </div>
             )}
           />
 
@@ -161,34 +155,39 @@ export function BookingSearch({
             control={form.control}
             name="returnDate"
             render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="return-date">Return date</FieldLabel>
-                <BookingDatePicker
-                  aria-invalid={fieldState.invalid}
-                  id="return-date"
-                  minDate={pickupDate && pickupDate >= today ? pickupDate : today}
-                  onChange={field.onChange}
-                  placeholder="Return date"
-                  value={field.value}
-                />
-                {fieldState.invalid ? (
-                  <FieldError errors={[fieldState.error]} />
-                ) : null}
-              </Field>
+              <div className={cn(cellClassName, dividerClassName)}>
+                <CalendarDays aria-hidden="true" className={iconClassName} />
+                <Field className="gap-1" data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="return-date">Return date</FieldLabel>
+                  <BookingDatePicker
+                    appearance="inline"
+                    aria-invalid={fieldState.invalid}
+                    id="return-date"
+                    minDate={pickupDate && pickupDate >= today ? pickupDate : today}
+                    onChange={field.onChange}
+                    placeholder="Add date"
+                    value={field.value}
+                  />
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              </div>
             )}
           />
 
-          <Field>
-            <FieldLabel aria-hidden="true" className="invisible select-none">
-              Submit
-            </FieldLabel>
-            <Button className="h-12 px-6" size="lg" type="submit">
-              Show available cars
-              <ArrowRight aria-hidden="true" />
+          <div className="p-2 md:pl-3">
+            <Button className="h-12 w-full rounded-xl px-6 md:w-auto" size="lg" type="submit">
+              <Search aria-hidden="true" className="size-4" />
+              Search cars
             </Button>
-          </Field>
+          </div>
         </FieldGroup>
       </form>
     </section>
   );
 }
+
+/** Hairline between cells: a top rule when stacked, a left rule in the row. */
+const dividerClassName =
+  "rounded-none border-t border-border md:rounded-xl md:border-t-0 md:border-l";

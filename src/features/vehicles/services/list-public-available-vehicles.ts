@@ -16,6 +16,9 @@ type PublicFleetVehicleRow = {
   seating_capacity: number | null;
   photo_url: string | null;
   daily_rate: number | string;
+  // Optional until the showcase-image migration reaches the database.
+  color?: string | null;
+  showcase_image_url?: string | null;
 };
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -68,5 +71,7 @@ export async function listPublicAvailableVehicles(
     seating_capacity: row.seating_capacity,
     photo_url: row.photo_url,
     daily_rate: Number(row.daily_rate),
+    color: row.color ?? null,
+    showcase_image_url: row.showcase_image_url ?? null,
   }));
 }
