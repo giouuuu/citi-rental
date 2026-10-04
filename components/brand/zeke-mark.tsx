@@ -2,23 +2,31 @@ import { cn } from "@/lib/utils";
 
 type ZekeMarkProps = {
   className?: string;
-  /** Teal badge on dark UI, or navy badge on light UI. */
+  /** Navy badge with a teal road for light UI; teal badge with a navy road for dark UI. */
   variant?: "teal" | "navy";
+  /** Lane markings. Drop them below ~24px, where the dashes turn to noise. */
+  lanes?: boolean;
   title?: string;
 };
 
-/**
- * Geometric Z monogram with a route cut through the diagonal —
- * Zeke Car Rentals brand mark for headers and favicon-scale UI.
- */
+/** The Z drawn as one switchback road, as in Cebu's mountain highways. */
+export const ZEKE_ROAD_PATH = "M10 14.5H31Q36.2 14.5 32.3 18L15.7 30Q11.8 33.5 17 33.5H38";
+/** Same road, inset at both ends so the dashes stop inside the asphalt. */
+export const ZEKE_LANE_PATH = "M12.5 14.5H31Q36.2 14.5 32.3 18L15.7 30Q11.8 33.5 17 33.5H35.5";
+
+const palette = {
+  navy: { badge: "#07111F", road: "#14B8A6", lane: "#F0FDFA" },
+  teal: { badge: "#14B8A6", road: "#07111F", lane: "#F0FDFA" },
+} as const;
+
+/** Zeke Car Rentals brand mark for headers and favicon-scale UI. */
 export function ZekeMark({
   className,
   variant = "teal",
+  lanes = true,
   title = "Zeke Car Rentals",
 }: ZekeMarkProps) {
-  const isTeal = variant === "teal";
-  const badge = isTeal ? "#2DD4BF" : "#07111F";
-  const ink = isTeal ? "#07111F" : "#2DD4BF";
+  const colors = palette[variant];
 
   return (
     <svg
@@ -26,24 +34,28 @@ export function ZekeMark({
       className={cn("size-10 shrink-0", className)}
       fill="none"
       role={title ? "img" : undefined}
-      viewBox="0 0 40 40"
+      viewBox="0 0 48 48"
       xmlns="http://www.w3.org/2000/svg"
     >
       {title ? <title>{title}</title> : null}
-      <rect fill={badge} height="40" rx="8" width="40" />
-      {/* Bold geometric Z */}
+      <rect fill={colors.badge} height="48" rx="12" width="48" />
       <path
-        d="M9 10h22v5.25L16.75 24.5H31V30H9v-5.25L22.25 15.25H9V10Z"
-        fill={ink}
+        d={ZEKE_ROAD_PATH}
+        stroke={colors.road}
+        strokeLinejoin="round"
+        strokeWidth="8.5"
       />
-      {/* Route stripe + destination pin through the diagonal */}
-      <path
-        d="M13.5 19.25 26.5 28.5"
-        stroke={badge}
-        strokeLinecap="round"
-        strokeWidth="2.75"
-      />
-      <circle cx="26.5" cy="28.5" fill={ink} r="2.1" stroke={badge} strokeWidth="1.4" />
+      {lanes ? (
+        // Normalised length: 13 dash+gap periods plus a closing dash, so the
+        // markings start and end on a full dash.
+        <path
+          d={ZEKE_LANE_PATH}
+          pathLength={100}
+          stroke={colors.lane}
+          strokeDasharray="3.56 3.86"
+          strokeWidth="1.15"
+        />
+      ) : null}
     </svg>
   );
 }
