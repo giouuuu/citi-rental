@@ -234,10 +234,10 @@ reset role;
 
 -- Ops-created rentals default to booking_source = ops.
 insert into public.rentals (
-  organization_id, reference_number, customer_id, vehicle_id,
+  reference_number, customer_id, vehicle_id,
   start_at, expected_return_at, status
 ) values (
-  'aaaaaaaa-0000-4000-8000-000000000001', 'OPS-NEW',
+  'OPS-NEW',
   'd0000000-0000-4000-8000-000000000004', 'c0000000-0000-4000-8000-000000000003',
   now() + interval '80 days', now() + interval '81 days', 'draft'
 );

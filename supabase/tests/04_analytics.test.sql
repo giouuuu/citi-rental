@@ -27,7 +27,7 @@
 --     new = Dan only (Alice's first is R1 in Feb, Carol's first is R0 in Jan) -> 1, returning 2
 begin;
 set local search_path = public, extensions;
-select plan(38);
+select plan(37);
 
 -- ---------------------------------------------------------------------------
 -- Role gate
@@ -275,15 +275,6 @@ select is(
 -- ---------------------------------------------------------------------------
 -- Owner of org B sees only org B
 -- ---------------------------------------------------------------------------
-set local request.jwt.claims =
-  '{"sub":"0000000b-0000-4000-8000-000000000001","role":"authenticated","email":"owner@other.test"}';
-select is(
-  (select row(bookings_created, collected, customers_total)::text
-     from public.analytics_overview('2026-03-01', '2026-03-10')),
-  '(1,9999.00,1)',
-  'other org: analytics scoped to its own organization'
-);
-
 reset role;
 select ok(
   (select bool_and(not p.prosecdef)

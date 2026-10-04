@@ -1,9 +1,9 @@
 -- Migration 20260929100000_restrict_org_reads_to_staff: customers (Google
 -- sign-ins with role `customer` inside the business org) must not read org data
--- directly; staff/admin/owner still can; other orgs see nothing.
+-- directly; staff/admin/owner still can.
 begin;
 set local search_path = public, extensions;
-select plan(48);
+select plan(45);
 
 -- ---------------------------------------------------------------------------
 -- Customer Alice
@@ -28,7 +28,7 @@ select is(
   '0000000a-0000-4000-8000-000000000004'::uuid,
   'customer: the visible profile is their own'
 );
-select is((select count(*) from public.organizations), 1::bigint, 'customer: still reads own organization');
+select is((select count(*) from public.company_profile), 1::bigint, 'customer: still reads the company profile');
 select is((select count(*) from public.vehicle_photos), 0::bigint, 'customer: vehicle_photos public policy still evaluates (empty table)');
 
 select is(
@@ -122,35 +122,35 @@ set local request.jwt.claims =
 select is((select count(*) from public.rentals), 8::bigint, 'owner: all org rentals');
 
 -- ---------------------------------------------------------------------------
--- Owner of ANOTHER org
+-- Customer Dan: reaches his photo through the NEW `<rental>/file` path shape.
+-- Alice above reaches hers through the legacy `<old-org>/<rental>/file` shape,
+-- so between them both shapes are covered.
 -- ---------------------------------------------------------------------------
 set local request.jwt.claims =
-  '{"sub":"0000000b-0000-4000-8000-000000000001","role":"authenticated","email":"owner@other.test"}';
-select is(
-  (select count(*) from public.customers where organization_id = 'aaaaaaaa-0000-4000-8000-000000000001'),
-  0::bigint,
-  'other org: 0 org-A customers'
-);
-select is(
-  (select count(*) from public.rentals where organization_id = 'aaaaaaaa-0000-4000-8000-000000000001'),
-  0::bigint,
-  'other org: 0 org-A rentals'
-);
-select is(
-  (select count(*) from public.profiles where organization_id = 'aaaaaaaa-0000-4000-8000-000000000001'),
-  0::bigint,
-  'other org: 0 org-A profiles'
-);
-select is(
-  (select count(*) from public.payments where organization_id = 'aaaaaaaa-0000-4000-8000-000000000001'),
-  0::bigint,
-  'other org: 0 org-A payments'
-);
-select is((select count(*) from public.customers), 1::bigint, 'other org: sees its own customer');
+  '{"sub":"0000000a-0000-4000-8000-000000000006","role":"authenticated","email":"dan@example.com"}';
 select is(
   (select count(*) from storage.objects where bucket_id = 'rental-inspection-photos'),
-  0::bigint,
-  'other org: no org-A inspection photos'
+  1::bigint,
+  'customer: new-shape photo path resolves'
+);
+select ok(
+  (select name from storage.objects where bucket_id = 'rental-inspection-photos')
+    = 'e0000000-0000-4000-8000-000000000003/front.jpg',
+  'customer: the visible photo is the tenant-free path'
+);
+
+-- ---------------------------------------------------------------------------
+-- Registration is bootstrap-only. Multi-tenant this RPC minted a new
+-- organization and made you its admin; single-tenant that would hand admin
+-- over the one real company to anyone who signs up.
+-- ---------------------------------------------------------------------------
+set local request.jwt.claims =
+  '{"sub":"0000000a-0000-4000-8000-000000000007","role":"authenticated","email":"newbie@zeke.test"}';
+select throws_ok(
+  $$select public.complete_self_service_registration('Nina Newbie')$$,
+  '42501',
+  'This workspace already has an administrator. Ask an owner to invite you.',
+  'registration: refuses a second admin'
 );
 
 -- ---------------------------------------------------------------------------
