@@ -95,9 +95,23 @@ export const rentalDefinition: ResourceDefinition = {
     },
     {
       name: "start_at",
-      label: "Start date and time",
-      type: "datetime-local",
+      label: "Rental dates",
+      type: "date-range",
       required: true,
+      description:
+        "Click the start day, then the return day. Hatched days are already booked for this car.",
+      className: "md:col-span-2",
+      range: {
+        endField: "expected_return_at",
+        startLabel: "Start",
+        endLabel: "Expected return",
+        blockedBy: {
+          field: "vehicle_id",
+          table: "rentals",
+          labelColumn: "reference_number",
+          statuses: ["reserved", "active", "overdue"],
+        },
+      },
     },
     {
       name: "expected_return_at",

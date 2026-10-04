@@ -1,14 +1,8 @@
 "use client";
 
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   INSPECTION_CLEANLINESS,
@@ -67,34 +61,22 @@ export function InspectionReadingsStep({
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Cleanliness</Label>
-          <Select value={cleanliness} onValueChange={onCleanliness}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {INSPECTION_CLEANLINESS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="inspection-cleanliness">Cleanliness</Label>
+          <Combobox
+            id="inspection-cleanliness"
+            onValueChange={onCleanliness}
+            options={INSPECTION_CLEANLINESS}
+            value={cleanliness}
+          />
         </div>
         <div className="space-y-1.5">
-          <Label>Odor</Label>
-          <Select value={odor} onValueChange={onOdor}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {INSPECTION_ODORS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="inspection-odor">Odor</Label>
+          <Combobox
+            id="inspection-odor"
+            onValueChange={onOdor}
+            options={INSPECTION_ODORS}
+            value={odor}
+          />
         </div>
       </div>
 

@@ -22,6 +22,7 @@ Same Supabase project and data; different routes, UX, and roles.
 | **Customer** | Public site + booking | Browse available cars → reserve (guest or signed-in/Google) |
 | **Staff** | No ops UI yet | Role exists in data/RLS; cannot enter `app/(protected)` |
 | **Owner / admin** | Ops app (`app/(protected)`) | Fleet, GPS, geofences, users, customers, rentals, alerts, org settings |
+| **Owner only** | `/finance` | Expenses, fixed assets, 2307s, tax settings, BIR-oriented statement (`private.is_finance_user()`) |
 
 Authorization is always `profiles.role` + RLS/RPCs. Never authorize from JWT `user_metadata`.
 
@@ -48,7 +49,7 @@ Company profile · profiles · vehicles · customers · rentals · inspections �
 
 ## Out of scope (for now)
 
-GPS tracking (parked — see `GPS_TRACKING_FEATURES.md`) · online payments / accounting · public live-tracking links for renters · native apps · remote immobilize / OBD · AI fraud / facial recognition · multi-branch finance.
+GPS tracking (parked — see `GPS_TRACKING_FEATURES.md`) · online payments · official books of accounts (`/finance` is a reporting aid for the accountant, see `FINANCIAL_STATEMENT_PLAN.md`) · public live-tracking links for renters · native apps · remote immobilize / OBD · AI fraud / facial recognition · multi-branch finance.
 
 ## Known gaps (do not invent as done)
 
@@ -67,7 +68,9 @@ Portable rules for Cursor, Claude, Codex, and other coding agents. Visual tokens
 - **Add missing shadcn via MCP/CLI:** If a needed component is not in `components/ui`, add it with the **shadcn MCP** (or `npx shadcn@latest add …`). Do not copy-paste one-off substitutes.
 - **Ops / resource tables:** Use the project `DataTable` stack with **server-side pagination** — `components/data-table/*` and `src/features/shared/components/resource-table*`. Do not build client-only one-off tables for paginated resource lists.
 - **Empty lists and tables:** Use the shadcn Empty primitive (`components/ui/empty.tsx`) for empty table bodies, empty lists, and “no results” states.
-- **Searchable dropdowns:** Use a **Combobox** (Command + Popover pattern from shadcn). Prefer plain `Select` only for short, fixed option sets with no search.
+- **Dropdowns:** Every option picker is `Combobox` (`components/ui/combobox.tsx`, Popover + Command). Its trigger shares `inputSurfaceClassName` with `Input`, so it reads as a field. Lists of 8+ get a search box automatically. Pass `name` for native `FormData` forms. Do not use `Select` or `<select>` in feature code.
+- **Single dates:** Use `DatePicker` / `DateTimePicker` (`components/ui/date-picker.tsx`) — shadcn Calendar in a popover, speaking the same `YYYY-MM-DD` / `YYYY-MM-DDTHH:mm` strings as native inputs. Never `type="date"` or `type="datetime-local"`.
+- **Date ranges:** Every date range filter uses `DateRangePicker` (`src/features/shared/components/date-range-picker.tsx`) — preset rail + shadcn Calendar. Build its presets with the helpers in `src/features/shared/lib/date-range-presets.ts` (quick, quarters, months, years) or a feature's own codes (finance periods, analytics `?range=`). Presets apply on click; calendar/typed dates are a draft until Apply — the one sanctioned Apply button. Resource lists get it automatically from a `gte`/`lte` filter pair on one column.
 - **Form field row alignment:** Multi-field form rows (grids/flex) must use **top alignment** (`items-start`), not `items-end` / `items-center`. Error messages grow one field and otherwise shove sibling fields out of line. Keep submit actions aligned with inputs via a label-height spacer when needed (e.g. invisible `FieldLabel`).
 
 ## Data loading and feedback (all agents)

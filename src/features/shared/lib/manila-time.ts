@@ -40,6 +40,13 @@ export function addDaysToKey(key: string, days: number): string {
     .slice(0, 10);
 }
 
+/** First-of-month key `months` away from a first-of-month key. */
+export function addMonthsToKey(monthStart: string, months: number): string {
+  const [year, month] = monthStart.split("-").map(Number);
+  const index = year * 12 + (month - 1) + months;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}-01`;
+}
+
 /** Inclusive count of calendar days from `from` to `to`. */
 export function daysBetweenKeys(from: string, to: string): number {
   const diff =

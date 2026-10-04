@@ -75,6 +75,16 @@ export async function ResourceIndexScreen({
       definition.searchColumn,
       `%${resourceQuery.q}%`,
     );
+  for (const filter of definition.filters ?? []) {
+    const value = resourceQuery.filters?.[filter.param];
+    if (!value) continue;
+    request =
+      filter.op === "gte"
+        ? request.gte(filter.column, value)
+        : filter.op === "lte"
+          ? request.lte(filter.column, value)
+          : request.eq(filter.column, value);
+  }
   const { data, error } = await request
     .order(resourceQuery.sort, { ascending: resourceQuery.direction === "asc" })
     .order("id", { ascending: resourceQuery.direction === "asc" })

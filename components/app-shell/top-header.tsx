@@ -30,9 +30,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { navigationGroups } from "@/lib/navigation";
+import { navigationGroupsFor } from "@/lib/navigation";
 
-export function TopHeader({ demoMode }: { demoMode: boolean }) {
+export function TopHeader({
+  demoMode,
+  userRole,
+}: {
+  demoMode: boolean;
+  userRole: string;
+}) {
   const [commandOpen, setCommandOpen] = React.useState(false);
   const router = useRouter();
 
@@ -54,7 +60,7 @@ export function TopHeader({ demoMode }: { demoMode: boolean }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur-sm md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 print:hidden items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur-sm md:px-6">
       <SidebarTrigger className="-ml-1" />
       <div className="h-5 w-px bg-border" />
       <Button
@@ -112,7 +118,7 @@ export function TopHeader({ demoMode }: { demoMode: boolean }) {
           <CommandInput placeholder="Search pages and actions..." />
           <CommandList>
             <CommandEmpty>No matching destination.</CommandEmpty>
-            {navigationGroups.map((group) => (
+            {navigationGroupsFor(userRole).map((group) => (
               <CommandGroup heading={group.label} key={group.label}>
                 {group.items.map((item) => (
                   <CommandItem key={item.href} onSelect={() => navigate(item.href)}>

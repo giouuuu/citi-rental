@@ -51,4 +51,22 @@ describe("parseResourceQuery", () => {
       ),
     ).toMatchObject({ page: 2, pageSize: 50, sort: "name", direction: "asc" });
   });
+
+  it("keeps only declared URL filters with safe values", () => {
+    const filtered: ResourceDefinition = {
+      ...definition,
+      filters: [
+        { param: "category", column: "category_id", op: "eq", label: "Category" },
+        { param: "from", column: "expense_date", op: "gte", label: "From" },
+      ],
+    };
+    expect(
+      parseResourceQuery(
+        { category: "6f1c2c4e-0000-4000-8000-000000000001", from: "2026-03-01", other: "x" },
+        filtered,
+      ).filters,
+    ).toEqual({ category: "6f1c2c4e-0000-4000-8000-000000000001", from: "2026-03-01" });
+    expect(parseResourceQuery({ category: "a,b);drop" }, filtered).filters).toBeUndefined();
+    expect(parseResourceQuery({ category: "x" }, definition).filters).toBeUndefined();
+  });
 });

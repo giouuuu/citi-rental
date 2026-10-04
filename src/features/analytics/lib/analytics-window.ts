@@ -1,4 +1,9 @@
 import {
+  quarterDateRangePresets,
+  quickDateRangePresets,
+  type DateRangePreset,
+} from "@/features/shared/lib/date-range-presets";
+import {
   addDaysToKey,
   daysBetweenKeys,
   manilaDateKey,
@@ -39,7 +44,35 @@ export function defaultBucketFor(days: number): AnalyticsBucket {
   return "month";
 }
 
-function isPreset(value: string | null): value is Exclude<AnalyticsPreset, "custom"> {
+/**
+ * The picker rail: rolling windows keep their `?range=` code, calendar
+ * periods go in as dates. Analytics never looks past today, so periods still
+ * in progress are cut off there ("This month" reads month to date).
+ */
+export function analyticsRangePresets(now: Date = new Date()): DateRangePreset[] {
+  const today = manilaDateKey(now);
+  const rolling = ANALYTICS_PRESETS.filter(
+    (option): option is { value: Exclude<AnalyticsPreset, "custom">; label: string } =>
+      option.value !== "custom",
+  ).map((option) => ({
+    value: option.value,
+    label: option.label,
+    group: "Rolling",
+    from: addDaysToKey(today, -(PRESET_DAYS[option.value] - 1)),
+    to: today,
+  }));
+  const calendar = [
+    ...quickDateRangePresets(
+      today,
+      ["this-week", "last-week", "this-month", "last-month", "year-to-date", "last-year"],
+      "Calendar",
+    ),
+    ...quarterDateRangePresets(today, 4),
+  ].map((preset) => ({ ...preset, to: preset.to > today ? today : preset.to }));
+  return [...rolling, ...calendar];
+}
+
+export function isPreset(value: string | null): value is Exclude<AnalyticsPreset, "custom"> {
   return value !== null && value in PRESET_DAYS;
 }
 

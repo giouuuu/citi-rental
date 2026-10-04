@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   resolveFallbackSort,
   resourceTableUrl,
+  resolveDateRangeFilter,
 } from "@/features/shared/lib/resource-table-url";
 import type { ResourceQuery } from "@/features/shared/types/resource";
 
@@ -94,5 +95,45 @@ describe("resourceTableUrl", () => {
     expect(resourceTableUrl("/vehicles", searching, { q: "" }, "updated_at")).toBe(
       "/vehicles",
     );
+  });
+
+  it("keeps URL filters across search, sort and paging", () => {
+    const filtered = { ...baseQuery, filters: { category: "c1", from: "2026-03-01" } };
+    expect(resourceTableUrl("/finance/expenses", filtered, { page: 2 }, "updated_at")).toBe(
+      "/finance/expenses?page=2&category=c1&from=2026-03-01",
+    );
+    expect(resourceTableUrl("/finance/expenses", { ...filtered, page: 4 }, { q: "fuel" }, "updated_at")).toBe(
+      "/finance/expenses?q=fuel&category=c1&from=2026-03-01",
+    );
+  });
+
+  it("clearing filters resets paging", () => {
+    const filtered = { ...baseQuery, page: 3, filters: { category: "c1" } };
+    expect(resourceTableUrl("/finance/expenses", filtered, { filters: {} }, "updated_at")).toBe(
+      "/finance/expenses",
+    );
+  });
+});
+
+describe("resolveDateRangeFilter", () => {
+  it("pairs a gte and lte filter on the same column", () => {
+    expect(
+      resolveDateRangeFilter([
+        { param: "category", column: "category_id", op: "eq", label: "Category" },
+        { param: "from", column: "expense_date", op: "gte", label: "From" },
+        { param: "to", column: "expense_date", op: "lte", label: "To" },
+      ]),
+    ).toEqual({ fromParam: "from", toParam: "to" });
+  });
+
+  it("ignores a lone bound or bounds on different columns", () => {
+    expect(resolveDateRangeFilter([{ param: "from", column: "a", op: "gte", label: "From" }])).toBeNull();
+    expect(
+      resolveDateRangeFilter([
+        { param: "from", column: "a", op: "gte", label: "From" },
+        { param: "to", column: "b", op: "lte", label: "To" },
+      ]),
+    ).toBeNull();
+    expect(resolveDateRangeFilter()).toBeNull();
   });
 });

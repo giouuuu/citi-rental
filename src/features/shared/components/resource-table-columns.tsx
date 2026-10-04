@@ -5,6 +5,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Button } from "@/components/ui/button";
+import { formatPhpExact } from "@/features/shared/lib/money";
 import type {
   ResourceColumn,
   ResourceRow,
@@ -15,6 +16,7 @@ const columnHelper = createColumnHelper<ResourceRow>();
 function displayValue(value: unknown, format = "text") {
   if (value === null || value === undefined || value === "") return "—";
   if (format === "boolean") return value ? "Yes" : "No";
+  if (format === "money") return formatPhpExact(Number(value));
   if (format === "date" || format === "datetime") {
     const date = new Date(String(value));
     if (Number.isNaN(date.getTime())) return String(value);
@@ -65,7 +67,7 @@ export function buildResourceColumns({
           ) : (
             <span
               className={
-                column.format === "number"
+                column.format === "number" || column.format === "money"
                   ? "font-mono tabular-nums"
                   : undefined
               }

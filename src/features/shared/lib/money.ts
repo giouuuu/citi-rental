@@ -4,6 +4,13 @@ const phpFormatter = new Intl.NumberFormat("en-PH", {
   maximumFractionDigits: 0,
 });
 
+const exactPhpFormatter = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 const compactPhpFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
@@ -13,6 +20,11 @@ const compactPhpFormatter = new Intl.NumberFormat("en-PH", {
 
 export function formatPhp(amount: number) {
   return phpFormatter.format(amount);
+}
+
+/** Centavo-exact, for books and tax figures: ₱12,345.67. */
+export function formatPhpExact(amount: number) {
+  return exactPhpFormatter.format(amount);
 }
 
 /** Short axis labels: ₱12.5K, ₱1.2M. */

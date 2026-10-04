@@ -26,6 +26,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ReportFilters } from "@/features/reports/components/report-filters";
+import {
+  defaultDateRangePresets,
+  formatDateRange,
+} from "@/features/shared/lib/date-range-presets";
+import { manilaDateKey } from "@/features/shared/lib/manila-time";
 import { resolveReportWindow } from "@/features/reports/lib/report-window";
 import { getVehicleRevenueReport } from "@/features/reports/services/get-vehicle-revenue-report";
 import { getReportSummary } from "@/features/reports/services/report-service";
@@ -47,13 +52,6 @@ const tableExports = [
     icon: CarFront,
   },
 ];
-
-const dayFormatter = new Intl.DateTimeFormat("en-PH", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 async function listVehicleOptions() {
   if (!isSupabaseConfigured()) return [];
@@ -126,8 +124,8 @@ export async function ReportsScreen({
         <CardHeader>
           <CardTitle>Revenue and utilization by vehicle</CardTitle>
           <CardDescription>
-            Showing: {dayFormatter.format(window.from)} –{" "}
-            {dayFormatter.format(window.to)}, {activeVehicleLabel}. Penalties are
+            Showing: {formatDateRange({ from: window.fromValue, to: window.toValue })},{" "}
+            {activeVehicleLabel}. Penalties are
             fuel and damage charges billed at return inspection.
           </CardDescription>
         </CardHeader>
@@ -135,6 +133,7 @@ export async function ReportsScreen({
           <div className="flex flex-wrap items-end justify-between gap-3">
             <ReportFilters
               fromValue={window.fromValue}
+              presets={defaultDateRangePresets(manilaDateKey(new Date()))}
               toValue={window.toValue}
               vehicleId={vehicleId}
               vehicles={vehicles}
@@ -204,10 +203,9 @@ export async function ReportsScreen({
                 </EmptyMedia>
                 <EmptyTitle>No rentals in this window</EmptyTitle>
                 <EmptyDescription>
-                  No rentals for {activeVehicleLabel} between{" "}
-                  {dayFormatter.format(window.from)} and{" "}
-                  {dayFormatter.format(window.to)}. Widen the dates or clear the
-                  vehicle filter.
+                  No rentals for {activeVehicleLabel} in{" "}
+                  {formatDateRange({ from: window.fromValue, to: window.toValue })}.
+                  Widen the dates or clear the vehicle filter.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

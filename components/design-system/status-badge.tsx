@@ -33,7 +33,15 @@ export type StatusTone =
   | "completed"
   | "cancelled"
   | "overdue"
-  | "draft";
+  | "draft"
+  | "recorded"
+  | "void"
+  | "pending"
+  | "received"
+  | "disposed"
+  | "due_soon"
+  | "on_schedule"
+  | "no_schedule";
 
 const statusStyles: Record<StatusTone, string> = {
   online: "bg-teal-50 text-teal-700 ring-teal-600/15",
@@ -52,6 +60,14 @@ const statusStyles: Record<StatusTone, string> = {
   cancelled: "bg-offline-surface text-offline ring-offline/15",
   overdue: "bg-danger-surface text-destructive ring-destructive/15",
   draft: "bg-offline-surface text-offline ring-offline/15",
+  recorded: "bg-success-surface text-success ring-success/15",
+  void: "bg-offline-surface text-offline ring-offline/15",
+  pending: "bg-warning-surface text-warning ring-warning/15",
+  received: "bg-success-surface text-success ring-success/15",
+  disposed: "bg-offline-surface text-offline ring-offline/15",
+  due_soon: "bg-warning-surface text-warning ring-warning/15",
+  on_schedule: "bg-success-surface text-success ring-success/15",
+  no_schedule: "bg-offline-surface text-offline ring-offline/15",
 };
 
 const statusIcons: Record<StatusTone, LucideIcon> = {
@@ -71,6 +87,14 @@ const statusIcons: Record<StatusTone, LucideIcon> = {
   cancelled: XCircle,
   overdue: TriangleAlert,
   draft: Clock3,
+  recorded: CheckCircle2,
+  void: XCircle,
+  pending: Clock3,
+  received: CheckCircle2,
+  disposed: PauseCircle,
+  due_soon: Wrench,
+  on_schedule: CheckCircle2,
+  no_schedule: CalendarClock,
 };
 
 type StatusBadgeProps = {

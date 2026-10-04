@@ -322,6 +322,29 @@ Cancellations capture a structured reason (`rentals.cancellation_reason`).
 
 ---
 
+## 5.9 Finance (owner only)
+
+`/finance` — a BIR-oriented statement for the accountant. A reporting aid feeding registered
+books, not the books themselves. Design and rationale: `FINANCIAL_STATEMENT_PLAN.md`.
+
+- **Overview** (`/finance`, the default): income − expenses = profit, both net of VAT, by month,
+  by expense type and by car. Depreciation and VAT are explained beside it, not folded in.
+- **Accountant report** (`/finance/report`) for a fiscal month, quarter, year, year to date or custom dates: gross receipts
+  (cash basis, VAT split), income statement, expenses by BIR itemized-deduction line,
+  depreciation schedule, profit by vehicle, tax worksheet (2550Q or 2551Q, 2307 credits, EWT
+  owed, income tax under every election) and an exceptions block. Every figure drills down to its
+  rows; every schedule exports as CSV; the page prints cleanly.
+- **Expenses** (`/finance/expenses`): BIR line, optional vehicle, supplier and TIN, document,
+  input VAT, expanded withholding. Voided, never deleted.
+- **Fixed assets** (`/finance/assets`): the register depreciation is computed from.
+- **2307 certificates** (`/finance/withholding`): tax clients withheld, pending or received.
+- **Tax settings** (`/finance/settings`): registration, VAT status, election and every rate.
+
+Payments are stamped with a VAT treatment when written (`payments.vat_treatment`), from the
+settings in force then. After registering for VAT, re-stamp past payments from Tax settings.
+
+---
+
 ## 6. Database Schema
 
 Use UUID primary keys and `timestamptz`. Tables in this scope:
@@ -392,6 +415,9 @@ leave them; do not add columns to them in this scope.
 - `/rentals/new`
 - `/rentals/[id]`
 - `/reports`
+- `/analytics`
+- `/finance` (owner only), `/finance/report`, `/finance/expenses`, `/finance/assets`,
+  `/finance/withholding`, `/finance/settings`
 - `/settings`
 - `/settings/users`
 
@@ -442,7 +468,8 @@ Not in this build:
 
 - **All GPS tracking** — devices, live map, route history, geofences, tracking alerts,
   Traccar integration, simulator. See `GPS_TRACKING_FEATURES.md`.
-- Online payments and full accounting.
+- Online payments and full accounting. `/finance` is a reporting aid for the accountant, not the
+  registered books of accounts (no CAS, no serially numbered invoices).
 - Automated Facebook identity verification, AI scam detection, facial recognition.
 - Remote engine shutdown, OBD diagnostics, fuel sensor integration.
 - Maintenance inventory.

@@ -1,14 +1,8 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   INSPECTION_ITEM_STATUSES,
@@ -32,6 +26,11 @@ const SEVERITIES: { value: number; label: string }[] = [
   { value: 2, label: "Moderate" },
   { value: 3, label: "Severe" },
 ];
+
+const SEVERITY_OPTIONS = SEVERITIES.map((severity) => ({
+  value: String(severity.value),
+  label: severity.label,
+}));
 
 export function InspectionChecklistPanel({
   items,
@@ -108,8 +107,11 @@ export function InspectionChecklistPanel({
                       </button>
 
                       <div className="flex shrink-0 items-center gap-2">
-                        <Select
-                          value={item.status}
+                        <Combobox
+                          align="end"
+                          aria-label={`${item.label} status`}
+                          className="h-9 w-32"
+                          id={`status-${item.areaCode}`}
                           onValueChange={(value) =>
                             onChange(item.areaCode, {
                               status: value as InspectionItemStatus,
@@ -117,47 +119,21 @@ export function InspectionChecklistPanel({
                                 value === "ok" ? null : (item.severity ?? 2),
                             })
                           }
-                        >
-                          <SelectTrigger
-                            aria-label={`${item.label} status`}
-                            className="w-32"
-                            id={`status-${item.areaCode}`}
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {INSPECTION_ITEM_STATUSES.map((status) => (
-                              <SelectItem key={status.value} value={status.value}>
-                                {status.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          options={INSPECTION_ITEM_STATUSES}
+                          value={item.status}
+                        />
 
                         {damaged ? (
-                          <Select
-                            value={String(item.severity ?? 2)}
+                          <Combobox
+                            align="end"
+                            aria-label={`${item.label} severity`}
+                            className="h-9 w-28"
                             onValueChange={(value) =>
                               onChange(item.areaCode, { severity: Number(value) })
                             }
-                          >
-                            <SelectTrigger
-                              aria-label={`${item.label} severity`}
-                              className="w-28"
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {SEVERITIES.map((severity) => (
-                                <SelectItem
-                                  key={severity.value}
-                                  value={String(severity.value)}
-                                >
-                                  {severity.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            options={SEVERITY_OPTIONS}
+                            value={String(item.severity ?? 2)}
+                          />
                         ) : null}
                       </div>
                     </div>

@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Combobox } from "@/components/ui/combobox";
 import {
   Field,
   FieldDescription,
@@ -23,13 +24,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { saveSettingsAction } from "@/features/settings/actions/actions";
 import {
@@ -48,6 +42,11 @@ import { toast } from "sonner";
 
 type SettingsFormValues = z.input<typeof settingsSchema>;
 type SettingsParsed = z.output<typeof settingsSchema>;
+
+const GPS_PROVIDER_OPTIONS = [
+  { value: "simulator", label: "Simulator" },
+  { value: "traccar", label: "Traccar" },
+];
 
 export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
   const [state, setState] = useState<ActionResult | null>(null);
@@ -169,23 +168,15 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="gps_provider">GPS provider</FieldLabel>
-                  <Select
+                  <Combobox
+                    aria-invalid={fieldState.invalid}
                     disabled={isPending}
+                    id="gps_provider"
                     onValueChange={field.onChange}
+                    options={GPS_PROVIDER_OPTIONS}
+                    placeholder="Select a GPS provider"
                     value={field.value}
-                  >
-                    <SelectTrigger
-                      aria-invalid={fieldState.invalid}
-                      className="h-11! w-full"
-                      id="gps_provider"
-                    >
-                      <SelectValue placeholder="Select a GPS provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="simulator">Simulator</SelectItem>
-                      <SelectItem value="traccar">Traccar</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  />
                   <FieldDescription>
                     Credentials remain server-only environment variables.
                   </FieldDescription>

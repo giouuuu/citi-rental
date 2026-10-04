@@ -4,16 +4,26 @@ import { useState } from "react";
 import { LoaderCircle, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { RecordRentalPaymentInput } from "@/features/rentals/actions/record-rental-payment-action";
+
+const PAYMENT_TYPE_OPTIONS = [
+  { value: "deposit", label: "Deposit" },
+  { value: "balance", label: "Balance" },
+  { value: "penalty", label: "Penalty" },
+  { value: "refund", label: "Refund" },
+  { value: "adjustment", label: "Adjustment" },
+];
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: "cash", label: "Cash" },
+  { value: "gcash", label: "GCash" },
+  { value: "maya", label: "Maya" },
+  { value: "bank", label: "Bank" },
+  { value: "other", label: "Other" },
+];
 
 type RecordRentalPaymentFormProps = {
   rentalId: string;
@@ -59,44 +69,26 @@ export function RecordRentalPaymentForm({
       onSubmit={handleSubmit}
     >
       <Field>
-        <FieldLabel>Type</FieldLabel>
-        <Select
+        <FieldLabel htmlFor="payment-type">Type</FieldLabel>
+        <Combobox
+          id="payment-type"
           onValueChange={(value) =>
             setPaymentType(value as RecordRentalPaymentInput["paymentType"])
           }
+          options={PAYMENT_TYPE_OPTIONS}
           value={paymentType}
-        >
-          <SelectTrigger className="h-10 w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="deposit">Deposit</SelectItem>
-            <SelectItem value="balance">Balance</SelectItem>
-            <SelectItem value="penalty">Penalty</SelectItem>
-            <SelectItem value="refund">Refund</SelectItem>
-            <SelectItem value="adjustment">Adjustment</SelectItem>
-          </SelectContent>
-        </Select>
+        />
       </Field>
       <Field>
-        <FieldLabel>Method</FieldLabel>
-        <Select
+        <FieldLabel htmlFor="payment-method">Method</FieldLabel>
+        <Combobox
+          id="payment-method"
           onValueChange={(value) =>
             setMethod(value as RecordRentalPaymentInput["method"])
           }
+          options={PAYMENT_METHOD_OPTIONS}
           value={method}
-        >
-          <SelectTrigger className="h-10 w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="cash">Cash</SelectItem>
-            <SelectItem value="gcash">GCash</SelectItem>
-            <SelectItem value="maya">Maya</SelectItem>
-            <SelectItem value="bank">Bank</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
-          </SelectContent>
-        </Select>
+        />
       </Field>
       <Field>
         <FieldLabel htmlFor="amount">Amount (PHP)</FieldLabel>

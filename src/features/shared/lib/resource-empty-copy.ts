@@ -14,10 +14,13 @@ export function resourceEmptyCopy({
   plural,
   query,
   singular,
+  filtered = false,
 }: {
   plural: string;
   query: string;
   singular: string;
+  /** URL filters (not the search box) are narrowing the list. */
+  filtered?: boolean;
 }): ResourceEmptyCopy {
   const items = plural.toLowerCase();
   const trimmed = query.trim();
@@ -27,6 +30,14 @@ export function resourceEmptyCopy({
       isFiltered: true,
       title: `No ${items} match your search.`,
       description: `Nothing matches “${trimmed}”. Try a shorter term or clear the search.`,
+    };
+  }
+
+  if (filtered) {
+    return {
+      isFiltered: true,
+      title: `No ${items} match these filters.`,
+      description: `Clear the filters to see every ${singular.toLowerCase()}.`,
     };
   }
 

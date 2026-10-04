@@ -4,18 +4,19 @@ import type { ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { DataTableLoadingBar } from "@/components/data-table/data-table-loading-bar";
-import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ANALYTICS_PRESETS, analyticsUrl } from "@/features/analytics/lib/analytics-window";
+  analyticsUrl,
+  isPreset,
+  MAX_ANALYTICS_DAYS,
+} from "@/features/analytics/lib/analytics-window";
 import type { AnalyticsBucket, AnalyticsPreset } from "@/features/analytics/types/analytics";
-import { useDebouncedNavigation } from "@/features/shared/client";
+import {
+  DateRangePicker,
+  useDebouncedNavigation,
+  type DateRangePreset,
+} from "@/features/shared/client";
 import { cn } from "@/lib/utils";
 
 const BUCKET_OPTIONS: { value: AnalyticsBucket | "auto"; label: string }[] = [
@@ -32,6 +33,8 @@ const BUCKET_OPTIONS: { value: AnalyticsBucket | "auto"; label: string }[] = [
  */
 export function AnalyticsFrame({
   preset,
+  presets,
+  today,
   from,
   to,
   bucket,
@@ -40,6 +43,9 @@ export function AnalyticsFrame({
   children,
 }: {
   preset: AnalyticsPreset;
+  presets: DateRangePreset[];
+  /** Manila today; the calendar stops here. */
+  today: string;
   from: string;
   to: string;
   bucket: AnalyticsBucket;
@@ -48,7 +54,7 @@ export function AnalyticsFrame({
   children: ReactNode;
 }) {
   const searchParams = useSearchParams();
-  const { isPending, navigate, navigateNow } = useDebouncedNavigation();
+  const { isPending, navigateNow } = useDebouncedNavigation();
   const current = () => new URLSearchParams(searchParams.toString());
 
   return (
@@ -57,86 +63,42 @@ export function AnalyticsFrame({
         <div className="flex flex-wrap items-start gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="analytics-range">Period</Label>
-            <Select
-              onValueChange={(value) =>
-                navigateNow(analyticsUrl(current(), { range: value as AnalyticsPreset }))
+            <DateRangePicker
+              activePreset={preset === "custom" ? null : preset}
+              id="analytics-range"
+              maxDate={today}
+              maxDays={MAX_ANALYTICS_DAYS}
+              onSelect={(selection) =>
+                navigateNow(
+                  analyticsUrl(
+                    current(),
+                    selection.preset && isPreset(selection.preset.value)
+                      ? { range: selection.preset.value as AnalyticsPreset }
+                      : { custom: { from: selection.from, to: selection.to } },
+                  ),
+                )
               }
-              value={preset}
-            >
-              <SelectTrigger className="min-w-44" id="analytics-range">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ANALYTICS_PRESETS.map((option) => (
-                  <SelectItem
-                    disabled={option.value === "custom"}
-                    key={option.value}
-                    value={option.value}
-                  >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="analytics-from">From</Label>
-            <Input
-              // Remount when the window changes so a preset pick refreshes the value.
-              defaultValue={from}
-              id="analytics-from"
-              key={`from-${from}`}
-              max={to}
-              onBlur={(event) => {
-                if (event.target.value !== from) {
-                  navigateNow(analyticsUrl(current(), { custom: { from: event.target.value, to } }));
-                }
-              }}
-              onChange={(event) =>
-                navigate(analyticsUrl(current(), { custom: { from: event.target.value, to } }))
-              }
-              type="date"
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="analytics-to">To</Label>
-            <Input
-              defaultValue={to}
-              id="analytics-to"
-              key={`to-${to}`}
-              min={from}
-              onBlur={(event) => {
-                if (event.target.value !== to) {
-                  navigateNow(analyticsUrl(current(), { custom: { from, to: event.target.value } }));
-                }
-              }}
-              onChange={(event) =>
-                navigate(analyticsUrl(current(), { custom: { from, to: event.target.value } }))
-              }
-              type="date"
+              presets={presets}
+              value={{ from, to }}
             />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="analytics-bucket">Group by</Label>
-            <Select
+            <Combobox
+              className="min-w-44"
+              id="analytics-bucket"
               onValueChange={(value) =>
                 navigateNow(analyticsUrl(current(), { bucket: value as AnalyticsBucket | "auto" }))
               }
+              options={BUCKET_OPTIONS.map((option) => ({
+                value: option.value,
+                label:
+                  option.value === "auto" && !bucketIsExplicit
+                    ? `Automatic (${bucket === "day" ? "daily" : `${bucket}ly`})`
+                    : option.label,
+              }))}
               value={bucketIsExplicit ? bucket : "auto"}
-            >
-              <SelectTrigger className="min-w-36" id="analytics-bucket">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BUCKET_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.value === "auto" && !bucketIsExplicit
-                      ? `Automatic (${bucket === "day" ? "daily" : `${bucket}ly`})`
-                      : option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </div>
         </div>
         <p aria-live="polite" className="text-xs text-muted-foreground">

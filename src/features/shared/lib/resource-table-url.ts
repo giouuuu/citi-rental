@@ -1,5 +1,6 @@
 import type {
   ResourceColumn,
+  ResourceFilter,
   ResourceQuery,
 } from "@/features/shared/types/resource";
 
@@ -38,7 +39,8 @@ export function resourceTableUrl(
     changes.page === undefined &&
     ((changes.q !== undefined && changes.q !== query.q) ||
       (changes.sort !== undefined && changes.sort !== query.sort) ||
-      (changes.direction !== undefined && changes.direction !== query.direction));
+      (changes.direction !== undefined && changes.direction !== query.direction) ||
+      changes.filters !== undefined);
 
   const next: ResourceQuery = { ...query, ...changes };
   if (resetsPage) next.page = RESOURCE_QUERY_DEFAULTS.page;
@@ -55,7 +57,25 @@ export function resourceTableUrl(
   if (next.direction !== RESOURCE_QUERY_DEFAULTS.direction) {
     params.set("direction", next.direction);
   }
+  for (const [param, value] of Object.entries(next.filters ?? {})) {
+    if (value) params.set(param, value);
+  }
 
   const search = params.toString();
   return search ? `${route}?${search}` : route;
+}
+
+/**
+ * A `gte`/`lte` pair on one column is a date range: the list shows it as one
+ * picker instead of two filter chips.
+ */
+export function resolveDateRangeFilter(
+  filters: readonly ResourceFilter[] = [],
+): { fromParam: string; toParam: string } | null {
+  for (const from of filters) {
+    if (from.op !== "gte") continue;
+    const to = filters.find((filter) => filter.op === "lte" && filter.column === from.column);
+    if (to) return { fromParam: from.param, toParam: to.param };
+  }
+  return null;
 }

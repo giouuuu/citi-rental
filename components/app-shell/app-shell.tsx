@@ -34,8 +34,11 @@ export function AppShell({
         userName={userName}
         userRole={userRole}
       />
-      <SidebarInset id="main-content">
-        <TopHeader demoMode={demoMode} />
+      {/* min-w-0: a flex item defaults to its content's width, so one wide
+          table would push the page sideways under the fixed sidebar. This
+          keeps the page at the viewport and lets the table scroll instead. */}
+      <SidebarInset className="min-w-0" id="main-content">
+        <TopHeader demoMode={demoMode} userRole={userRole} />
         <MutationProvider>
           <div className="page-enter mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 md:px-6 md:py-8 xl:px-8">
             {children}

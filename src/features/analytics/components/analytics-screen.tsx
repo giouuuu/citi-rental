@@ -4,7 +4,10 @@ import { FileSpreadsheet } from "lucide-react";
 
 import { PageHeader } from "@/components/design-system/page-header";
 import { Button } from "@/components/ui/button";
-import { resolveAnalyticsWindow } from "@/features/analytics/lib/analytics-window";
+import {
+  analyticsRangePresets,
+  resolveAnalyticsWindow,
+} from "@/features/analytics/lib/analytics-window";
 import { AnalyticsFrame } from "@/features/analytics/components/analytics-frame";
 import { AnalyticsKpis } from "@/features/analytics/components/analytics-kpis";
 import { AnalyticsTrends } from "@/features/analytics/components/analytics-trends";
@@ -12,7 +15,7 @@ import { CustomerInsights } from "@/features/analytics/components/customer-insig
 import { ForwardOccupancy } from "@/features/analytics/components/forward-occupancy";
 import { KpiSkeleton, PanelSkeleton } from "@/features/analytics/components/panel-skeleton";
 import { VehiclePerformancePanel } from "@/features/analytics/components/vehicle-performance";
-import { formatDateKey } from "@/features/shared/lib/manila-time";
+import { formatDateKey, manilaDateKey } from "@/features/shared/lib/manila-time";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -49,8 +52,10 @@ export async function AnalyticsScreen({ searchParams }: { searchParams: Promise<
         bucketIsExplicit={read("bucket") === window.bucket}
         from={window.from}
         preset={window.preset}
+        presets={analyticsRangePresets()}
         summary={summary}
         to={window.to}
+        today={manilaDateKey(new Date())}
       >
         <Suspense fallback={<KpiSkeleton />}>
           <AnalyticsKpis window={window} />

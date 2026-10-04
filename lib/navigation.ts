@@ -1,3 +1,4 @@
+import type { AppRole } from "@/features/shared/lib/app-roles";
 import {
   BellRing,
   CarFront,
@@ -5,6 +6,7 @@ import {
   FileSpreadsheet,
   IdCard,
   KeyRound,
+  Landmark,
   LayoutDashboard,
   Map,
   MapPinned,
@@ -14,6 +16,7 @@ import {
   TriangleAlert,
   Users,
   UsersRound,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,6 +25,8 @@ export type NavigationItem = {
   href: string;
   icon: LucideIcon;
   badge?: string;
+  /** Only these roles see the item; omitted means every ops role. */
+  roles?: AppRole[];
 };
 
 export type NavigationGroup = {
@@ -36,6 +41,7 @@ export const navigationGroups: NavigationGroup[] = [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { title: "Analytics", href: "/analytics", icon: ChartNoAxesCombined },
       { title: "Reports", href: "/reports", icon: FileSpreadsheet },
+      { title: "Finance", href: "/finance", icon: Landmark, roles: ["owner"] },
       { title: "Live map", href: "/map", icon: Map },
     ],
   },
@@ -43,6 +49,7 @@ export const navigationGroups: NavigationGroup[] = [
     label: "Operations",
     items: [
       { title: "Vehicles", href: "/vehicles", icon: CarFront },
+      { title: "Maintenance", href: "/maintenance", icon: Wrench },
       { title: "Rentals", href: "/rentals", icon: KeyRound },
       { title: "Customers", href: "/customers", icon: UsersRound },
       { title: "Drivers", href: "/drivers", icon: IdCard },
@@ -83,3 +90,15 @@ export const navigationGroups: NavigationGroup[] = [
 export const navigationItems = navigationGroups.flatMap(
   (group) => group.items,
 );
+
+/** The groups a role can see, dropping groups left empty. */
+export function navigationGroupsFor(role: string): NavigationGroup[] {
+  return navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !item.roles || item.roles.includes(role as AppRole),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+}

@@ -15,6 +15,7 @@ import { DueBackTable } from "@/features/dashboard/components/due-back-table";
 import { MonthToDateCard } from "@/features/dashboard/components/month-to-date-card";
 import { PickupsCard } from "@/features/dashboard/components/pickups-card";
 import { RecentBookingsCard } from "@/features/dashboard/components/recent-bookings-card";
+import { ServiceDueAlert } from "@/features/dashboard/components/service-due-alert";
 import { formatManila } from "@/features/shared/lib/manila-time";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -92,6 +93,11 @@ export async function DashboardScreen() {
               value={String(snapshot.pickupsToday.length)}
             />
           </section>
+          {demoMode ? null : (
+            <Suspense fallback={null}>
+              <ServiceDueAlert />
+            </Suspense>
+          )}
           <section className="grid gap-4 xl:grid-cols-12">
             <Card className="xl:col-span-8">
               <CardHeader className="border-b">

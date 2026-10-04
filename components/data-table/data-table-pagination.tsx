@@ -9,13 +9,12 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50].map((pageSize) => ({
+  value: `${pageSize}`,
+  label: `${pageSize}`,
+}));
 
 export function DataTablePagination<TData>({ table }: { table: Table<TData> }) {
   const filteredRows = table.getFilteredRowModel().rows.length;
@@ -31,21 +30,15 @@ export function DataTablePagination<TData>({ table }: { table: Table<TData> }) {
       <div className="flex flex-wrap items-center gap-2 sm:gap-4">
         <div className="hidden items-center gap-2 md:flex">
           <span className="text-xs font-medium text-foreground">Rows</span>
-          <Select
+          <Combobox
+            aria-label="Rows per page"
+            className="h-9 w-[72px]"
+            contentClassName="min-w-24"
             onValueChange={(value) => table.setPageSize(Number(value))}
+            options={PAGE_SIZE_OPTIONS}
+            side="top"
             value={`${table.getState().pagination.pageSize}`}
-          >
-            <SelectTrigger aria-label="Rows per page" className="h-9 w-[72px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent side="top">
-              {[5, 10, 20, 50].map((pageSize) => (
-                <SelectItem key={pageSize} value={`${pageSize}`}>
-                  {pageSize}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
         </div>
         <span className="min-w-24 text-center text-xs font-medium text-foreground">
           Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}

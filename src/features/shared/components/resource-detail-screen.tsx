@@ -9,9 +9,12 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { ArchiveButton } from "@/features/shared/components/archive-button";
 import { ResourceForm } from "@/features/shared/components/resource-form";
+import { loadResourceBlockedRanges } from "@/features/shared/services/load-resource-blocked-ranges";
+import { loadResourceReferences } from "@/features/shared/services/load-resource-references";
 import type {
   ActionResult,
   AppRole,
+  ResourceBlockedRanges,
   ResourceDefinition,
   ResourceReferences,
   ResourceRow,
@@ -43,6 +46,7 @@ export async function ResourceDetailScreen({
   children?: (parts: {
     form: ReactNode;
     row: ResourceRow;
+    role: AppRole;
     canWrite: boolean;
     formReadOnly: boolean;
   }) => ReactNode;
@@ -50,7 +54,8 @@ export async function ResourceDetailScreen({
   let role: AppRole = "customer";
   let row: ResourceRow | null =
     definition.demoRows?.find((item) => item.id === id) ?? null;
-  const references: ResourceReferences = {};
+  let references: ResourceReferences = {};
+  let blockedRanges: ResourceBlockedRanges = {};
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -83,41 +88,17 @@ export async function ResourceDetailScreen({
       .select(detailColumns)
       .eq("id", id)
       .maybeSingle();
-    const referenceRequests = definition.fields.map(async (field) => {
-      if (!field.reference) return;
-      const {
-        table,
-        labelColumn,
-        secondaryColumn,
-        activeColumn,
-        statusColumn,
-      } = field.reference;
-      const columns = ["id", labelColumn, secondaryColumn, statusColumn]
-        .filter(Boolean)
-        .join(",");
-      let request = supabase
-        .from(table)
-        .select(columns);
-      if (activeColumn) request = request.eq(activeColumn, true);
-      // Keep current linked records visible on edit, even if normally excluded.
-      const { data, error } = await request.limit(200);
-      if (error) throw new Error(error.message);
-      references[field.name] = (
-        (data ?? []) as unknown as Record<string, unknown>[]
-      ).map((item) => {
-        const base =
-          secondaryColumn && item[secondaryColumn]
-            ? `${String(item[labelColumn])} · ${String(item[secondaryColumn])}`
-            : String(item[labelColumn] ?? item.id);
-        const status =
-          statusColumn && item[statusColumn]
-            ? ` · ${String(item[statusColumn])}`
-            : "";
-        return { value: String(item.id), label: `${base}${status}` };
-      });
-    });
-    const { data, error } = await rowRequest;
-    await Promise.all(referenceRequests);
+    // Keep current linked records visible on edit, even if normally excluded.
+    const referenceRequest = loadResourceReferences(supabase, definition.fields, { narrow: false });
+    // Other bookings block the calendar; this record's own dates don't.
+    const blockedRequest = loadResourceBlockedRanges(supabase, definition.fields, { excludeId: id });
+    const [{ data, error }, loaded, blocked] = await Promise.all([
+      rowRequest,
+      referenceRequest,
+      blockedRequest,
+    ]);
+    references = loaded;
+    blockedRanges = blocked;
     if (error) throw new Error(error.message);
     row = data as ResourceRow | null;
   }
@@ -173,6 +154,7 @@ export async function ResourceDetailScreen({
         const form = (
           <ResourceForm
             action={action}
+            blockedRanges={blockedRanges}
             definition={{
               key: definition.key,
               singular: definition.singular,
@@ -187,6 +169,7 @@ export async function ResourceDetailScreen({
           return children({
             form,
             row,
+            role,
             canWrite,
             formReadOnly: isFormReadOnly,
           });

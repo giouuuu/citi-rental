@@ -9,14 +9,9 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker, DateTimePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type {
   ResourceField,
@@ -119,28 +114,39 @@ export function ResourceFormField({
                   value={String(field.value ?? "")}
                 />
               ) : fieldDef.type === "select" ? (
-                <Select
+                <Combobox
+                  aria-invalid={fieldState.invalid}
                   disabled={readOnly || isPending}
+                  id={id}
                   onValueChange={field.onChange}
+                  options={options}
+                  placeholder={`Select ${fieldDef.label.toLowerCase()}`}
+                  searchPlaceholder={`Search ${fieldDef.label.toLowerCase()}…`}
                   value={String(field.value ?? "")}
-                >
-                  <SelectTrigger
-                    aria-invalid={fieldState.invalid}
-                    className="h-11! w-full"
-                    id={id}
-                  >
-                    <SelectValue
-                      placeholder={`Select ${fieldDef.label.toLowerCase()}`}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {options.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
+              ) : fieldDef.type === "date" ? (
+                <DatePicker
+                  aria-invalid={fieldState.invalid}
+                  disabled={readOnly || isPending}
+                  id={id}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    field.onBlur();
+                  }}
+                  placeholder={fieldDef.placeholder}
+                  required={fieldDef.required}
+                  value={String(field.value ?? "")}
+                />
+              ) : fieldDef.type === "datetime-local" ? (
+                <DateTimePicker
+                  aria-invalid={fieldState.invalid}
+                  disabled={readOnly || isPending}
+                  id={id}
+                  onValueChange={field.onChange}
+                  placeholder={fieldDef.placeholder}
+                  required={fieldDef.required}
+                  value={String(field.value ?? "")}
+                />
               ) : (
                 <Input
                   aria-invalid={fieldState.invalid}

@@ -59,13 +59,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -184,14 +179,19 @@ export function DesignSystemShowcase() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="preview-status">Vehicle status</Label>
-              <Select defaultValue="available">
-                <SelectTrigger className="w-full" id="preview-status"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                </SelectContent>
-              </Select>
+              <Combobox
+                defaultValue="available"
+                id="preview-status"
+                options={[
+                  { value: "available", label: "Available" },
+                  { value: "maintenance", label: "Maintenance" },
+                  { value: "inactive", label: "Inactive" },
+                ]}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="preview-date">Registration expiry</Label>
+              <DatePicker id="preview-date" />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="preview-notes">Operational notes</Label>
@@ -281,7 +281,7 @@ export function DesignSystemShowcase() {
               <DialogTrigger asChild><Button variant="outline">Open modal</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Assign GPS device</DialogTitle><DialogDescription>Select an unassigned device for Toyota Vios · NCR 1842.</DialogDescription></DialogHeader>
-                <div className="space-y-2 py-3"><Label>GPS device</Label><Select><SelectTrigger className="w-full"><SelectValue placeholder="Select a device" /></SelectTrigger><SelectContent><SelectItem value="st-901">ST-901 · 863456789012345</SelectItem></SelectContent></Select></div>
+                <div className="space-y-2 py-3"><Label htmlFor="preview-device">GPS device</Label><Combobox id="preview-device" options={[{ value: "st-901", label: "ST-901 · 863456789012345" }]} placeholder="Select a device" /></div>
                 <DialogFooter><Button variant="outline">Cancel</Button><Button>Assign device</Button></DialogFooter>
               </DialogContent>
             </Dialog>

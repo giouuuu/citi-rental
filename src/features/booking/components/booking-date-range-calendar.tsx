@@ -1,32 +1,16 @@
 "use client";
 
-import { format, startOfDay } from "date-fns";
+import { useMemo } from "react";
+import { format } from "date-fns";
 import {
   Controller,
   type Control,
   type FieldPath,
   type FieldValues,
 } from "react-hook-form";
-import type { DateRange } from "react-day-picker";
 
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
-import {
-  expandBookedDays,
-  isDayInList,
-  parseDateTimeLocal,
-  rangeIncludesBooked,
-  toBookingRangeValues,
-  type BookedDateRange,
-} from "@/features/booking/lib/booking-date-range";
-import { cn } from "@/lib/utils";
-
-export type { BookedDateRange };
+import type { PublicVehicleBookedRange } from "@/features/booking/services/list-public-vehicle-booked-ranges";
+import { BookingRangeCalendar } from "@/features/shared/components/booking-range-calendar";
 
 export function BookingDateRangeCalendar<T extends FieldValues>({
   control,
@@ -38,11 +22,19 @@ export function BookingDateRangeCalendar<T extends FieldValues>({
   control: Control<T>;
   startName: FieldPath<T>;
   returnName: FieldPath<T>;
-  bookedRanges?: BookedDateRange[];
+  bookedRanges?: PublicVehicleBookedRange[];
   disabled?: boolean;
 }) {
-  const bookedDays = expandBookedDays(bookedRanges);
-  const today = startOfDay(new Date());
+  // Customers see that a day is taken, never who took it.
+  const blocked = useMemo(
+    () =>
+      bookedRanges.map((range) => ({
+        startAt: range.startAt,
+        endAt: range.expectedReturnAt,
+      })),
+    [bookedRanges],
+  );
+  const today = format(new Date(), "yyyy-MM-dd");
 
   return (
     <Controller
@@ -52,112 +44,24 @@ export function BookingDateRangeCalendar<T extends FieldValues>({
         <Controller
           control={control}
           name={returnName}
-          render={({ field: returnField, fieldState: returnState }) => {
-            const from = parseDateTimeLocal(startField.value);
-            const to = parseDateTimeLocal(returnField.value);
-            const selected: DateRange | undefined =
-              from || to
-                ? { from: from ?? to, to: from && to ? to : undefined }
-                : undefined;
-
-            const invalid = startState.invalid || returnState.invalid;
-            const error = startState.error ?? returnState.error;
-
-            return (
-              <Field className="gap-3" data-invalid={invalid}>
-                <div>
-                  <FieldLabel>Pick-up & return dates</FieldLabel>
-                  <FieldDescription>
-                    Select a start and end date. Amber dates with a strike-through
-                    are already booked.
-                  </FieldDescription>
-                </div>
-
-                <Calendar
-                  className={cn(
-                    "rounded-lg border",
-                    invalid && "border-destructive",
-                    disabled && "pointer-events-none opacity-60",
-                  )}
-                  defaultMonth={selected?.from ?? today}
-                  disabled={[
-                    { before: today },
-                    (date) => isDayInList(date, bookedDays),
-                  ]}
-                  excludeDisabled
-                  mode="range"
-                  modifiers={{ booked: bookedDays }}
-                  modifiersClassNames={{
-                    booked:
-                      "!bg-warning-surface !text-warning !opacity-100 line-through decoration-warning/70 [&_button]:!bg-warning-surface [&_button]:!text-warning [&_button]:!opacity-100",
-                  }}
-                  numberOfMonths={2}
-                  onSelect={(range) => {
-                    if (!range?.from) {
-                      startField.onChange("");
-                      returnField.onChange("");
-                      return;
-                    }
-                    if (
-                      range.to &&
-                      rangeIncludesBooked(
-                        { from: range.from, to: range.to },
-                        bookedDays,
-                      )
-                    ) {
-                      const partial = toBookingRangeValues(range.from);
-                      startField.onChange(partial.startAt);
-                      returnField.onChange("");
-                      return;
-                    }
-                    const next = toBookingRangeValues(range.from, range.to);
-                    startField.onChange(next.startAt);
-                    returnField.onChange(next.expectedReturnAt);
-                  }}
-                  selected={selected}
-                />
-
-                <p className="text-sm text-muted-foreground">
-                  {from && to ? (
-                    <>
-                      <span className="font-medium text-foreground">
-                        {format(from, "MMM d, yyyy")}
-                      </span>
-                      {" → "}
-                      <span className="font-medium text-foreground">
-                        {format(to, "MMM d, yyyy")}
-                      </span>
-                    </>
-                  ) : from ? (
-                    <>
-                      Pick-up{" "}
-                      <span className="font-medium text-foreground">
-                        {format(from, "MMM d, yyyy")}
-                      </span>
-                      {" · "}now choose a return date
-                    </>
-                  ) : (
-                    "Select pick-up, then return."
-                  )}
-                </p>
-
-                {bookedDays.length > 0 ? (
-                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span
-                      aria-hidden
-                      className="inline-block size-3 rounded-sm bg-warning-surface ring-1 ring-warning/40"
-                    />
-                    <span>
-                      <span className="font-medium text-warning">Booked</span>
-                      {" — not available"}
-                    </span>
-                  </p>
-                ) : null}
-
-                {invalid && error ? <FieldError errors={[error]} /> : null}
-              </Field>
-            );
-          }}
+          render={({ field: returnField, fieldState: returnState }) => (
+            <BookingRangeCalendar
+              blocked={blocked}
+              description="Tap your pick-up day, then your return day. Hatched days are already booked for this car."
+              disabled={disabled}
+              end={String(returnField.value ?? "")}
+              errors={[startState.error, returnState.error]}
+              id="booking-dates"
+              label="Pick-up & return dates"
+              minDate={today}
+              onChange={(next) => {
+                startField.onChange(next.start);
+                returnField.onChange(next.end);
+              }}
+              required
+              start={String(startField.value ?? "")}
+            />
+          )}
         />
       )}
     />

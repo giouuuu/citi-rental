@@ -41,4 +41,10 @@ describe("resourceEmptyCopy", () => {
       }).description,
     ).toContain("“ana”");
   });
+
+  it("says filters, not search, when only URL filters narrowed the list", () => {
+    const copy = resourceEmptyCopy({ plural: "Expenses", query: "", singular: "Expense", filtered: true });
+    expect(copy.isFiltered).toBe(true);
+    expect(copy.title).toBe("No expenses match these filters.");
+  });
 });

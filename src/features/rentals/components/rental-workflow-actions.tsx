@@ -10,14 +10,8 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { Field, FieldLabel } from "@/components/ui/field";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { transitionRentalAction } from "@/features/rentals/actions/actions";
 import {
   canTransitionRental,
@@ -182,21 +176,13 @@ export function RentalWorkflowActions({
           >
             <Field>
               <FieldLabel htmlFor="cancellation-reason">Reason</FieldLabel>
-              <Select
+              <Combobox
+                id="cancellation-reason"
                 onValueChange={(value) => setCancelReason(value as CancellationReason)}
+                options={CANCELLATION_REASONS}
+                placeholder="Choose a reason"
                 value={cancelReason}
-              >
-                <SelectTrigger id="cancellation-reason">
-                  <SelectValue placeholder="Choose a reason" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CANCELLATION_REASONS.map((reason) => (
-                    <SelectItem key={reason.value} value={reason.value}>
-                      {reason.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </Field>
           </ConfirmActionDialog>
         ) : (

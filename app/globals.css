@@ -296,3 +296,10 @@
     opacity: 0.5;
   }
 }
+
+/* Printed statements: drop the app chrome (sidebar and its layout gap). */
+@media print {
+  [data-slot="sidebar"] {
+    display: none !important;
+  }
+}

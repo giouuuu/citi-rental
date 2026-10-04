@@ -28,7 +28,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { navigationGroups } from "@/lib/navigation";
+import { navigationGroupsFor } from "@/lib/navigation";
 
 type AppSidebarProps = {
   companyName: string;
@@ -78,7 +78,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent className="py-2">
-        {navigationGroups.map((group) => (
+        {navigationGroupsFor(userRole).map((group) => (
           <SidebarGroup className="px-2 py-1" key={group.label}>
             <SidebarGroupLabel className="px-2 text-[10px] tracking-[0.12em] text-sidebar-foreground/45 uppercase">
               {group.label}

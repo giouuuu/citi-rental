@@ -44,10 +44,10 @@ type BookingFormProps = {
 
 function toDateTimeLocalValue(value?: string) {
   if (!value) return "";
+  // A bare day from the landing search is a calendar day, not UTC midnight.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value}T09:00`;
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) {
-    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T09:00` : "";
-  }
+  if (!Number.isFinite(date.getTime())) return "";
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 16);
 }

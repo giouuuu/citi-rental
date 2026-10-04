@@ -11,7 +11,7 @@ export { ResourceIndexScreen } from "./components/resource-index-screen";
 export { ResourceListSkeleton } from "./components/resource-list-skeleton";
 // Client-safe exports (hooks, client components) live in ./client — this barrel
 // pulls in `server-only` modules and cannot be imported from a Client Component.
-export { formatPhp, formatPhpCompact, toMoney } from "./lib/money";
+export { formatPhp, formatPhpCompact, formatPhpExact, toMoney } from "./lib/money";
 export {
   MANILA_TIME_ZONE,
   addDaysToKey,
@@ -23,3 +23,11 @@ export {
   manilaDayStart,
   parseDateKey,
 } from "./lib/manila-time";
+export {
+  defaultDateRangePresets,
+  monthDateRangePresets,
+  quarterDateRangePresets,
+  quickDateRangePresets,
+  yearDateRangePresets,
+} from "./lib/date-range-presets";
+export type { DateRangePreset, DateRangeValue } from "./lib/date-range-presets";

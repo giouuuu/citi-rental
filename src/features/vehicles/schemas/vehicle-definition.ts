@@ -11,7 +11,8 @@ import type { ResourceDefinition } from "@/features/shared/types/resource";
 
 export const vehicleDefinition: ResourceDefinition = {
   key: "vehicle",
-  table: "vehicles",
+  // Reads add each car's service status; writes go to `vehicles`.
+  table: "vehicle_list",
   singular: "Vehicle",
   plural: "Vehicles",
   route: "/vehicles",
@@ -22,6 +23,21 @@ export const vehicleDefinition: ResourceDefinition = {
     "Register fleet vehicles, maintain availability, and open location or rental history.",
   writeRoles: ["owner", "admin"],
   archive: { field: "status", value: "inactive", label: "Archive vehicle" },
+  filters: [
+    {
+      param: "service",
+      column: "service_status",
+      op: "eq",
+      label: "Service",
+      showValue: true,
+      valueLabels: {
+        overdue: "Overdue",
+        due_soon: "Due soon",
+        on_schedule: "On schedule",
+        no_schedule: "No schedule",
+      },
+    },
+  ],
   detailColumns: [
     "id",
     "plate_number",
@@ -149,6 +165,7 @@ export const vehicleDefinition: ResourceDefinition = {
     { key: "category", label: "Category" },
     { key: "daily_rate", label: "Daily rate", format: "number" },
     { key: "status", label: "Status", format: "status" },
+    { key: "service_status", label: "Service", format: "status" },
     { key: "updated_at", label: "Last updated", format: "datetime" },
   ],
   demoRows: DEMO_VEHICLES.map((vehicle) => ({
@@ -158,6 +175,7 @@ export const vehicleDefinition: ResourceDefinition = {
     category: vehicle.category,
     daily_rate: vehicle.dailyRate,
     status: vehicle.status,
+    service_status: "no_schedule",
     photo_url: null,
     updated_at: vehicle.createdAt,
   })),

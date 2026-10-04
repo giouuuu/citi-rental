@@ -11,8 +11,11 @@ import {
 } from "@/features/shared/lib/resource-table-url";
 import { buildResourceColumns } from "@/features/shared/components/resource-table-columns";
 import { ResourceEmptyState } from "@/features/shared/components/resource-empty-state";
+import { DateRangePicker } from "@/features/shared/components/date-range-picker";
 import { ResourceSearchForm } from "@/features/shared/components/resource-search-form";
 import { ResourceTablePagination } from "@/features/shared/components/resource-table-pagination";
+import type { DateRangePreset } from "@/features/shared/lib/date-range-presets";
+import { parseDateKey } from "@/features/shared/lib/manila-time";
 import type {
   ResourceColumn,
   ResourceQuery,
@@ -31,6 +34,8 @@ type Props = {
   page: number;
   pageSize: number;
   hasNextPage: boolean;
+  /** The list's date filter pair, shown as a range picker beside search. */
+  dateRange?: { fromParam: string; toParam: string; presets: DateRangePreset[] };
 };
 
 /**
@@ -61,6 +66,17 @@ export function ResourceTable(props: Props) {
   const urlFor = (changes: Partial<ResourceQuery>) =>
     resourceTableUrl(props.route, props.query, changes, fallbackSort);
 
+  const dateRange = props.dateRange;
+  const setDates = (from: string | null, to: string | null) => {
+    if (!dateRange) return;
+    const filters = { ...props.query.filters };
+    delete filters[dateRange.fromParam];
+    delete filters[dateRange.toParam];
+    if (from) filters[dateRange.fromParam] = from;
+    if (to) filters[dateRange.toParam] = to;
+    navigateNow(urlFor({ filters }));
+  };
+
   return (
     <DataTable
       columns={columns}
@@ -69,7 +85,8 @@ export function ResourceTable(props: Props) {
       emptyMessage={
         <ResourceEmptyState
           canWrite={props.canWrite}
-          onClearSearch={() => navigateNow(urlFor({ q: "" }))}
+          filtered={Object.keys(props.query.filters ?? {}).length > 0}
+          onClearSearch={() => navigateNow(urlFor({ q: "", filters: {} }))}
           plural={props.plural}
           query={props.query.q}
           route={props.route}
@@ -99,12 +116,25 @@ export function ResourceTable(props: Props) {
         />
       }
       toolbar={
-        <ResourceSearchForm
-          defaultQuery={props.query.q}
-          onCommit={(value) => navigateNow(urlFor({ q: value }))}
-          onSearch={(value) => navigate(urlFor({ q: value }))}
-          plural={props.plural}
-        />
+        <div className="flex w-full flex-wrap items-center gap-2">
+          <ResourceSearchForm
+            defaultQuery={props.query.q}
+            onCommit={(value) => navigateNow(urlFor({ q: value }))}
+            onSearch={(value) => navigate(urlFor({ q: value }))}
+            plural={props.plural}
+          />
+          {dateRange ? (
+            <DateRangePicker
+              onClear={() => setDates(null, null)}
+              onSelect={({ from, to }) => setDates(from, to)}
+              presets={dateRange.presets}
+              value={{
+                from: parseDateKey(props.query.filters?.[dateRange.fromParam]) ?? undefined,
+                to: parseDateKey(props.query.filters?.[dateRange.toParam]) ?? undefined,
+              }}
+            />
+          ) : null}
+        </div>
       }
     />
   );

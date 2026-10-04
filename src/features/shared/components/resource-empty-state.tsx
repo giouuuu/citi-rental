@@ -20,6 +20,7 @@ import { resourceEmptyCopy } from "@/features/shared/lib/resource-empty-copy";
  */
 export function ResourceEmptyState({
   canWrite,
+  filtered = false,
   onClearSearch,
   plural,
   query,
@@ -27,13 +28,14 @@ export function ResourceEmptyState({
   singular,
 }: {
   canWrite: boolean;
+  filtered?: boolean;
   onClearSearch: () => void;
   plural: string;
   query: string;
   route: string;
   singular: string;
 }) {
-  const copy = resourceEmptyCopy({ plural, query, singular });
+  const copy = resourceEmptyCopy({ plural, query, singular, filtered });
   const Icon = copy.isFiltered ? SearchX : Inbox;
 
   return (
@@ -48,7 +50,7 @@ export function ResourceEmptyState({
       <EmptyContent>
         {copy.isFiltered ? (
           <Button onClick={onClearSearch} type="button" variant="outline">
-            Clear search
+            {query.trim() ? "Clear search" : "Clear filters"}
           </Button>
         ) : canWrite ? (
           <Button asChild>

@@ -2,7 +2,24 @@
 
 Goal: the accountant opens one screen, reads the numbers straight onto the BIR return, and
 hand-computes nothing. This document is the plan for what the statement contains and what the
-schema needs to support it. **Nothing here is built yet.**
+schema needs to support it.
+
+> **Status: built** (`feat/financial-statements`). Steps 1–7 of §5 are implemented: migration
+> `20261005090000_financial_statements.sql`, pgTAP suite `supabase/tests/05_finance.test.sql`,
+> app code in `src/features/finance`, routes under `/finance` (owner only). Deviations from the
+> sketch below:
+>
+> - **No `depreciation_entries` table.** Depreciation is computed from the register row on read
+>   (`src/features/finance/lib/depreciation.ts`), so correcting a cost can never leave stale entries.
+>   Full-month convention: the acquisition month counts, and so does the disposal month.
+> - **Vehicles do not get a column.** `fixed_assets.vehicle_id` (unique) is the link.
+> - **No `analytics_profit_and_loss` RPC.** One owner-only `finance_statement(p_from, p_to)` returns
+>   every SQL-side figure as a single snapshot; the app adds depreciation and the tax arithmetic.
+> - **§6 open questions are settings, not code.** VAT status, entity type and the income-tax
+>   election live in `tax_settings`; the worksheet compares every election regardless.
+> - **Export is CSV** (opens in Excel), plus a print stylesheet. No XLSX dependency was added.
+> - **SLSP summary lists are not generated.** Expense rows carry what they need (supplier, TIN,
+>   amounts), and the expenses CSV is the starting point.
 
 > **Not tax advice.** I am not an accountant. Rates, thresholds, form numbers and documentary
 > rules in this document must be confirmed by the engagement accountant against current BIR

@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type SearchParamTab = {
   value: string;
-  label: string;
+  /** Text, optionally with a count badge. */
+  label: ReactNode;
   content: ReactNode;
 };
 

@@ -1,6 +1,7 @@
 import "server-only";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/design-system/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -8,9 +9,12 @@ import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { ResourceForm } from "@/features/shared/components/resource-form";
+import { loadResourceBlockedRanges } from "@/features/shared/services/load-resource-blocked-ranges";
+import { loadResourceReferences } from "@/features/shared/services/load-resource-references";
 import type {
   ActionResult,
   AppRole,
+  ResourceBlockedRanges,
   ResourceDefinition,
   ResourceReferences,
 } from "@/features/shared/types/resource";
@@ -22,12 +26,19 @@ type SaveAction = (
 export async function ResourceCreateScreen({
   definition,
   action,
+  initialValues,
+  notice,
 }: {
   definition: ResourceDefinition;
   action: SaveAction;
+  /** Prefill from the link that opened the form, e.g. `?vehicle_id=…`. */
+  initialValues?: Record<string, string>;
+  /** A heads-up above the form, e.g. a service due on the chosen car. */
+  notice?: ReactNode;
 }) {
   let role: AppRole = "customer";
-  const references: ResourceReferences = {};
+  let references: ResourceReferences = {};
+  let blockedRanges: ResourceBlockedRanges = {};
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -44,54 +55,10 @@ export async function ResourceCreateScreen({
       throw new Error("Your profile is not active.");
     role = profile.role as AppRole;
 
-    await Promise.all(
-      definition.fields.map(async (field) => {
-        if (!field.reference) return;
-        const {
-          table,
-          labelColumn,
-          secondaryColumn,
-          activeColumn,
-          statusColumn,
-          excludeStatuses,
-          equals,
-        } = field.reference;
-        const columns = ["id", labelColumn, secondaryColumn, statusColumn]
-          .filter(Boolean)
-          .join(",");
-        let request = supabase
-          .from(table)
-          .select(columns);
-        if (activeColumn) request = request.eq(activeColumn, true);
-        if (equals) {
-          for (const [column, value] of Object.entries(equals)) {
-            request = request.eq(column, value);
-          }
-        }
-        if (excludeStatuses?.length) {
-          request = request.not(
-            statusColumn ?? "status",
-            "in",
-            `(${excludeStatuses.map((status) => `"${status}"`).join(",")})`,
-          );
-        }
-        const { data, error } = await request.limit(200);
-        if (error) throw new Error(error.message);
-        references[field.name] = (
-          (data ?? []) as unknown as Record<string, unknown>[]
-        ).map((row) => {
-          const base =
-            secondaryColumn && row[secondaryColumn]
-              ? `${String(row[labelColumn])} · ${String(row[secondaryColumn])}`
-              : String(row[labelColumn] ?? row.id);
-          const status =
-            statusColumn && row[statusColumn]
-              ? ` · ${String(row[statusColumn])}`
-              : "";
-          return { value: String(row.id), label: `${base}${status}` };
-        });
-      }),
-    );
+    [references, blockedRanges] = await Promise.all([
+      loadResourceReferences(supabase, definition.fields),
+      loadResourceBlockedRanges(supabase, definition.fields),
+    ]);
   }
 
   const canWrite = definition.writeRoles.includes(role);
@@ -110,9 +77,12 @@ export async function ResourceCreateScreen({
           <ArrowLeft /> Back to {definition.plural.toLowerCase()}
         </Link>
       </Button>
+      {canWrite ? notice : null}
       {canWrite ? (
         <ResourceForm
           action={action}
+          blockedRanges={blockedRanges}
+          initialValues={initialValues}
           definition={{
             key: definition.key,
             singular: definition.singular,
