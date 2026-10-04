@@ -6,14 +6,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Product vision
 
-This repo is one org-scoped car-rental product with **two faces**. Keep both in mind on every change.
+This repo is one single-tenant car-rental product with **two faces**. Keep both in mind on every change.
 
 ## Faces
 
 1. **Zeke Car Rentals (public)** — Cebu, DTI-registered customer brand. Landing, live availability, clear daily rates, airport/hotel/city pickup, self-drive or with driver. Job: book a car without calling staff first.
-2. **City Rentals (ops)** — Owner/admin platform for the same organization. Job: run fleet, rentals, customers, and GPS tracking with reliable location truth.
+2. **City Rentals (ops)** — Owner/admin platform for the same company. Job: run fleet, rentals, customers, and GPS tracking with reliable location truth.
 
-Same Supabase org and data; different routes, UX, and roles.
+Same Supabase project and data; different routes, UX, and roles.
 
 ## Who uses it
 
@@ -33,9 +33,9 @@ Authorization is always `profiles.role` + RLS/RPCs. Never authorize from JWT `us
 
 **Ops (owner/admin):** Manage vehicles/customers/rentals → transition rental (`draft → reserved → active → completed/cancelled`) with booking gates → watch map/geofences/alerts → acknowledge issues → tune org tracking settings.
 
-## Domain (org-scoped)
+## Domain (single-tenant)
 
-Organizations · profiles · vehicles · customers · rentals · inspections · payments · settings.
+Company profile · profiles · vehicles · customers · rentals · inspections · payments · settings.
 
 - **Ops (owner/admin)** operate almost all of this day to day via the protected app.
 - **Customers** only consume the booking slice: available vehicles + creating a rental (and a customer/profile row when they book or sign in). They do not manage org settings.

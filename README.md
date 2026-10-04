@@ -16,7 +16,7 @@ Feature destinations from later milestones are intentionally represented by clea
 2. Copy `.env.example` to `.env.local` and add Supabase project credentials.
 3. Start Supabase locally with `npx supabase start`, or link an existing project.
 4. Apply migrations with `npx supabase db reset` for local development.
-5. Create the first organization and administrator profile with a trusted server-side process or the Supabase SQL editor.
+5. Create the first administrator profile via /register (bootstrap-only) or the Supabase SQL editor.
 6. Run the app with `npm run dev`.
 
 Without Supabase environment variables, the app runs in a clearly labeled UI demo mode so the design foundation can be reviewed. Authentication and data access are enforced once project credentials are configured.

@@ -15,7 +15,7 @@ Related docs: `AGENTS.md` (product vision and roles) · `NEXTJS-AGENT.md` (archi
 
 ## 1. Product Overview
 
-One org-scoped car-rental product with two faces:
+One single-tenant car-rental product with two faces:
 
 1. **Zeke Car Rentals (public)** — customers browse the fleet, check availability for their
    dates, and submit a reservation without calling staff first.
@@ -107,7 +107,8 @@ Acceptance criteria:
 - Authenticated users can access only pages allowed by their role.
 - Sensitive actions are enforced by database policies, not only by the proxy guard.
 
-Known gap: `/register` creates an **ops workspace** (admin + organization), not a customer
+Known gap: `/register` is bootstrap-only — it provisions the first **admin** and then
+refuses, so it is not a customer
 account. Email-based customer signup and a customer "my bookings" portal are incomplete.
 
 ---
@@ -170,7 +171,7 @@ Features:
 - Display rate quote for a date range.
 
 Validation:
-- Plate number must be unique within the organization.
+- Plate number must be unique across the fleet.
 - A vehicle cannot be booked for dates that overlap an existing reserved or active rental.
 - Maintenance and inactive vehicles cannot be booked for any dates.
 
@@ -326,7 +327,7 @@ Cancellations capture a structured reason (`rentals.cancellation_reason`).
 Use UUID primary keys and `timestamptz`. Tables in this scope:
 
 ```text
-organizations
+company_profile
 profiles
 vehicles
 vehicle_photos
@@ -344,18 +345,16 @@ leave them; do not add columns to them in this scope.
 
 ### Constraints
 
-- Unique active plate number per organization.
+- Unique active plate number across the fleet.
 - Prevent overlapping reserved/active rentals for the same vehicle.
-- Every business row carries `organization_id`.
-- Rental references are unique per organization.
+- Rental references are unique.
 
 ---
 
 ## 7. Supabase Security Requirements
 
 - Enable Row Level Security on all business tables.
-- Every record must include `organization_id` where applicable.
-- Users may access only rows belonging to their organization.
+- Access is decided by `profiles.role` through RLS.
 - Public booking reads go through a narrow, explicitly public surface (available vehicles
   only) — never a blanket anon-select on `vehicles`.
 - Rental staff cannot manage users or org settings.
@@ -461,7 +460,7 @@ Design the codebase so tracking can be added back later without reworking the re
 ### Milestone 1: Foundation
 - Next.js + TypeScript, Tailwind, shadcn/ui.
 - Supabase configured.
-- Authentication, profiles, organizations, roles, RLS.
+- Authentication, profiles, roles, RLS.
 - Navigation and protected layout.
 
 ### Milestone 2: Rental core
