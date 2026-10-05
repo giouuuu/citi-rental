@@ -16,7 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const shouldProvision =
-    request.nextUrl.searchParams.get("provision") === "organization";
+    request.nextUrl.searchParams.get("provision") === "owner";
   const requestedNext = request.nextUrl.searchParams.get("next");
 
   if (code && isSupabaseConfigured()) {

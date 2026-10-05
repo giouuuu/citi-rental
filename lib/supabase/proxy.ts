@@ -85,6 +85,14 @@ export async function updateSession(request: NextRequest) {
       role = profile?.role ?? null;
     }
 
+    // A signed JWT with no profile is a deleted user or a half-finished
+    // signup. Bouncing it to "/" would lock the person out of login and
+    // register, so drop the stale session and let the page render.
+    if (role == null) {
+      await supabase.auth.signOut({ scope: "local" });
+      return response;
+    }
+
     const destination = isAdminRole(role)
       ? (safeNext ?? "/dashboard")
       : safeNext && safeNext !== "/dashboard"

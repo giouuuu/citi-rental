@@ -11,6 +11,7 @@ import {
 type RegistrationData = {
   status: RegistrationStatus;
   message: string;
+  redirectTo?: string;
 };
 
 export type RegisterActionResult = ActionResult<RegistrationData>;
@@ -20,7 +21,7 @@ const errorMessages: Record<RegistrationError["code"], string> = {
   configuration: "Registration is not available until Supabase is configured.",
   network:
     "Could not reach the authentication service. Check your internet connection and try again.",
-  provisioning: "Your account was created, but workspace setup could not finish. Open the dashboard or contact support.",
+  provisioning: "Your account was created, but setup could not finish. Try signing in or contact support.",
   rate_limit: "Too many registration attempts. Wait a few minutes and try again.",
   signup: "We could not create the account. Check your details or try signing in.",
 };
@@ -44,19 +45,30 @@ export async function registerAction(
   }
 
   try {
-    const status = await registerWithEmail({
+    const result = await registerWithEmail({
       fullName: parsed.data.fullName,
       email: parsed.data.email,
       password: parsed.data.password,
     });
+    if (result.status === "verification_required") {
+      return {
+        success: true,
+        data: {
+          status: result.status,
+          message:
+            "Check your inbox and confirm your email to finish creating your account.",
+        },
+      };
+    }
     return {
       success: true,
       data: {
-        status,
+        status: result.status,
+        redirectTo: result.redirectTo,
         message:
-          status === "signed_in"
+          result.redirectTo === "/dashboard"
             ? "Your workspace is ready. Opening the dashboard now."
-            : "Check your inbox and confirm your email to finish creating your workspace.",
+            : "Your account is ready.",
       },
     };
   } catch (error) {

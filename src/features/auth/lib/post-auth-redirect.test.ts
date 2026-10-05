@@ -41,6 +41,15 @@ describe("resolvePostAuthPath", () => {
     );
   });
 
+  it("treats the public home as no preference for owner and admin", async () => {
+    await expect(resolvePostAuthPath(supabase, "/", "owner")).resolves.toBe(
+      "/dashboard",
+    );
+    await expect(
+      resolvePostAuthPath(supabase, "/vehicles", "admin"),
+    ).resolves.toBe("/vehicles");
+  });
+
   it("keeps staff and customers off the ops dashboard by default", async () => {
     await expect(resolvePostAuthPath(supabase, null, "staff")).resolves.toBe(
       "/",
@@ -50,6 +59,9 @@ describe("resolvePostAuthPath", () => {
     );
     await expect(
       resolvePostAuthPath(supabase, "/dashboard", "staff"),
+    ).resolves.toBe("/");
+    await expect(
+      resolvePostAuthPath(supabase, "/admin", "customer"),
     ).resolves.toBe("/");
   });
 

@@ -1,10 +1,19 @@
 import "server-only";
 
+import { resolvePostAuthPath } from "@/features/auth/lib/post-auth-redirect";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type { RegisterInput } from "@/features/auth/schemas/register-schema";
 
 export type RegistrationStatus = "signed_in" | "verification_required";
+
+/**
+ * `redirectTo` follows the role the RPC granted: the first registrant becomes
+ * admin (`/dashboard`); later ones become customers (`/`).
+ */
+export type RegistrationResult =
+  | { status: "signed_in"; redirectTo: string }
+  | { status: "verification_required" };
 
 export class RegistrationError extends Error {
   constructor(
@@ -47,7 +56,7 @@ function isNetworkFailure(error: unknown) {
 
 export async function registerWithEmail(
   input: RegisterInput,
-): Promise<RegistrationStatus> {
+): Promise<RegistrationResult> {
   if (!isSupabaseConfigured()) {
     throw new RegistrationError("configuration");
   }
@@ -78,7 +87,7 @@ export async function registerWithEmail(
       throw new RegistrationError(error.status === 429 ? "rate_limit" : "signup");
     }
 
-    if (!data.session) return "verification_required";
+    if (!data.session) return { status: "verification_required" };
 
     const { error: provisioningError } = await supabase.rpc(
       "complete_self_service_registration",
@@ -90,7 +99,10 @@ export async function registerWithEmail(
       throw new RegistrationError("provisioning");
     }
 
-    return "signed_in";
+    return {
+      status: "signed_in",
+      redirectTo: await resolvePostAuthPath(supabase, undefined),
+    };
   } catch (error) {
     if (error instanceof RegistrationError) throw error;
     if (isNetworkFailure(error)) throw new RegistrationError("network");

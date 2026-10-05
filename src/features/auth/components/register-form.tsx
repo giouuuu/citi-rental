@@ -77,7 +77,7 @@ export function RegisterForm() {
         applyServerFieldErrors(form.setError, nextResult.fieldErrors);
       }
       if (nextResult.success && nextResult.data?.status === "signed_in") {
-        router.replace("/dashboard");
+        router.replace(nextResult.data.redirectTo ?? "/");
         router.refresh();
       }
     });

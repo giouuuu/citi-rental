@@ -30,6 +30,8 @@ export function isBookingNextPath(path: string | undefined): boolean {
 
 const PUBLIC_HOME = "/";
 const OPS_HOME = "/dashboard";
+/** Entry links into the ops app; only meaningful for owner/admin. */
+const OPS_ENTRY_PATHS = new Set([OPS_HOME, "/admin"]);
 
 /**
  * Resolve where to send the user after login / OAuth callback.
@@ -61,12 +63,17 @@ export async function resolvePostAuthPath(
   }
 
   if (!isAdminRole(role)) {
-    // Non-ops roles: ignore /dashboard (and missing next) — send to landing.
-    if (!safeNext || safeNext === OPS_HOME) {
+    // Non-ops roles: ignore ops entry paths (and missing next) — send to landing.
+    if (!safeNext || OPS_ENTRY_PATHS.has(safeNext)) {
       return PUBLIC_HOME;
     }
     return safeNext;
   }
 
-  return safeNext ?? OPS_HOME;
+  // Owner/admin: "/" is the generic default (Google OAuth always sends it),
+  // not a real destination — land them in the ops app instead.
+  if (!safeNext || safeNext === PUBLIC_HOME) {
+    return OPS_HOME;
+  }
+  return safeNext;
 }

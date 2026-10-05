@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, UserRound } from "lucide-react";
+import { LayoutDashboard, LogOut, UserRound } from "lucide-react";
 
 import { logoutAction } from "@/app/(auth)/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,6 +20,8 @@ export type SiteHeaderAccountUser = {
   email?: string;
   avatarUrl?: string;
   initials: string;
+  /** Owner/admin — shows the link into the ops app. */
+  canOpenOps?: boolean;
 };
 
 export function SiteHeaderAccountMenu({
@@ -63,6 +65,13 @@ export function SiteHeaderAccountMenu({
           ) : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {user.canOpenOps ? (
+          <DropdownMenuItem asChild>
+            <Link href="/admin">
+              <LayoutDashboard /> Dashboard
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem asChild>
           <Link href="/account">
             <UserRound /> Account

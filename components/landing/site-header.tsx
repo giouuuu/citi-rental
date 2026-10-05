@@ -5,6 +5,7 @@ import { ZekeMark } from "@/components/brand/zeke-mark";
 import { SiteHeaderAccountMenu } from "@/components/landing/site-header-account-menu";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { isAdminRole } from "@/features/shared/lib/app-roles";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +26,11 @@ async function getHeaderAccountUser() {
 
   const [{ data: userData }, { data: profile }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("full_name, role")
+      .eq("id", userId)
+      .maybeSingle(),
   ]);
 
   const user = userData.user;
@@ -49,6 +54,7 @@ async function getHeaderAccountUser() {
     email: user.email ?? undefined,
     avatarUrl,
     initials: initialsFromName(fullName),
+    canOpenOps: isAdminRole(profile?.role),
   };
 }
 
