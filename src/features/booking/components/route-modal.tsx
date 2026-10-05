@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import type { ReactNode } from "react";
 
 import {
@@ -28,14 +27,6 @@ export function RouteModal({
   footer,
 }: RouteModalProps) {
   const router = useRouter();
-
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") router.back();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router]);
 
   const resolvedFooter =
     footer === undefined ? (
