@@ -177,6 +177,7 @@ export default async function Page({
                 paymentReference={
                   pendingDeposit?.externalReference ?? paymentReference
                 }
+                paidOnline={pendingDeposit?.method === "paymongo"}
                 proofUrl={pendingDeposit?.proofUrl ?? null}
                 rentalId={id}
               />

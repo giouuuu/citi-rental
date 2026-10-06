@@ -1,6 +1,7 @@
 import {
   CheckCircle2,
   CircleOff,
+  CreditCard,
   RadioTower,
   Server,
   ShieldCheck,
@@ -15,8 +16,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getIntegrationHealth } from "@/features/settings/services/settings-service";
+import {
+  isPaymongoEnabled,
+  paymongoWebhookSecret,
+} from "@/features/booking/lib/paymongo";
 export async function IntegrationsScreen() {
   const health = await getIntegrationHealth();
+  const paymongoKey = isPaymongoEnabled();
+  const paymongoWebhook = Boolean(paymongoWebhookSecret());
   return (
     <div className="space-y-6">
       <PageHeader
@@ -36,6 +43,18 @@ export async function IntegrationsScreen() {
             health.supabase
               ? "Authentication and application data configured"
               : "Add public Supabase environment variables"
+          }
+        />
+        <Health
+          icon={CreditCard}
+          label="PayMongo"
+          ready={paymongoKey && paymongoWebhook}
+          detail={
+            paymongoKey && paymongoWebhook
+              ? "Customers can pay the booking deposit online"
+              : paymongoKey
+                ? "Secret key set; add PAYMONGO_WEBHOOK_SECRET so payments are recorded"
+                : "Add PAYMONGO_SECRET_KEY and PAYMONGO_WEBHOOK_SECRET to accept online payments"
           }
         />
         <Health

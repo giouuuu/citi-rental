@@ -25,6 +25,8 @@ type ConfirmDepositCardProps = {
   depositAmount?: number | null;
   paymentReference?: string | null;
   proofUrl?: string | null;
+  /** The deposit was paid through PayMongo, which verified the money. */
+  paidOnline?: boolean;
   customerLabel?: string | null;
 };
 
@@ -33,6 +35,7 @@ export function ConfirmDepositCard({
   depositAmount,
   paymentReference,
   proofUrl,
+  paidOnline = false,
   customerLabel,
 }: ConfirmDepositCardProps) {
   const [error, setError] = useState("");
@@ -92,7 +95,12 @@ export function ConfirmDepositCard({
             </dd>
           </div>
         </dl>
-        {proofUrl ? (
+        {paidOnline ? (
+          <p className="font-medium text-success">
+            Paid online via PayMongo — the amount is verified. Confirm to
+            reserve the car.
+          </p>
+        ) : proofUrl ? (
           <a
             className="inline-flex text-sm font-medium text-teal-700 underline-offset-2 hover:underline"
             href={proofUrl}

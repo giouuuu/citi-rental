@@ -17,6 +17,9 @@ const publicRoutes = [
   "/auth",
   "/book",
   "/account",
+  // Payment providers call these without a session; each handler verifies
+  // its own signature.
+  "/api/webhooks",
 ];
 
 function isPublicRoute(pathname: string) {

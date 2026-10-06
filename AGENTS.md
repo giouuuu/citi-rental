@@ -53,7 +53,7 @@ GPS tracking (parked — see `GPS_TRACKING_FEATURES.md`) · online payments · o
 
 ## Known gaps (do not invent as done)
 
-- Brand naming still splits across Zeke (public), City Rentals (ops), and demo “Northline” copy — prefer Zeke for customer UI, City Rentals for ops UI unless unifying.
+- Brand naming still splits across Zeke (public) and City Rentals (ops) — prefer Zeke for customer UI, City Rentals for ops UI unless unifying.
 - `/register` creates an **ops workspace (admin + org)**, not a customer account.
 - Customer Google signup exists; email customer signup and a “my bookings” portal are not complete yet.
 - Self-drive / with-driver is landing UX only — not a rental domain field yet.

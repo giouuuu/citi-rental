@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { type ReactNode, useState, useTransition } from "react";
 import { Info, Upload } from "lucide-react";
 
 import { submitPaymentProofAction } from "@/features/booking/actions/submit-payment-proof-action";
@@ -25,8 +25,11 @@ function formatWhen(value: string) {
 
 export function BookingPaymentForm({
   booking,
+  onlinePayment,
 }: {
   booking: BookingPaymentDetails;
+  /** PayMongo checkout, shown above the manual QR + proof upload when set up. */
+  onlinePayment?: ReactNode;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -124,9 +127,13 @@ export function BookingPaymentForm({
         </dl>
       </div>
 
+      {alreadySubmitted ? null : onlinePayment}
+
       <div className="rounded-xl border border-border bg-card p-5 text-left">
         <h2 className="text-base font-semibold text-brand-950">
-          How to pay
+          {onlinePayment && !alreadySubmitted
+            ? "Or pay by QR and upload proof"
+            : "How to pay"}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Send exactly{" "}

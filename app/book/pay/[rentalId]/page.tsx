@@ -4,12 +4,17 @@ import { notFound } from "next/navigation";
 
 import { SiteHeader } from "@/components/landing/site-header";
 import { BookingPaymentForm } from "@/features/booking/components/booking-payment-form";
+import {
+  PaymongoCheckoutButton,
+  type PaymongoReturn,
+} from "@/features/booking/components/paymongo-checkout-button";
+import { isPaymongoEnabled } from "@/features/booking/lib/paymongo";
 import { getBookingPaymentDetails } from "@/features/booking/services/public-booking-service";
 import { Button } from "@/components/ui/button";
 
 type PayPageProps = {
   params: Promise<{ rentalId: string }>;
-  searchParams: Promise<{ ref?: string }>;
+  searchParams: Promise<{ ref?: string; paymongo?: string }>;
 };
 
 export const metadata: Metadata = {
@@ -28,6 +33,11 @@ export default async function BookingPayPage({
   const booking = await getBookingPaymentDetails(rentalId, reference);
   if (!booking) notFound();
 
+  const paymongoReturn: PaymongoReturn =
+    query.paymongo === "success" || query.paymongo === "cancelled"
+      ? query.paymongo
+      : null;
+
   return (
     <main className="min-h-screen bg-background" id="main-content">
       <div className="bg-brand-950 text-white">
@@ -44,7 +54,19 @@ export default async function BookingPayPage({
         </p>
 
         <div className="mt-8">
-          <BookingPaymentForm booking={booking} />
+          <BookingPaymentForm
+            booking={booking}
+            onlinePayment={
+              isPaymongoEnabled() ? (
+                <PaymongoCheckoutButton
+                  amount={booking.depositAmount}
+                  referenceNumber={booking.referenceNumber}
+                  rentalId={booking.rentalId}
+                  returned={paymongoReturn}
+                />
+              ) : null
+            }
+          />
         </div>
 
         <div className="mt-8 flex justify-center">
