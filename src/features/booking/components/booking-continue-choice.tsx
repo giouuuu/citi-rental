@@ -91,9 +91,12 @@ export function BookingContinueChoice({
         </section>
 
         <section className="rounded-xl border border-teal-600/30 bg-teal-50/40 p-4 sm:p-5">
-          <h2 className="text-base font-bold text-brand-950">Continue as guest</h2>
+          <h2 className="text-base font-bold text-brand-950">
+            Continue as guest
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Fastest path — no password. We only need trip and pickup details.
+            Fastest path — no password. Start with your email or mobile number;
+            if you have booked before, we skip the paperwork.
           </p>
           <Button asChild className="mt-4 w-full" size="lg">
             {/* Hard navigation clears the parallel @modal slot */}

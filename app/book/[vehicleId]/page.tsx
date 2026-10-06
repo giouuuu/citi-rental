@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SiteHeader } from "@/components/landing/site-header";
-import { BookingForm } from "@/features/booking/components/booking-form";
+import { BookingFlow } from "@/features/booking/components/booking-flow";
+import { bookingSignInPath } from "@/features/booking/lib/booking-continue";
+import { turnstileSiteKey } from "@/features/booking/lib/turnstile";
 import { listPublicVehicleBookedRanges } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import { getPublicVehicle } from "@/features/booking/services/public-booking-service";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -35,6 +37,7 @@ export default async function BookVehiclePage({
 
   const bookedRanges = await listPublicVehicleBookedRanges(vehicleId);
 
+  let signedIn = false;
   let initialFullName: string | undefined;
   let initialEmail: string | undefined;
   if (isSupabaseConfigured()) {
@@ -42,6 +45,7 @@ export default async function BookVehiclePage({
     const { data } = await supabase.auth.getUser();
     const user = data.user;
     if (user) {
+      signedIn = true;
       const meta = user.user_metadata ?? {};
       const fromMeta =
         (typeof meta.full_name === "string" && meta.full_name.trim()) ||
@@ -64,8 +68,8 @@ export default async function BookVehiclePage({
             Reserve {vehicle.name}
           </h1>
           <p className="mt-2 text-sm text-brand-100">
-            Submit your trip details and we will hold the car as reserved for staff
-            confirmation.
+            Submit your trip details and we will hold the car as reserved for
+            staff confirmation.
           </p>
         </div>
       </div>
@@ -80,13 +84,16 @@ export default async function BookVehiclePage({
             .
           </div>
         ) : (
-          <BookingForm
+          <BookingFlow
             bookedRanges={bookedRanges}
             initialEmail={initialEmail}
             initialFullName={initialFullName}
             initialPickupLocation={query.pickup}
             initialReturnAt={query.end}
             initialStartAt={query.start}
+            signInHref={bookingSignInPath(vehicle.id, query)}
+            signedIn={signedIn}
+            turnstileSiteKey={turnstileSiteKey()}
             vehicle={vehicle}
           />
         )}

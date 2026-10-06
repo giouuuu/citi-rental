@@ -2,7 +2,10 @@ import "server-only";
 
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
-import type { PublicBookingInput } from "@/features/booking/schemas/public-booking-schema";
+import type {
+  PublicBookingInput,
+  ReturningBookingInput,
+} from "@/features/booking/schemas/public-booking-schema";
 import type {
   BookingPaymentDetails,
   PublicBookingResult,
@@ -15,6 +18,7 @@ import {
 } from "@/features/booking/lib/notify-owner-telegram";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { uploadPaymentProof } from "@/features/booking/lib/upload-payment-proof";
+import { uploadBookingIdPhotos } from "@/features/booking/lib/upload-booking-id-photos";
 
 function toTimestamptz(value: string) {
   const date = new Date(value);
@@ -29,7 +33,9 @@ function num(value: unknown, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function mapPaymentDetails(row: Record<string, unknown>): BookingPaymentDetails {
+function mapPaymentDetails(
+  row: Record<string, unknown>,
+): BookingPaymentDetails {
   return {
     rentalId: String(row.rental_id),
     referenceNumber: String(row.reference_number),
@@ -94,24 +100,39 @@ export async function getPublicVehicle(
 }
 
 export async function createPublicBooking(
-  input: PublicBookingInput,
+  input: PublicBookingInput | ReturningBookingInput,
 ): Promise<PublicBookingResult> {
   if (!isSupabaseConfigured()) {
     throw new Error("Booking is unavailable until Supabase is configured.");
   }
 
+  const startAt = toTimestamptz(input.startAt);
+  const expectedReturnAt = toTimestamptz(input.expectedReturnAt);
   const supabase = await createClient();
+  const { licenseSelfiePath, governmentIdPath } = await uploadBookingIdPhotos({
+    supabase,
+    photos: {
+      licenseSelfie: input.licenseSelfie,
+      governmentId: input.governmentId,
+    },
+  });
   const { data, error } = await supabase.rpc("create_public_booking", {
     p_vehicle_id: input.vehicleId,
-    p_start_at: toTimestamptz(input.startAt),
-    p_expected_return_at: toTimestamptz(input.expectedReturnAt),
-    p_full_name: input.fullName,
-    p_phone_number: input.phoneNumber,
+    p_start_at: startAt,
+    p_expected_return_at: expectedReturnAt,
+    p_full_name: input.fullName || null,
+    p_phone_number: input.phoneNumber || null,
     p_email: input.email || null,
-    p_drivers_license_number: input.driversLicenseNumber,
-    p_pickup_location: input.pickupLocation || null,
-    p_return_location: input.returnLocation || null,
+    p_drivers_license_number: input.driversLicenseNumber || null,
+    p_pickup_location: input.pickupLocation,
+    p_return_location: input.returnLocation,
     p_notes: input.notes || null,
+    p_address: input.address || null,
+    p_facebook_account: input.facebookAccount || null,
+    p_destination: input.destination,
+    p_passenger_count: input.passengerCount,
+    p_license_selfie_path: licenseSelfiePath,
+    p_government_id_path: governmentIdPath,
   });
 
   if (error) {
@@ -128,9 +149,13 @@ export async function createPublicBooking(
     referenceNumber: String(payload.reference_number),
     vehicleId: String(payload.vehicle_id ?? input.vehicleId),
     vehicleName:
-      typeof payload.vehicle_name === "string" ? payload.vehicle_name : undefined,
+      typeof payload.vehicle_name === "string"
+        ? payload.vehicle_name
+        : undefined,
     startAt: String(payload.start_at ?? input.startAt),
-    expectedReturnAt: String(payload.expected_return_at ?? input.expectedReturnAt),
+    expectedReturnAt: String(
+      payload.expected_return_at ?? input.expectedReturnAt,
+    ),
     quotedDailyRate: num(payload.quoted_daily_rate),
     quotedDays: num(payload.quoted_days, 1),
     quotedTotal: num(payload.quoted_total),
@@ -152,7 +177,10 @@ export async function createPublicBooking(
       `Car: ${result.vehicleName ?? result.vehicleId}`,
       `Deposit: ${formatPhp(result.depositAmount)} (${result.depositPercent}%)`,
       `Total: ${formatPhp(result.quotedTotal)} · ${result.quotedDays} day(s)`,
-      `Customer: ${input.fullName} · ${input.phoneNumber}`,
+      `Trip: ${input.pickupLocation} → ${input.destination} · ${input.passengerCount} pax`,
+      input.fullName
+        ? `Customer: ${input.fullName} · ${input.phoneNumber || input.email}`
+        : `Returning customer: ${input.email || input.phoneNumber}`,
       `Pay page: ${payUrl}`,
       `Ops: ${siteUrl()}/rentals/${result.rentalId}`,
     ].join("\n"),
@@ -201,7 +229,9 @@ export async function submitBookingPaymentProof(input: {
   message: string;
 }> {
   if (!isSupabaseConfigured()) {
-    throw new Error("Payment upload is unavailable until Supabase is configured.");
+    throw new Error(
+      "Payment upload is unavailable until Supabase is configured.",
+    );
   }
 
   const details = await getBookingPaymentDetails(
@@ -259,9 +289,7 @@ export async function submitBookingPaymentProof(input: {
 
   return {
     rentalId: String(payload.rental_id ?? input.rentalId),
-    referenceNumber: String(
-      payload.reference_number ?? input.referenceNumber,
-    ),
+    referenceNumber: String(payload.reference_number ?? input.referenceNumber),
     paymentStatus:
       (payload.payment_status as RentalPaymentStatus) || "proof_submitted",
     message:

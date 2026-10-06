@@ -7,6 +7,11 @@ import {
 } from "@/features/rentals/components/confirm-deposit-card";
 import { RentalDetailTabs } from "@/features/rentals/components/rental-detail-tabs";
 import { RentalPaymentPanel } from "@/features/rentals/components/rental-payment-panel";
+import {
+  RentalRenterIds,
+  type RentalRenterIdPhoto,
+} from "@/features/rentals/components/rental-renter-ids";
+import { BOOKING_IDS_BUCKET } from "@/features/booking/lib/upload-booking-id-photos";
 import type { RentalWorkflowStatus } from "@/features/rentals/lib/booking-gates";
 import { isPublicCustomerBooking } from "@/features/rentals/lib/is-public-customer-booking";
 import { needsDepositConfirmation } from "@/features/rentals/lib/needs-deposit-confirmation";
@@ -44,6 +49,7 @@ export default async function Page({
   let checklist: Awaited<ReturnType<typeof getInspectionChecklistForRental>> =
     null;
   let knownDamages: Awaited<ReturnType<typeof listVehicleKnownDamages>> = [];
+  let renterIdPhotos: RentalRenterIdPhoto[] | null = null;
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -62,6 +68,8 @@ export default async function Page({
           payment_reference,
           vehicle_id,
           starting_odometer,
+          renter_license_selfie_path,
+          renter_government_id_path,
           customers ( full_name, phone_number )
         `,
           )
@@ -109,6 +117,22 @@ export default async function Page({
 
     if (vehicleId) {
       knownDamages = await listVehicleKnownDamages(vehicleId);
+    }
+
+    const idPaths = [
+      ["Selfie with driver's license", data?.renter_license_selfie_path],
+      ["Another government ID", data?.renter_government_id_path],
+    ] as const;
+    if (idPaths.some(([, path]) => path)) {
+      renterIdPhotos = await Promise.all(
+        idPaths.map(async ([label, path]) => {
+          if (!path) return { label, url: null };
+          const { data: signed } = await supabase.storage
+            .from(BOOKING_IDS_BUCKET)
+            .createSignedUrl(path, 60 * 30);
+          return { label, url: signed?.signedUrl ?? null };
+        }),
+      );
     }
   } else {
     const demo = rentalDefinition.demoRows?.find((row) => row.id === id);
@@ -173,6 +197,9 @@ export default async function Page({
               quotedTotal={quotedTotal}
               rentalId={id}
             />
+          }
+          renterIds={
+            renterIdPhotos ? <RentalRenterIds photos={renterIdPhotos} /> : null
           }
         />
       )}

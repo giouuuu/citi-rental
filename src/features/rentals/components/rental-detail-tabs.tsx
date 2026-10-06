@@ -11,12 +11,14 @@ export function RentalDetailTabs({
   info,
   payments,
   inspections,
+  renterIds,
   customerBookingLocked = false,
 }: {
   alert?: ReactNode;
   info: ReactNode;
   payments: ReactNode;
   inspections?: ReactNode;
+  renterIds?: ReactNode;
   customerBookingLocked?: boolean;
 }) {
   return (
@@ -37,6 +39,9 @@ export function RentalDetailTabs({
         tabs={[
           { value: "info", label: "Info", content: info },
           { value: "payments", label: "Payment history", content: payments },
+          ...(renterIds
+            ? [{ value: "ids", label: "Renter IDs", content: renterIds }]
+            : []),
           ...(inspections
             ? [
                 {

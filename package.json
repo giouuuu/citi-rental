@@ -19,6 +19,7 @@
     "@fullcalendar/daygrid": "^6.1.21",
     "@fullcalendar/react": "^6.1.21",
     "@hookform/resolvers": "^5.5.1",
+    "@marsidev/react-turnstile": "^1.6.1",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.5",
     "@tanstack/react-table": "^8.21.3",

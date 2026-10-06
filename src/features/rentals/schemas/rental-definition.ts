@@ -30,6 +30,10 @@ export const rentalDefinition: ResourceDefinition = {
       actual_return_at: optionalText(40),
       pickup_location: optionalText(200),
       return_location: optionalText(200),
+      destination: optionalText(200),
+      passenger_count: optionalNumber(1).pipe(
+        z.number().int().max(60).optional(),
+      ),
       starting_odometer: optionalNumber(),
       ending_odometer: optionalNumber(),
       starting_fuel_level: optionalNumber().pipe(
@@ -126,6 +130,13 @@ export const rentalDefinition: ResourceDefinition = {
     },
     { name: "pickup_location", label: "Pickup location" },
     { name: "return_location", label: "Return location" },
+    { name: "destination", label: "Destination" },
+    {
+      name: "passenger_count",
+      label: "Passengers",
+      type: "number",
+      step: "1",
+    },
     {
       name: "starting_odometer",
       label: "Starting odometer (km)",

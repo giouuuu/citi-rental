@@ -12,14 +12,14 @@ import {
 import type { PublicVehicleBookedRange } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import { BookingRangeCalendar } from "@/features/shared/components/booking-range-calendar";
 
-export function BookingDateRangeCalendar<T extends FieldValues>({
+export function BookingDateRangeCalendar<T extends FieldValues, TOut extends FieldValues = T>({
   control,
   startName,
   returnName,
   bookedRanges = [],
   disabled,
 }: {
-  control: Control<T>;
+  control: Control<T, unknown, TOut>;
   startName: FieldPath<T>;
   returnName: FieldPath<T>;
   bookedRanges?: PublicVehicleBookedRange[];

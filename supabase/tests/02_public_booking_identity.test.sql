@@ -10,6 +10,20 @@ select plan(23);
 create temp table _res (k text primary key, res jsonb) on commit drop;
 grant all on _res to public;
 
+-- Renter ID photos each booking below uploads to booking-ids first.
+insert into storage.objects (bucket_id, name)
+select 'booking-ids', f || '/' || kind || '.jpg'
+from unnest(array[
+  '00000000-0000-4000-8000-000000000b01',
+  '00000000-0000-4000-8000-000000000b02',
+  '00000000-0000-4000-8000-000000000b03',
+  '00000000-0000-4000-8000-000000000b04',
+  '00000000-0000-4000-8000-000000000b05',
+  '00000000-0000-4000-8000-000000000b06',
+  '00000000-0000-4000-8000-000000000b07'
+]) f
+cross join unnest(array['license-selfie', 'government-id']) kind;
+
 -- ---------------------------------------------------------------------------
 -- Attack 1: anonymous caller with the victim's PHONE and the attacker's email
 -- ---------------------------------------------------------------------------
@@ -26,8 +40,14 @@ select 'b1', public.create_public_booking(
   'mallory@evil.test',
   'L-MALLORY',
   'Airport',
+  'Airport',
   null,
-  null
+  null,
+  null,
+  'Moalboal',
+  2,
+  '00000000-0000-4000-8000-000000000b01/license-selfie.jpg',
+  '00000000-0000-4000-8000-000000000b01/government-id.jpg'
 );
 
 reset role;
@@ -92,10 +112,18 @@ select 'b2', public.create_public_booking(
   now() + interval '20 days',
   now() + interval '21 days',
   'Mallory Evil',
-  '09170000002',
+  '09170000002',               -- Bob's phone
   'mallory@evil.test',
   'L-MALLORY',
-  null, null, null
+  'Airport',
+  'Airport',
+  null,
+  null,
+  null,
+  'Moalboal',
+  2,
+  '00000000-0000-4000-8000-000000000b02/license-selfie.jpg',
+  '00000000-0000-4000-8000-000000000b02/government-id.jpg'
 );
 
 select is((select count(*) from public.list_my_bookings()), 0::bigint,
@@ -121,7 +149,15 @@ select 'b3', public.create_public_booking(
   '09175550000',
   'ALICE@example.com',
   'L-NOT-ALICE',
-  null, null, null
+  'Airport',
+  'Airport',
+  null,
+  null,
+  null,
+  'Moalboal',
+  2,
+  '00000000-0000-4000-8000-000000000b03/license-selfie.jpg',
+  '00000000-0000-4000-8000-000000000b03/government-id.jpg'
 );
 reset role;
 select is(
@@ -145,7 +181,15 @@ select 'b4', public.create_public_booking(
   '09179999999',
   'erin@example.com',
   'L-ERIN',
-  null, null, null
+  'Airport',
+  'Airport',
+  null,
+  'Lahug, Cebu City',
+  'fb.com/erin',
+  'Moalboal',
+  2,
+  '00000000-0000-4000-8000-000000000b04/license-selfie.jpg',
+  '00000000-0000-4000-8000-000000000b04/government-id.jpg'
 );
 reset role;
 select is(
@@ -180,7 +224,15 @@ select 'b5', public.create_public_booking(
   '09179999999',
   'erin@example.com',
   'L-ERIN',
-  null, null, null
+  'Airport',
+  'Airport',
+  null,
+  null,
+  null,
+  'Moalboal',
+  2,
+  '00000000-0000-4000-8000-000000000b05/license-selfie.jpg',
+  '00000000-0000-4000-8000-000000000b05/government-id.jpg'
 );
 reset role;
 select is(
@@ -207,7 +259,15 @@ select 'b6', public.create_public_booking(
   '09170000001',
   'alice@example.com',
   'L-A1',
-  null, null, null
+  'Airport',
+  'Airport',
+  null,
+  null,
+  null,
+  'Moalboal',
+  2,
+  '00000000-0000-4000-8000-000000000b06/license-selfie.jpg',
+  '00000000-0000-4000-8000-000000000b06/government-id.jpg'
 );
 select is((select count(*) from public.list_my_bookings()), 4::bigint,
   'signed-in customer sees their new booking (2 seeded + attack-3 + this one)');
@@ -224,8 +284,22 @@ set local request.jwt.claims = '{"role":"anon"}';
 select throws_ok(
   $$ select public.create_public_booking(
        'c0000000-0000-4000-8000-000000000003',
-       now() + interval '70 days', now() + interval '71 days',
-       'Carol Blocked', '09170000003', null, 'L-C3', null, null, null) $$,
+       now() + interval '70 days',
+       now() + interval '71 days',
+       'Carol Blocked',
+       '09170000003',
+       null,
+       'L-C3',
+       'Airport',
+       'Airport',
+       null,
+       null,
+       null,
+       'Moalboal',
+       2,
+       '00000000-0000-4000-8000-000000000b07/license-selfie.jpg',
+       '00000000-0000-4000-8000-000000000b07/government-id.jpg'
+     ) $$,
   'P0001',
   'Your customer profile cannot book right now. Please contact support.',
   'blocked customer still cannot book'
@@ -254,7 +328,7 @@ select throws_ok(
 );
 select is(
   (select prosecdef from pg_proc
-    where oid = 'public.create_public_booking(uuid, timestamptz, timestamptz, text, text, text, text, text, text, text)'::regprocedure),
+    where oid = 'public.create_public_booking(uuid, timestamptz, timestamptz, text, text, text, text, text, text, text, text, text, text, integer, text, text)'::regprocedure),
   true,
   'create_public_booking remains SECURITY DEFINER'
 );
