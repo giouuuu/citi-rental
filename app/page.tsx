@@ -29,6 +29,7 @@ import {
 import { HeroScene, HeroSceneControls } from "@/components/landing/hero-scene";
 import { HERO_SCENE_INTRO_MS } from "@/components/landing/hero-scene-timing";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
+import { LandingIntro } from "@/components/landing/landing-intro";
 import { landingPolicies } from "@/components/landing/landing-policies";
 import { landingSteps } from "@/components/landing/landing-steps";
 import { SiteHeader } from "@/components/landing/site-header";
@@ -41,10 +42,21 @@ import {
 } from "@/features/booking/lib/booking-continue";
 import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-public-available-vehicles";
 
-/** Phones stack the search form tall, so the scene stops just under its top edge. */
-const HERO_SCENE_FRAME = "inset-x-0 top-0 h-[68svh] md:bottom-0 md:h-auto";
+/**
+ * Phones: the scene fills the block above the search card and runs 4rem under
+ * it, fading out there so the road never ends on a hard edge. md+: the whole
+ * section (the host block goes static, so the section is the frame).
+ */
+const HERO_SCENE_FRAME =
+  "inset-x-0 top-0 -bottom-16 [mask-image:linear-gradient(to_bottom,black_calc(100%-7rem),transparent)] md:bottom-0 md:[mask-image:none]";
 
 const HEADLINE_WORDS = "Find your ride in Cebu & rent in minutes".split(" ");
+
+/**
+ * The search card comes in as the car starts up the road, not after it: on
+ * phones it fills the lower half, which would otherwise sit empty.
+ */
+const SEARCH_CARD_DELAY_MS = 450;
 
 /** Stagger for `.focus-in` intro elements. */
 function focusDelay(ms: number) {
@@ -135,58 +147,61 @@ export default async function HomePage({
     heroCars.find((car) => car.key === "innova") ?? heroCars[0]!;
 
   return (
-    <main
+    <LandingIntro
       className={`${landingFontClassName} overflow-hidden bg-background font-landing`}
       data-surface="landing"
       id="main-content"
     >
       <HeroFleetProvider cars={heroFleet}>
         <section className="relative flex min-h-[100svh] flex-col overflow-hidden bg-[#DCE9F5]">
-          <HeroScene className={HERO_SCENE_FRAME} />
-          {/* Keeps the header and headline legible over the brightest sky. */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-[38%] bg-[linear-gradient(to_bottom,rgb(241_246_251/0.85),rgb(241_246_251/0.45)_55%,transparent)]"
-          />
-          <HeroSceneControls className={HERO_SCENE_FRAME} />
-          <SiteHeader intro tone="light" />
-
-          <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pt-8 pb-8 sm:px-6 sm:pt-10 lg:px-8 lg:pb-10">
-            <h1 className="text-center font-display text-[2rem] leading-[1.08] font-semibold tracking-[-0.025em] text-balance text-brand-950 sm:text-5xl lg:text-[3.5rem]">
-              {HEADLINE_WORDS.map((word, index) => (
-                <Fragment key={`${word}-${index}`}>
-                  {index > 0 ? " " : null}
-                  <span
-                    className="focus-in inline-block"
-                    style={focusDelay(800 + index * 60)}
-                  >
-                    {word}
-                  </span>
-                </Fragment>
-              ))}
-            </h1>
-            <p
-              className="focus-in mt-3 text-center text-base text-brand-700 sm:text-lg"
-              style={focusDelay(1300)}
-            >
-              Clear daily rates. Airport, hotel, or city pickup.
-            </p>
-
-            {/* The road and car fill the space between headline and search. */}
-            <div className="min-h-[34svh] flex-1" />
-
+          {/* Scene host on phones, so the road ends where the card begins. */}
+          <div className="relative flex flex-1 flex-col md:static">
+            <HeroScene className={HERO_SCENE_FRAME} />
+            {/* Keeps the header and headline legible over the brightest sky. */}
             <div
-              className="focus-in relative z-20"
-              style={focusDelay(HERO_SCENE_INTRO_MS)}
-            >
-              <BookingSearch
-                initialEnd={trip.end}
-                initialMode={query.mode}
-                initialPickup={trip.pickup}
-                initialStart={trip.start}
-                key={[trip.pickup, trip.start, trip.end, query.mode].join("|")}
-              />
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 h-[38%] bg-[linear-gradient(to_bottom,rgb(241_246_251/0.85),rgb(241_246_251/0.45)_55%,transparent)]"
+            />
+            <HeroSceneControls className={HERO_SCENE_FRAME} />
+            <SiteHeader intro tone="light" />
+
+            <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pt-8 sm:px-6 sm:pt-10 lg:px-8">
+              <h1 className="text-center font-display text-[2rem] leading-[1.08] font-semibold tracking-[-0.025em] text-balance text-brand-950 sm:text-5xl lg:text-[3.5rem]">
+                {HEADLINE_WORDS.map((word, index) => (
+                  <Fragment key={`${word}-${index}`}>
+                    {index > 0 ? " " : null}
+                    <span
+                      className="focus-in inline-block"
+                      style={focusDelay(800 + index * 60)}
+                    >
+                      {word}
+                    </span>
+                  </Fragment>
+                ))}
+              </h1>
+              <p
+                className="focus-in mt-3 text-center text-base text-brand-700 sm:text-lg"
+                style={focusDelay(1300)}
+              >
+                Clear daily rates. Airport, hotel, or city pickup.
+              </p>
+
+              {/* The road and car fill the space between headline and search. */}
+              <div className="min-h-[38svh] flex-1 md:min-h-[34svh]" />
             </div>
+          </div>
+
+          <div
+            className="focus-in relative z-20 mx-auto w-full max-w-7xl px-4 pb-8 sm:px-6 lg:px-8 lg:pb-10"
+            style={focusDelay(SEARCH_CARD_DELAY_MS)}
+          >
+            <BookingSearch
+              initialEnd={trip.end}
+              initialMode={query.mode}
+              initialPickup={trip.pickup}
+              initialStart={trip.start}
+              key={[trip.pickup, trip.start, trip.end, query.mode].join("|")}
+            />
           </div>
         </section>
       </HeroFleetProvider>
@@ -194,7 +209,7 @@ export default async function HomePage({
       <section aria-label="Why book with Zeke" className="bg-white pt-8 pb-6">
         <ul
           className="focus-in mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-8 px-4 sm:px-6 lg:grid-cols-4 lg:px-8"
-          style={focusDelay(1500)}
+          style={focusDelay(HERO_SCENE_INTRO_MS)}
         >
           <FeatureItem
             icon={<CarFront aria-hidden="true" />}
@@ -532,7 +547,7 @@ export default async function HomePage({
           </div>
         </div>
       </footer>
-    </main>
+    </LandingIntro>
   );
 }
 

@@ -102,12 +102,12 @@ export function BookingSearch({
           <HeroCarSummary />
         </div>
 
-        <FieldGroup className="grid gap-0 md:grid-cols-[1.3fr_1fr_1fr_auto] md:items-center">
+        <FieldGroup className="grid grid-cols-2 gap-0 md:grid-cols-[1.3fr_1fr_1fr_auto] md:items-center">
           <Controller
             control={form.control}
             name="pickupLocation"
             render={({ field, fieldState }) => (
-              <div className={cellClassName}>
+              <div className={cn(cellClassName, "col-span-2 md:col-span-1")}>
                 <MapPin aria-hidden="true" className={iconClassName} />
                 <Field className="gap-1" data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="pickup-location">Location</FieldLabel>
@@ -155,7 +155,7 @@ export function BookingSearch({
             control={form.control}
             name="returnDate"
             render={({ field, fieldState }) => (
-              <div className={cn(cellClassName, dividerClassName)}>
+              <div className={cn(cellClassName, dividerClassName, "border-l")}>
                 <CalendarDays aria-hidden="true" className={iconClassName} />
                 <Field className="gap-1" data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="return-date">Return date</FieldLabel>
@@ -176,7 +176,7 @@ export function BookingSearch({
             )}
           />
 
-          <div className="p-2 md:pl-3">
+          <div className="col-span-2 p-2 md:col-span-1 md:pl-3">
             <Button className="h-12 w-full rounded-xl px-6 md:w-auto" size="lg" type="submit">
               <Search aria-hidden="true" className="size-4" />
               Search cars
@@ -188,6 +188,7 @@ export function BookingSearch({
   );
 }
 
-/** Hairline between cells: a top rule when stacked, a left rule in the row. */
+/** Hairline between cells: a top rule when stacked, a left rule in the row.
+ *  On phones the two dates share a row, so return also gets a left rule. */
 const dividerClassName =
   "rounded-none border-t border-border md:rounded-xl md:border-t-0 md:border-l";

@@ -271,6 +271,14 @@
   }
 }
 
+/* The landing splash holds every intro animation on its first frame until
+   the hero has loaded (`LandingIntro`); delays count from when it lifts. */
+[data-intro="waiting"] .focus-in,
+[data-intro="waiting"] .scene-piece,
+[data-intro="waiting"] .scene-car {
+  animation-play-state: paused;
+}
+
 /* Hero scene intro: the road and car are there from the start; each
    scenery layer then settles in behind them, nearest first
    (`--piece-from`, `--piece-delay` set per layer). */

@@ -4,6 +4,7 @@ import Image, { type StaticImageData } from "next/image";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { HeroCarControls, useHeroFleet } from "@/components/landing/hero-fleet";
+import { useReportSceneProgress } from "@/components/landing/landing-intro";
 import { cn } from "@/lib/utils";
 
 import car from "./hero-scene/car.webp";
@@ -46,9 +47,12 @@ const LAYERS: Layer[] = [
 
 /** Max drift, in px, for a layer at depth 1. */
 const POINTER_PX = 28;
-/** Where the car stands: the near lane, just above the search card. */
+/**
+ * Where the car stands: the near lane, just above the search card. On phones
+ * the frame runs 4rem under the card, so the wheels clear its top edge.
+ */
 const CAR_SLOT =
-  "absolute bottom-[12%] left-1/2 w-[72vw] -translate-x-1/2 md:bottom-[20%] md:w-[min(46vw,34rem)] lg:bottom-[19%] lg:w-[min(36vw,38rem)]";
+  "absolute bottom-[5.25rem] left-1/2 w-[72vw] max-w-[26rem] -translate-x-1/2 md:bottom-[20%] md:max-w-none md:w-[min(46vw,34rem)] lg:bottom-[19%] lg:w-[min(36vw,38rem)]";
 const CAR_SIZES = "(min-width: 1024px) 36vw, (min-width: 768px) 46vw, 72vw";
 const SETTLE_EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 const SCROLL_RATE = 0.35;
@@ -70,6 +74,10 @@ export function HeroScene({ className }: { className?: string }) {
   // slow connection, so the intro waits; the preview photo covers the wait.
   const [loadedLayers, setLoadedLayers] = useState(0);
   const sceneReady = loadedLayers >= LAYERS.length;
+  // The landing splash also waits for the first car, so it drives up a road
+  // that is actually there.
+  const [carLoaded, setCarLoaded] = useState(false);
+  useReportSceneProgress(loadedLayers + (carLoaded ? 1 : 0), LAYERS.length + 1);
   const layerRefs = useRef<Array<HTMLDivElement | null>>([]);
   const carRef = useRef<HTMLDivElement>(null);
 
@@ -271,6 +279,7 @@ export function HeroScene({ className }: { className?: string }) {
                     draggable={false}
                     height={692}
                     loading="eager"
+                    onLoad={index === active ? () => setCarLoaded(true) : undefined}
                     priority={index === 0}
                     sizes={CAR_SIZES}
                     src={item.imageUrl}
@@ -285,6 +294,7 @@ export function HeroScene({ className }: { className?: string }) {
                   alt=""
                   className="relative h-auto w-full select-none"
                   draggable={false}
+                  onLoad={() => setCarLoaded(true)}
                   priority
                   sizes={CAR_SIZES}
                   src={car}
