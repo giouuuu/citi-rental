@@ -84,3 +84,42 @@ export type TopCustomer = {
 
 /** A service result: data, or a message the panel shows in place of it. */
 export type AnalyticsResult<T> = { ok: true; data: T } | { ok: false; message: string };
+
+/** One source's funnel (or the all-sources total). Stages count visitors. */
+export type SiteFunnelRow = {
+  isTotal: boolean;
+  source: string;
+  visitors: number;
+  sessions: number;
+  pageViews: number;
+  carViewers: number;
+  bookingStarters: number;
+  bookers: number;
+  payers: number;
+  bookings: number;
+  paidBookings: number;
+};
+
+export type SiteFunnel = { total: SiteFunnelRow; sources: SiteFunnelRow[] };
+
+export type SiteVehicleInterest = {
+  vehicleId: string;
+  plateNumber: string;
+  name: string;
+  category: string | null;
+  views: number;
+  viewers: number;
+  facebookViewers: number;
+  bookingStarters: number;
+  bookings: number;
+  paidBookings: number;
+};
+
+export type SiteTimeseriesPoint = {
+  bucketStart: string;
+  visitors: number;
+  facebookVisitors: number;
+  bookings: number;
+};
+
+export type SiteLive = { visitorsNow: number; facebookNow: number; visitorsToday: number };

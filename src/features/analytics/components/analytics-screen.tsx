@@ -15,6 +15,7 @@ import { CustomerInsights } from "@/features/analytics/components/customer-insig
 import { ForwardOccupancy } from "@/features/analytics/components/forward-occupancy";
 import { KpiSkeleton, PanelSkeleton } from "@/features/analytics/components/panel-skeleton";
 import { VehiclePerformancePanel } from "@/features/analytics/components/vehicle-performance";
+import { WebsiteAnalytics } from "@/features/analytics/components/website-analytics";
 import { formatDateKey, manilaDateKey } from "@/features/shared/lib/manila-time";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -44,7 +45,7 @@ export async function AnalyticsScreen({ searchParams }: { searchParams: Promise<
           </Button>
         }
         breadcrumbs={[{ label: "Workspace", href: "/dashboard" }, { label: "Analytics" }]}
-        description="How the fleet, customers, and bookings are performing."
+        description="How the fleet, customers, bookings, and the website are performing."
         title="Analytics"
       />
       <AnalyticsFrame
@@ -60,6 +61,7 @@ export async function AnalyticsScreen({ searchParams }: { searchParams: Promise<
         <Suspense fallback={<KpiSkeleton />}>
           <AnalyticsKpis window={window} />
         </Suspense>
+        <WebsiteAnalytics window={window} />
         <Suspense fallback={<PanelSkeleton className="h-[560px]" label="trends" />}>
           <AnalyticsTrends
             aside={

@@ -337,6 +337,14 @@ Owner/admin only (`/analytics`). Filters: period preset or custom dates (Manila,
 - Cars: collected, utilization, revenue per day, charges per car; idle available cars.
 - Customers: active, first-time vs returning, repeat rate, blocked; top customers with lifetime
   value, balance owed, and late returns. Customer detail has a Rentals tab with the same figures.
+- Website & Facebook: visitors on the site now (last 5 min, polled every 30s), visitors and
+  Facebook visitors with change, visit → booking rate, the open → book funnel (visited → looked
+  at a car → started booking → submitted → paid reservation fee), visitors by source, and most
+  viewed cars with view → booked. Tag links with `?fb` (`?fb=<post>` names it), `?ig`, `?tt`,
+  `?src=` or `utm_source`; Facebook's `fbclid` and referrers count too. A visitor keeps their
+  last non-direct source for 30 days. Events live in `site_events` (anonymous first-party
+  cookie ids, no IP or user agent stored; bots and owner/admin/staff accounts skipped) —
+  see `20261013090000_site_events.sql`.
 
 Metric definitions live in `20260929103000_analytics_rpcs.sql` and `README.md` §Analytics.
 Cancellations capture a structured reason (`rentals.cancellation_reason`).

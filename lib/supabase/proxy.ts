@@ -6,6 +6,11 @@ import {
   sanitizeNextPath,
 } from "@/features/auth/lib/post-auth-redirect";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
+import {
+  VISITOR_COOKIE,
+  VISITOR_MAX_AGE,
+  isTrackedPath,
+} from "@/features/site-analytics/lib/site-event";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 
 const publicRoutes = [
@@ -20,6 +25,8 @@ const publicRoutes = [
   // Payment providers call these without a session; each handler verifies
   // its own signature.
   "/api/webhooks",
+  // The public site's analytics beacon.
+  "/api/events",
 ];
 
 function isPublicRoute(pathname: string) {
@@ -103,6 +110,18 @@ export async function updateSession(request: NextRequest) {
         : "/";
 
     return NextResponse.redirect(new URL(destination, request.url));
+  }
+
+  // Issue the analytics visitor id with the first page, so the page view and
+  // a quick car click right after it count as one visitor.
+  if (isTrackedPath(pathname) && !request.cookies.has(VISITOR_COOKIE)) {
+    response.cookies.set(VISITOR_COOKIE, crypto.randomUUID(), {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: VISITOR_MAX_AGE,
+    });
   }
 
   return response;

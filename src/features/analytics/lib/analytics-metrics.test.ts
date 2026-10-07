@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { VehiclePerformance } from "@/features/analytics/types/analytics";
 
 import {
+  conversionPercent,
   cancellationRate,
   daysIdle,
   idleVehicles,
@@ -93,5 +94,13 @@ describe("idleVehicles", () => {
       vehicle({ vehicleId: "shop", status: "maintenance" }),
     ];
     expect(idleVehicles(rows, NOW).map((row) => row.vehicleId)).toEqual(["never", "long"]);
+  });
+});
+
+describe("conversionPercent", () => {
+  it("keeps one decimal and skips an empty step", () => {
+    expect(conversionPercent(7, 500)).toBe(1.4);
+    expect(conversionPercent(1, 3)).toBe(33.3);
+    expect(conversionPercent(0, 0)).toBeNull();
   });
 });

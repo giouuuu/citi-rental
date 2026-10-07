@@ -82,3 +82,12 @@ export function pointsDelta(current: number | null, previous: number | null): De
   if (diff === 0) return { direction: "flat", percent: 0 };
   return { direction: diff > 0 ? "up" : "down", percent: diff };
 }
+
+/**
+ * Percent to one decimal, for website conversion rates where "1%" and "1.4%"
+ * are different stories. Null when nobody was in the step before.
+ */
+export function conversionPercent(numerator: number, denominator: number): number | null {
+  if (!denominator) return null;
+  return Math.round((numerator / denominator) * 1000) / 10;
+}

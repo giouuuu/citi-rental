@@ -7,6 +7,7 @@ import {
 } from "@/features/booking/schemas/public-booking-schema";
 import { createPublicBooking } from "@/features/booking/services/public-booking-service";
 import type { PublicBookingResult } from "@/features/booking/types/booking-payment";
+import { recordSiteEvent } from "@/features/site-analytics/services/record-site-event";
 
 export type CreatePublicBookingResult = ActionResult<PublicBookingResult>;
 
@@ -50,6 +51,12 @@ export async function createPublicBookingAction(
     const booking = await createPublicBooking({
       ...parsed.data,
       email: parsed.data.email || undefined,
+    });
+    await recordSiteEvent({
+      type: "booking_submit",
+      path: `/book/${booking.vehicleId}`,
+      vehicleId: booking.vehicleId,
+      rentalId: booking.rentalId,
     });
     return { success: true, data: booking };
   } catch (error) {

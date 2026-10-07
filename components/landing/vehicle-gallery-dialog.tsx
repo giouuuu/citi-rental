@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { trackSiteEvent } from "@/features/site-analytics/lib/track-site-event";
 import { VehicleRateQuote } from "@/features/vehicles/components/vehicle-rate-quote";
 import type { PublicListedVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 import { cn } from "@/lib/utils";
@@ -60,7 +61,10 @@ export function VehicleGalleryDialog({
 
   function handleOpenChange(next: boolean) {
     // Every visit starts on the cover angle, like the card shows.
-    if (next) setIndex(0);
+    if (next) {
+      setIndex(0);
+      trackSiteEvent("vehicle_view", { vehicleId: vehicle.id });
+    }
     setOpen(next);
   }
 
