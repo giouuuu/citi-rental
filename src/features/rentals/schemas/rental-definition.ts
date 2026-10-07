@@ -31,6 +31,7 @@ export const rentalDefinition: ResourceDefinition = {
       pickup_location: optionalText(200),
       return_location: optionalText(200),
       destination: optionalText(200),
+      quoted_daily_rate: optionalNumber(0),
       passenger_count: optionalNumber(1).pipe(
         z.number().int().max(60).optional(),
       ),
@@ -105,6 +106,12 @@ export const rentalDefinition: ResourceDefinition = {
       description:
         "Click the start day, then the return day. Hatched days are already booked for this car.",
       className: "md:col-span-2",
+      lockWhen: {
+        field: "status",
+        values: ["active", "overdue", "completed", "cancelled"],
+        message:
+          "Dates are fixed once the car is out. Use Extend to move the return date.",
+      },
       range: {
         endField: "expected_return_at",
         startLabel: "Start",
@@ -122,6 +129,14 @@ export const rentalDefinition: ResourceDefinition = {
       label: "Expected return",
       type: "datetime-local",
       required: true,
+    },
+    {
+      name: "quoted_daily_rate",
+      label: "Daily rate (PHP)",
+      type: "number",
+      step: "0.01",
+      description:
+        "Leave blank to use the car's rate. Rent is this rate × the booked days. Add car wash, delivery, and other fees on the Bill & payments tab.",
     },
     {
       name: "actual_return_at",

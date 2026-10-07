@@ -25,6 +25,15 @@ export type RentalPayment = {
   notes: string | null;
   submittedAt: string;
   confirmedAt: string | null;
+  /** Penalty rows are charges on the bill; this names their charge type. */
+  chargeTypeName: string | null;
+};
+
+/** A fee staff can add to a rental bill. */
+export type RentalChargeType = {
+  id: string;
+  name: string;
+  defaultAmount: number | null;
 };
 
 export type RentalPaymentStatus =

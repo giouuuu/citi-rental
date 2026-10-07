@@ -138,7 +138,7 @@ export const vehicleDefinition: ResourceDefinition = {
       type: "select",
       required: true,
       description:
-        "Operational status only. Reservations come from booking dates, not this field. Available requires all 6 gallery photos.",
+        "Operational status only. Reservations come from booking dates, not this field. An available car can be rented from here right away; it shows on the website once all 6 gallery photos are uploaded.",
       options: ["available", "maintenance", "inactive"].map((value) => ({
         value,
         label: value.replaceAll("_", " "),
@@ -149,7 +149,7 @@ export const vehicleDefinition: ResourceDefinition = {
       label: "Cover photo (optional)",
       type: "image",
       description:
-        "Optional shortcut for the front gallery slot. Prefer the Photo gallery tab — all 6 angles are required before Available.",
+        "Optional shortcut for the front gallery slot. Prefer the Photo gallery tab — all 6 angles are needed before the car shows on the website.",
       className: "md:col-span-2",
     },
     {

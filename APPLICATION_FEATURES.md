@@ -174,6 +174,8 @@ Validation:
 - Plate number must be unique across the fleet.
 - A vehicle cannot be booked for dates that overlap an existing reserved or active rental.
 - Maintenance and inactive vehicles cannot be booked for any dates.
+- Photos do not gate `available`: staff can rent a car with no gallery. A car shows on the
+  public site and takes online bookings only once all 6 gallery photos are uploaded.
 
 ---
 
@@ -225,6 +227,8 @@ Rental fields:
 - Starting fuel level.
 - Ending fuel level.
 - Rental status.
+- Daily rate, billed days, and rent (`quoted_daily_rate × quoted_days = quoted_total`). Staff
+  type the rate on the rental form; blank uses the car's daily rate.
 - Payment / proof reference when captured.
 - Notes.
 - Created by.
@@ -246,6 +250,12 @@ Features:
 - Cancel rental.
 - Mark rental overdue automatically based on expected return.
 - Record pickup and return condition (inspections).
+- Running bill on the Bill & payments tab: rent + charges − payments = balance.
+- Add optional charges from the owner-maintained charge types (Settings → Charge types):
+  car wash, delivery, extension, fuel shortage, damage, other income. Owners/admins can
+  remove a charge.
+- Extend an active or overdue rental: move the return date (blocked by the next booking) and
+  optionally add an Extension charge, suggested as extra days × the daily rate.
 - View rental payments.
 
 Business rules:
@@ -253,6 +263,9 @@ Business rules:
 - Vehicle status stays operational (`available` / `maintenance` / `inactive`); rentals do not
   flip the vehicle to reserved or rented.
 - Maintenance and inactive vehicles cannot be booked for any dates.
+- Once the car is out (active/overdue), dates change only through Extend.
+- Charges are confirmed `penalty` rows on the payments ledger tagged with a charge type, so the
+  balance, analytics outstanding, and the finance "charges billed" line count them.
 - A blocked customer cannot start a new rental.
 - Every transition validates the current state on the server. Disabling a button is a hint;
   the action and the database re-validate.
@@ -310,10 +323,10 @@ Owner/admin only (`/analytics`). Filters: period preset or custom dates (Manila,
 
 - Headline numbers with period-over-period change: collected revenue, bookings (and website
   share), fleet utilization, outstanding balance, cancellation rate, late-return rate, average
-  rental length and lead time, penalties billed.
+  rental length and lead time, charges billed.
 - Trends: collected revenue, bookings by source (website vs front desk), utilization.
 - Booked ahead: share of the fleet reserved for each of the next 30 days.
-- Cars: collected, utilization, revenue per day, penalties per car; idle available cars.
+- Cars: collected, utilization, revenue per day, charges per car; idle available cars.
 - Customers: active, first-time vs returning, repeat rate, blocked; top customers with lifetime
   value, balance owed, and late returns. Customer detail has a Rentals tab with the same figures.
 
@@ -420,6 +433,7 @@ leave them; do not add columns to them in this scope.
   `/finance/withholding`, `/finance/settings`
 - `/settings`
 - `/settings/users`
+- `/settings/charge-types`
 
 Pages owned by the parked tracking scope (`/map`, `/devices`, `/geofences`, `/alerts`,
 `/vehicles/[id]/tracking`, `/settings/integrations`) are listed in `GPS_TRACKING_FEATURES.md`.

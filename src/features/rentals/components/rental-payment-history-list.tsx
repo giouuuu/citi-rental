@@ -1,6 +1,14 @@
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import type { RentalPayment } from "@/features/rentals/types/rental-payment";
 
+const PAYMENT_TYPE_LABELS: Record<RentalPayment["paymentType"], string> = {
+  deposit: "Deposit",
+  balance: "Balance",
+  penalty: "Charge",
+  refund: "Refund",
+  adjustment: "Discount / adjustment",
+};
+
 function formatWhen(value: string) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return value;
@@ -30,8 +38,8 @@ export function RentalPaymentHistoryList({
         >
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <p className="font-medium capitalize text-brand-950">
-                {payment.paymentType} · {formatPhp(payment.amount)}
+              <p className="font-medium text-brand-950">
+                {PAYMENT_TYPE_LABELS[payment.paymentType]} · {formatPhp(payment.amount)}
               </p>
               <p className="text-xs text-muted-foreground">
                 {payment.status.replaceAll("_", " ")}

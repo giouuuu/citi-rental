@@ -38,7 +38,7 @@ export function VehicleGalleryPanel({
 
   const complete = isCompleteVehicleGallery(photos);
   const missing = missingVehicleGalleryLabels(photos);
-  const availableBlocked = status === "available" && !complete;
+  const hiddenOnline = status === "available" && !complete;
 
   function onSubmit() {
     setError("");
@@ -75,19 +75,19 @@ export function VehicleGalleryPanel({
       <div>
         <h3 className="font-semibold">Required photo gallery</h3>
         <p className="text-sm text-muted-foreground">
-          Every vehicle needs front, rear, both sides, interior, and dashboard
-          photos before it can be set to available.
+          Front, rear, both sides, interior, and dashboard photos are needed
+          before this car shows on the website. Staff can rent it without them.
         </p>
       </div>
 
       {!complete ? (
-        <Alert variant="destructive">
-          <AlertCircle />
-          <AlertTitle>Gallery incomplete</AlertTitle>
+        <Alert className="border-warning/30 bg-warning-surface">
+          <AlertCircle className="text-warning" />
+          <AlertTitle>Not on the website yet</AlertTitle>
           <AlertDescription>
             Missing: {missing.join(", ")}
-            {availableBlocked
-              ? ". Upload the missing angles before booking this car."
+            {hiddenOnline
+              ? ". Staff can still rent this car; customers will see it once these are uploaded."
               : "."}
           </AlertDescription>
         </Alert>

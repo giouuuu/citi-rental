@@ -25,6 +25,7 @@ import {
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
 import { ConfirmActionDialog } from "@/features/shared/components/confirm-action-dialog";
 import { RentalInspectionSheet } from "@/features/inspections/components/rental-inspection-sheet";
+import { ExtendRentalDialog } from "@/features/rentals/components/extend-rental-dialog";
 import type {
   InspectionChecklist,
   RentalInspection,
@@ -73,6 +74,7 @@ export function RentalWorkflowActions({
   knownDamages = [],
   inspections = [],
   startingOdometer = null,
+  schedule = null,
 }: {
   id: string;
   status: RentalWorkflowStatus;
@@ -80,6 +82,12 @@ export function RentalWorkflowActions({
   knownDamages?: VehicleKnownDamage[];
   inspections?: RentalInspection[];
   startingOdometer?: number | null;
+  /** Dates and rate the Extend dialog prices extra days from. */
+  schedule?: {
+    startAt: string;
+    expectedReturnAt: string;
+    dailyRate: number | null;
+  } | null;
 }) {
   const [error, setError] = useState("");
   const [cancelReason, setCancelReason] = useState<CancellationReason | "">("");
@@ -115,8 +123,10 @@ export function RentalWorkflowActions({
   const visible = ACTIONS.filter((action) =>
     canTransitionRental(status, action.status),
   );
+  const canExtend =
+    schedule != null && (status === "active" || status === "overdue");
 
-  if (visible.length === 0 && !canStart && !canComplete) {
+  if (visible.length === 0 && !canStart && !canComplete && !canExtend) {
     return (
       <p className="text-sm text-muted-foreground">
         No booking actions available for a {status} rental.
@@ -152,6 +162,15 @@ export function RentalWorkflowActions({
           rentalId={id}
           startingOdometer={startingOdometer}
           triggerLabel="Complete with inspection"
+        />
+      ) : null}
+
+      {canExtend && schedule ? (
+        <ExtendRentalDialog
+          dailyRate={schedule.dailyRate}
+          expectedReturnAt={schedule.expectedReturnAt}
+          rentalId={id}
+          startAt={schedule.startAt}
         />
       ) : null}
 

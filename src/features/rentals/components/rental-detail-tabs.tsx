@@ -29,8 +29,8 @@ export function RentalDetailTabs({
           <AlertTitle>Customer online booking</AlertTitle>
           <AlertDescription>
             Booking details are locked because this rental was placed online by
-            a customer. Use workflow actions for status changes and the Payments
-            tab for deposit and balance updates.
+            a customer. Use workflow actions for status changes and the Bill &amp;
+            payments tab for charges, deposits, and balance updates.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -38,7 +38,7 @@ export function RentalDetailTabs({
       <SearchParamTabs
         tabs={[
           { value: "info", label: "Info", content: info },
-          { value: "payments", label: "Payment history", content: payments },
+          { value: "payments", label: "Bill & payments", content: payments },
           ...(renterIds
             ? [{ value: "ids", label: "Renter IDs", content: renterIds }]
             : []),

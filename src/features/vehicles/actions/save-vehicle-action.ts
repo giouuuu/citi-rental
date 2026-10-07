@@ -7,10 +7,6 @@ import type { ActionResult } from "@/features/shared/types/resource";
 import { vehicleDefinition } from "@/features/vehicles/schemas/vehicle-definition";
 import { uploadVehiclePhoto } from "@/features/vehicles/lib/upload-vehicle-photo";
 import { isVehicleRateLockedByBookings } from "@/features/vehicles/lib/vehicle-rate-lock";
-import {
-  isCompleteVehicleGallery,
-  missingVehicleGalleryLabels,
-} from "@/features/vehicles/lib/vehicle-gallery";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 export async function saveVehicleAction(
@@ -88,7 +84,6 @@ export async function saveVehicleAction(
       throw new Error("Your role cannot modify vehicles.");
 
     let savedId = id;
-    const requestedStatus = parsed.data.status;
 
     if (id) {
       const { data: current, error: currentError } = await supabase
@@ -127,28 +122,6 @@ export async function saveVehicleAction(
         };
       }
 
-      if (
-        requestedStatus === "available" &&
-        current.status !== "available"
-      ) {
-        const { data: gallery } = await supabase
-          .from("vehicle_photos")
-          .select("kind")
-          .eq("vehicle_id", id);
-        if (!isCompleteVehicleGallery(gallery ?? [])) {
-          const missing = missingVehicleGalleryLabels(gallery ?? []);
-          return {
-            success: false,
-            message: `Upload all 6 required photos before setting status to available. Missing: ${missing.join(", ")}.`,
-            fieldErrors: {
-              status: [
-                `Upload the gallery first. Missing: ${missing.join(", ")}.`,
-              ],
-            },
-          };
-        }
-      }
-
       const updatePayload = rateLocked
         ? Object.fromEntries(
             Object.entries(payload).filter(([key]) => key !== "daily_rate"),
@@ -165,15 +138,11 @@ export async function saveVehicleAction(
       if (!data) throw new Error("The vehicle was not found.");
       savedId = data.id;
     } else {
-      // New vehicles cannot be Available until the 6-photo gallery is complete.
-      const createStatus =
-        requestedStatus === "available" ? "maintenance" : requestedStatus;
+      // Photos are not needed to rent a car from ops; the gallery only
+      // decides whether it shows on the public site.
       const { data, error } = await supabase
         .from("vehicles")
-        .insert({
-          ...payload,
-          status: createStatus,
-        })
+        .insert(payload)
         .select("id")
         .single();
       if (error) throw error;
@@ -241,9 +210,6 @@ export async function saveVehicleAction(
         success: false,
         message: "This vehicle is still linked to another active record.",
       };
-    if (message.includes("6 required vehicle photos")) {
-      return { success: false, message };
-    }
     return { success: false, message };
   }
 }

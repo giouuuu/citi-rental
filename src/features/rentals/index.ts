@@ -1,4 +1,7 @@
 export { rentalDefinition } from "./schemas/rental-definition";
+export { chargeTypeDefinition } from "./schemas/charge-type-definition";
+export { saveChargeTypeAction } from "./actions/save-charge-type-action";
+export { archiveChargeTypeAction } from "./actions/archive-charge-type-action";
 export { saveRentalAction, cancelRentalAction } from "./actions/actions";
 export { confirmRentalDepositAction } from "./actions/confirm-rental-deposit-action";
 export { recordRentalPaymentAction } from "./actions/record-rental-payment-action";

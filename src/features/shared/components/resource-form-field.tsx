@@ -43,7 +43,11 @@ export function ResourceFormField({
       control={control}
       name={fieldDef.name}
       render={({ field, fieldState }) => (
-        <Field className={fieldDef.className} data-invalid={fieldState.invalid}>
+        <Field
+          className={fieldDef.className}
+          data-field={fieldDef.name}
+          data-invalid={fieldState.invalid}
+        >
           {fieldDef.type === "checkbox" ? (
             <div className="flex min-h-12 items-start gap-3 rounded-md border bg-muted/30 p-3">
               <Checkbox

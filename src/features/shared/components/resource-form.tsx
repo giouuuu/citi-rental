@@ -146,7 +146,13 @@ export function ResourceForm({
                 blockedByKey={keyField ? String(watchedValues[keyField] ?? "") : ""}
                 control={form.control}
                 definitionKey={definition.key}
-                fieldDef={{ ...fieldDef, range: fieldDef.range }}
+                fieldDef={{
+                  ...fieldDef,
+                  range: fieldDef.range,
+                  ...(locked && fieldDef.lockWhen?.message
+                    ? { description: fieldDef.lockWhen.message }
+                    : {}),
+                }}
                 isPending={isPending}
                 key={fieldDef.name}
                 readOnly={readOnly || locked}
@@ -176,7 +182,12 @@ export function ResourceForm({
       </FieldGroup>
       {!readOnly ? (
         <div className="flex justify-end border-t pt-5">
-          <Button className="min-w-32" disabled={isPending} type="submit">
+          <Button
+            className="min-w-32"
+            data-resource-submit=""
+            disabled={isPending}
+            type="submit"
+          >
             {isPending ? (
               <LoaderCircle className="animate-spin" />
             ) : (

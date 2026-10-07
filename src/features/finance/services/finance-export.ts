@@ -134,7 +134,7 @@ export async function ledgerExportRows(
         vat_rate: row.vat_rate ?? "",
         vat_amount: row.vat_amount,
         net_of_vat: row.net_of_vat,
-        counted_in_receipts: row.payment_type === "penalty" ? "no (accrued charge)" : row.payment_type === "refund" ? "deducted" : "yes",
+        counted_in_receipts: row.payment_type === "penalty" ? "no (charge billed, not cash)" : row.payment_type === "refund" ? "deducted" : "yes",
         external_reference: row.external_reference ?? "",
         payment_id: row.id,
       };

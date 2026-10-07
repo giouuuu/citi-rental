@@ -59,6 +59,21 @@ values
   ('c0000000-0000-4000-8000-000000000004', 'DDD 444', 'Retired Four', 'Ford', 'Ranger', 2020, 'Pickup', 'inactive', 2000, '2026-01-01 08:00+08'),
   ('c0000000-0000-4000-8000-000000000005', 'EEE 555', 'Shop Five', 'Hyundai', 'Staria', 2024, 'Van', 'maintenance', 4000, '2026-01-01 08:00+08');
 
+-- Full 6-photo galleries for the available cars, so they show on the public
+-- site and take online bookings.
+insert into public.vehicle_photos (vehicle_id, kind, storage_path, public_url)
+select
+  v.id::uuid,
+  k.kind::public.vehicle_photo_kind,
+  v.id || '/' || k.kind || '.jpg',
+  'https://photos.test/' || v.id || '/' || k.kind || '.jpg'
+from (values
+  ('c0000000-0000-4000-8000-000000000001'),
+  ('c0000000-0000-4000-8000-000000000002'),
+  ('c0000000-0000-4000-8000-000000000003')
+) v(id)
+cross join unnest(array['front', 'rear', 'left', 'right', 'interior', 'dashboard']) k(kind);
+
 -- ---------------------------------------------------------------------------
 -- Customers
 -- ---------------------------------------------------------------------------

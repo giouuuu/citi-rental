@@ -28,6 +28,8 @@ export async function ResourceCreateScreen({
   action,
   initialValues,
   notice,
+  hiddenFields,
+  actions,
 }: {
   definition: ResourceDefinition;
   action: SaveAction;
@@ -35,6 +37,10 @@ export async function ResourceCreateScreen({
   initialValues?: Record<string, string>;
   /** A heads-up above the form, e.g. a service due on the chosen car. */
   notice?: ReactNode;
+  /** Fields that only make sense later in a record's life, e.g. return readings. */
+  hiddenFields?: string[];
+  /** Extra header buttons, e.g. a product tour. */
+  actions?: ReactNode;
 }) {
   let role: AppRole = "customer";
   let references: ResourceReferences = {};
@@ -65,6 +71,7 @@ export async function ResourceCreateScreen({
   return (
     <div className="space-y-6">
       <PageHeader
+        actions={actions}
         breadcrumbs={[
           { label: definition.plural, href: definition.route },
           { label: `New ${definition.singular.toLowerCase()}` },
@@ -88,6 +95,7 @@ export async function ResourceCreateScreen({
             singular: definition.singular,
             fields: definition.fields,
           }}
+          hiddenFields={hiddenFields}
           references={references}
         />
       ) : (

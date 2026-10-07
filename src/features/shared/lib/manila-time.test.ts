@@ -5,9 +5,11 @@ import {
   daysBetweenKeys,
   formatDateKey,
   manilaDateKey,
+  manilaDateTimeInput,
   manilaDayEnd,
   manilaDayStart,
   parseDateKey,
+  parseManilaDateTimeInput,
 } from "./manila-time";
 
 describe("manila-time", () => {
@@ -37,5 +39,23 @@ describe("manila-time", () => {
 
   it("formats a key without a local-zone shift", () => {
     expect(formatDateKey("2026-01-01", "long")).toBe("Jan 1, 2026");
+  });
+});
+
+describe("Manila picker values", () => {
+  it("shows an instant in Manila wall-clock time", () => {
+    expect(manilaDateTimeInput(new Date("2026-10-09T17:30:00.000Z"))).toBe("2026-10-10T01:30");
+  });
+
+  it("reads a picker value as Manila time", () => {
+    expect(parseManilaDateTimeInput("2026-10-10T01:30")?.toISOString()).toBe(
+      "2026-10-09T17:30:00.000Z",
+    );
+  });
+
+  it("rejects malformed values", () => {
+    expect(parseManilaDateTimeInput("2026-10-10")).toBeNull();
+    expect(parseManilaDateTimeInput("2026-02-30T10:00")).toBeNull();
+    expect(parseManilaDateTimeInput("2026-10-10T25:00")).toBeNull();
   });
 });

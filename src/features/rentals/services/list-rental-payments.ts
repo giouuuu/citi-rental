@@ -22,6 +22,7 @@ type PaymentRow = {
   notes: string | null;
   submitted_at: string;
   confirmed_at: string | null;
+  rental_charge_types: { name: string } | { name: string }[] | null;
 };
 
 export async function listRentalPayments(
@@ -33,7 +34,7 @@ export async function listRentalPayments(
   const { data, error } = await supabase
     .from("payments")
     .select(
-      "id, rental_id, payment_type, amount, currency, method, status, external_reference, proof_path, notes, submitted_at, confirmed_at",
+      "id, rental_id, payment_type, amount, currency, method, status, external_reference, proof_path, notes, submitted_at, confirmed_at, rental_charge_types ( name )",
     )
     .eq("rental_id", rentalId)
     .neq("status", "cancelled")
@@ -44,7 +45,7 @@ export async function listRentalPayments(
     return [];
   }
 
-  const rows = data as PaymentRow[];
+  const rows = data as unknown as PaymentRow[];
   return Promise.all(
     rows.map(async (row) => {
       let proofUrl: string | null = null;
@@ -68,6 +69,10 @@ export async function listRentalPayments(
         notes: row.notes,
         submittedAt: row.submitted_at,
         confirmedAt: row.confirmed_at,
+        chargeTypeName:
+          (Array.isArray(row.rental_charge_types)
+            ? row.rental_charge_types[0]?.name
+            : row.rental_charge_types?.name) ?? null,
       } satisfies RentalPayment;
     }),
   );

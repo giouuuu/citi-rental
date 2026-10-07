@@ -34,6 +34,20 @@ export function manilaDayEnd(key: string): Date {
   return new Date(manilaDayStart(key).getTime() + DAY_MS);
 }
 
+/** An instant as Manila wall-clock `YYYY-MM-DDTHH:mm`, the shape `DateTimePicker` speaks. */
+export function manilaDateTimeInput(instant: Date): string {
+  return new Date(instant.getTime() + MANILA_OFFSET_MS).toISOString().slice(0, 16);
+}
+
+/** Reads a `YYYY-MM-DDTHH:mm` picker value as Manila time; null when malformed. */
+export function parseManilaDateTimeInput(value: string | null | undefined): Date | null {
+  const match = value?.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/);
+  if (!match || !parseDateKey(match[1])) return null;
+  const [hours, minutes] = [Number(match[2]), Number(match[3])];
+  if (hours > 23 || minutes > 59) return null;
+  return new Date(manilaDayStart(match[1]).getTime() + (hours * 60 + minutes) * 60_000);
+}
+
 export function addDaysToKey(key: string, days: number): string {
   return new Date(new Date(`${key}T00:00:00.000Z`).getTime() + days * DAY_MS)
     .toISOString()

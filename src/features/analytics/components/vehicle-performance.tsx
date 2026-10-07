@@ -68,7 +68,7 @@ export async function VehiclePerformancePanel({ window }: { window: AnalyticsWin
                       <TableHead className="min-w-36">Utilization</TableHead>
                       <TableHead className="text-right">Collected</TableHead>
                       <TableHead className="text-right">Per day</TableHead>
-                      <TableHead className="text-right">Penalties</TableHead>
+                      <TableHead className="text-right">Charges</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

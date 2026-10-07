@@ -29,7 +29,7 @@ select is(
   'customer: the visible profile is their own'
 );
 select is((select count(*) from public.company_profile), 1::bigint, 'customer: still reads the company profile');
-select is((select count(*) from public.vehicle_photos), 0::bigint, 'customer: vehicle_photos public policy still evaluates (empty table)');
+select is((select count(*) from public.vehicle_photos), 18::bigint, 'customer: reads the public vehicle galleries');
 
 select is(
   (select count(*) from public.list_my_bookings()),

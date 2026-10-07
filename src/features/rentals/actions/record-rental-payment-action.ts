@@ -10,7 +10,8 @@ import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 const schema = z.object({
   rentalId: z.uuid("Select a rental."),
-  paymentType: z.enum(["deposit", "balance", "penalty", "refund", "adjustment"]),
+  // Charges (car wash, delivery, fuel, …) go through addRentalChargeAction.
+  paymentType: z.enum(["deposit", "balance", "refund", "adjustment"]),
   amount: z.coerce.number().positive("Amount must be greater than zero."),
   method: z.enum(["gcash", "maya", "bank", "cash", "other"]).default("cash"),
   externalReference: z.string().trim().max(120).optional(),
@@ -82,7 +83,9 @@ export async function recordRentalPaymentAction(
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Could not record the payment.",
+        // Supabase errors are plain objects, not Error instances.
+        (error as { message?: string } | null)?.message?.trim() ||
+        "Could not record the payment.",
     };
   }
 }

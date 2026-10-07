@@ -116,7 +116,7 @@ export function ReceiptsBlock({ statement, window }: BlockProps) {
             label="Accrual memo"
             lines={[
               {
-                label: "Penalties and charges billed",
+                label: "Charges billed",
                 amount: r.penaltiesBilled,
                 note: "Accrued, not cash. Settled through balance payments, so already in receipts once paid. VAT treatment is the accountant's call.",
               },

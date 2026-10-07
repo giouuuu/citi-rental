@@ -12,9 +12,8 @@ import type { RecordRentalPaymentInput } from "@/features/rentals/actions/record
 const PAYMENT_TYPE_OPTIONS = [
   { value: "deposit", label: "Deposit" },
   { value: "balance", label: "Balance" },
-  { value: "penalty", label: "Penalty" },
   { value: "refund", label: "Refund" },
-  { value: "adjustment", label: "Adjustment" },
+  { value: "adjustment", label: "Discount / adjustment" },
 ];
 
 const PAYMENT_METHOD_OPTIONS = [
@@ -112,7 +111,7 @@ export function RecordRentalPaymentForm({
       </Field>
       <Field className="sm:col-span-2">
         <FieldLabel htmlFor="notes">Notes (optional)</FieldLabel>
-        <Input id="notes" name="notes" placeholder="Late return fee, etc." />
+        <Input id="notes" name="notes" placeholder="Received by, discount reason…" />
       </Field>
       <div className="sm:col-span-2">
         <Button disabled={pending} type="submit">

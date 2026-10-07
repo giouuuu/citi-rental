@@ -35,7 +35,7 @@ export function ResourceRangeField({
   const waitingForKey = Boolean(range.blockedBy) && !blockedByKey;
 
   return (
-    <div className={fieldDef.className}>
+    <div className={fieldDef.className} data-field={fieldDef.name}>
       <Controller
         control={control}
         name={fieldDef.name}

@@ -53,8 +53,8 @@ export async function AnalyticsKpis({ window }: { window: AnalyticsWindow }) {
           label="Collected revenue"
           note={
             now.refunds
-              ? `Net of ${formatPhp(now.refunds)} refunded. Penalties are not counted until paid.`
-              : "Deposits and balances received. Penalties are not counted until paid."
+              ? `Net of ${formatPhp(now.refunds)} refunded. Charges are not counted until paid.`
+              : "Deposits and balances received. Charges are not counted until paid."
           }
           value={formatPhp(now.collected)}
         />
@@ -79,7 +79,7 @@ export async function AnalyticsKpis({ window }: { window: AnalyticsWindow }) {
         />
         <KpiTile
           label="Outstanding balance"
-          note="Still owed on cars that have gone out, including unpaid penalties. Reserved balances are due at pickup."
+          note="Still owed on cars that have gone out, including unpaid charges. Reserved balances are due at pickup."
           value={formatPhp(now.outstandingBalance)}
         />
         <KpiTile
@@ -104,7 +104,7 @@ export async function AnalyticsKpis({ window }: { window: AnalyticsWindow }) {
         <KpiTile
           delta={before ? periodDelta(now.penaltiesBilled, before.penaltiesBilled) : null}
           goodWhen="down"
-          label="Penalties billed"
+          label="Charges billed"
           note="Fuel and damage charges from return inspections."
           value={formatPhp(now.penaltiesBilled)}
         />

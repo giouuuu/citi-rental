@@ -16,6 +16,7 @@ import type { RentalWorkflowStatus } from "@/features/rentals/lib/booking-gates"
 import { isPublicCustomerBooking } from "@/features/rentals/lib/is-public-customer-booking";
 import { needsDepositConfirmation } from "@/features/rentals/lib/needs-deposit-confirmation";
 import { listRentalPayments } from "@/features/rentals/services/list-rental-payments";
+import { listRentalChargeTypes } from "@/features/rentals/services/list-rental-charge-types";
 import {
   getInspectionChecklistForRental,
   listRentalInspections,
@@ -37,8 +38,15 @@ export default async function Page({
   let status: RentalWorkflowStatus = "draft";
   let paymentStatus: string | null = null;
   let quotedTotal: number | null = null;
+  let quotedDailyRate: number | null = null;
+  let quotedDays: number | null = null;
+  let schedule: {
+    startAt: string;
+    expectedReturnAt: string;
+    dailyRate: number | null;
+  } | null = null;
+  let chargeTypes: Awaited<ReturnType<typeof listRentalChargeTypes>> = [];
   let depositAmount: number | null = null;
-  let balanceDue: number | null = null;
   let depositPercent: number | null = null;
   let paymentReference: string | null = null;
   let customerLabel: string | null = null;
@@ -53,7 +61,7 @@ export default async function Page({
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
-    const [{ data }, paymentRows, inspectionRows, checklistData] =
+    const [{ data }, paymentRows, inspectionRows, checklistData, chargeTypeRows] =
       await Promise.all([
         supabase
           .from("rentals")
@@ -62,15 +70,19 @@ export default async function Page({
           status,
           payment_status,
           quoted_total,
+          quoted_daily_rate,
+          quoted_days,
+          start_at,
+          expected_return_at,
           deposit_amount,
-          balance_due,
           deposit_percent,
           payment_reference,
           vehicle_id,
           starting_odometer,
           renter_license_selfie_path,
           renter_government_id_path,
-          customers ( full_name, phone_number )
+          customers ( full_name, phone_number ),
+          vehicles ( daily_rate )
         `,
           )
           .eq("id", id)
@@ -78,17 +90,31 @@ export default async function Page({
         listRentalPayments(id),
         listRentalInspections(id),
         getInspectionChecklistForRental(id),
+        listRentalChargeTypes(),
       ]);
     payments = paymentRows;
+    chargeTypes = chargeTypeRows;
     inspections = inspectionRows;
     checklist = checklistData;
     if (data?.status) status = data.status as RentalWorkflowStatus;
     paymentStatus = data?.payment_status ?? null;
     quotedTotal =
       data?.quoted_total != null ? Number(data.quoted_total) : null;
+    quotedDailyRate =
+      data?.quoted_daily_rate != null ? Number(data.quoted_daily_rate) : null;
+    quotedDays = data?.quoted_days != null ? Number(data.quoted_days) : null;
+    const vehicle = Array.isArray(data?.vehicles) ? data.vehicles[0] : data?.vehicles;
+    if (data?.start_at && data.expected_return_at) {
+      schedule = {
+        startAt: String(data.start_at),
+        expectedReturnAt: String(data.expected_return_at),
+        dailyRate:
+          quotedDailyRate ??
+          (vehicle?.daily_rate != null ? Number(vehicle.daily_rate) : null),
+      };
+    }
     depositAmount =
       data?.deposit_amount != null ? Number(data.deposit_amount) : null;
-    balanceDue = data?.balance_due != null ? Number(data.balance_due) : null;
     depositPercent =
       data?.deposit_percent != null ? Number(data.deposit_percent) : null;
     paymentReference =
@@ -158,6 +184,7 @@ export default async function Page({
           id={id}
           inspections={inspections}
           knownDamages={knownDamages}
+          schedule={schedule}
           startingOdometer={startingOdometer}
           status={status}
         />
@@ -190,13 +217,16 @@ export default async function Page({
           }
           payments={
             <RentalPaymentPanel
-              balanceDue={balanceDue}
+              chargeTypes={chargeTypes}
               depositAmount={depositAmount}
               depositPercent={depositPercent}
               paymentStatus={paymentStatus}
               payments={payments}
+              quotedDailyRate={quotedDailyRate}
+              quotedDays={quotedDays}
               quotedTotal={quotedTotal}
               rentalId={id}
+              rentalStatus={status}
             />
           }
           renterIds={
