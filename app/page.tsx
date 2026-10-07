@@ -131,6 +131,8 @@ export default async function HomePage({
               vehicle.id,
               trip,
             ),
+            vehicle,
+            trip,
           },
         ]
       : [],

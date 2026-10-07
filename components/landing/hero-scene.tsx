@@ -3,7 +3,7 @@
 import Image, { type StaticImageData } from "next/image";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
-import { HeroCarControls, useHeroFleet } from "@/components/landing/hero-fleet";
+import { HeroCarControls, HeroCarGallery, useHeroFleet } from "@/components/landing/hero-fleet";
 import { useReportSceneProgress } from "@/components/landing/landing-intro";
 import { cn } from "@/lib/utils";
 
@@ -315,7 +315,8 @@ function CarShadow() {
 }
 
 /**
- * Previous / next buttons, lined up with the car. Give it the same frame
+ * Previous / next buttons and the photo-gallery button, lined up with the
+ * car. Give it the same frame
  * (`className`) as the HeroScene so the two line up on every screen.
  */
 export function HeroSceneControls({ className }: { className?: string }) {
@@ -323,6 +324,7 @@ export function HeroSceneControls({ className }: { className?: string }) {
     <div className={cn("pointer-events-none absolute z-30", className)}>
       <div className={CAR_SLOT}>
         <div className="relative aspect-[900/692]">
+          <HeroCarGallery className="absolute inset-x-[4%] top-[12%] bottom-0" />
           <HeroCarControls className="absolute inset-x-[-3.25rem] top-1/2 -translate-y-1/2 sm:inset-x-[-5.5rem]" />
         </div>
       </div>

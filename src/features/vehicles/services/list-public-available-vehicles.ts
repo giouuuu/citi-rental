@@ -3,7 +3,12 @@ import "server-only";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { manilaDateKey } from "@/features/shared/lib/manila-time";
-import type { PublicFleetVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
+import { VEHICLE_GALLERY_KINDS } from "@/features/vehicles/lib/vehicle-gallery";
+import type {
+  PublicFleetVehicle,
+  PublicListedVehicle,
+  PublicVehiclePhoto,
+} from "@/features/vehicles/types/public-fleet-vehicle";
 
 type PublicFleetVehicleRow = {
   id: string;
@@ -42,7 +47,7 @@ export type ListPublicAvailableVehiclesOptions = {
 
 export async function listPublicAvailableVehicles(
   options: ListPublicAvailableVehiclesOptions = {},
-): Promise<PublicFleetVehicle[]> {
+): Promise<PublicListedVehicle[]> {
   if (!isSupabaseConfigured()) return [];
 
   const startDate = asDateOnly(options.startDate);
@@ -62,7 +67,13 @@ export async function listPublicAvailableVehicles(
     return [];
   }
 
-  return (data as PublicFleetVehicleRow[]).map((row) => ({
+  const rows = data as PublicFleetVehicleRow[];
+  const galleries = await listGalleries(
+    supabase,
+    rows.map((row) => row.id),
+  );
+
+  return rows.map((row) => ({
     id: row.id,
     name: row.name,
     make: row.make,
@@ -78,5 +89,37 @@ export async function listPublicAvailableVehicles(
     hourly_rate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
     color: row.color ?? null,
     showcase_image_url: row.showcase_image_url ?? null,
+    gallery: galleries.get(row.id) ?? [],
   }));
+}
+
+/**
+ * Gallery angles per car, in slot order (front first). A failure only costs
+ * the lightbox: cards still show their cover photo.
+ */
+async function listGalleries(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  vehicleIds: string[],
+) {
+  const galleries = new Map<string, PublicVehiclePhoto[]>();
+  if (!vehicleIds.length) return galleries;
+
+  const { data, error } = await supabase
+    .from("vehicle_photos")
+    .select("vehicle_id, kind, public_url")
+    .in("vehicle_id", vehicleIds);
+  if (error || !data) {
+    console.error("vehicle_photos lookup failed", error?.message);
+    return galleries;
+  }
+
+  for (const slot of VEHICLE_GALLERY_KINDS) {
+    for (const photo of data) {
+      if (photo.kind !== slot.value || !photo.public_url) continue;
+      const list = galleries.get(photo.vehicle_id) ?? [];
+      list.push({ kind: slot.value, label: slot.label, url: photo.public_url });
+      galleries.set(photo.vehicle_id, list);
+    }
+  }
+  return galleries;
 }

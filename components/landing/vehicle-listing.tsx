@@ -21,7 +21,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import type { PublicFleetVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
+import type { PublicListedVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 
 const FALLBACK_CATEGORIES = ["Economy", "Sedan", "SUV", "Van"] as const;
 
@@ -32,7 +32,7 @@ export type FleetTripFilter = {
 };
 
 type VehicleListingProps = {
-  vehicles: PublicFleetVehicle[];
+  vehicles: PublicListedVehicle[];
   bookingQuery?: string;
   signedIn?: boolean;
   trip?: FleetTripFilter;

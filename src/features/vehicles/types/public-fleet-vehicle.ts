@@ -19,3 +19,15 @@ export type PublicFleetVehicle = {
   /** Front-view cutout for the landing-page hero; null when none was uploaded. */
   showcase_image_url: string | null;
 };
+
+/** One gallery angle, as shown on the public site. */
+export type PublicVehiclePhoto = {
+  kind: string;
+  label: string;
+  url: string;
+};
+
+/** A car on the landing-page fleet list, with its gallery in slot order. */
+export type PublicListedVehicle = PublicFleetVehicle & {
+  gallery: PublicVehiclePhoto[];
+};
