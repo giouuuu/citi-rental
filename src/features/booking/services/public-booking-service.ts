@@ -53,7 +53,6 @@ function mapPaymentDetails(
     quotedDays: num(row.quoted_days, 1),
     quotedHours: optionalNum(row.quoted_hours),
     quotedTotal: num(row.quoted_total),
-    depositPercent: num(row.deposit_percent, 30),
     depositAmount: num(row.deposit_amount),
     balanceDue: num(row.balance_due),
     paymentStatus: (row.payment_status as RentalPaymentStatus) || "unpaid",
@@ -75,6 +74,20 @@ function mapPaymentDetails(
         : null,
     companyName: String(row.company_name ?? ""),
   };
+}
+
+/** The flat fee an online booking pays to hold the car. Null when unknown. */
+export async function getPublicReservationFee(): Promise<number | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_public_reservation_fee");
+  if (error) {
+    console.error("get_public_reservation_fee failed", error.message);
+    return null;
+  }
+  const fee = Number(data);
+  return Number.isFinite(fee) && fee > 0 ? fee : null;
 }
 
 export async function getPublicVehicle(
@@ -172,23 +185,22 @@ export async function createPublicBooking(
     quotedDays: num(payload.quoted_days, 1),
     quotedHours: optionalNum(payload.quoted_hours),
     quotedTotal: num(payload.quoted_total),
-    depositPercent: num(payload.deposit_percent, 30),
     depositAmount: num(payload.deposit_amount),
     balanceDue: num(payload.balance_due),
     paymentStatus: (payload.payment_status as RentalPaymentStatus) || "unpaid",
     message:
       typeof payload.message === "string"
         ? payload.message
-        : "Booking received. Pay the deposit and upload your proof to confirm.",
+        : "Booking received. Pay the reservation fee and upload your proof to confirm.",
   };
 
   const payUrl = `${siteUrl()}/book/pay/${result.rentalId}?ref=${encodeURIComponent(result.referenceNumber)}`;
   void notifyOwnerTelegram({
     text: [
-      "New booking — awaiting deposit",
+      "New booking — awaiting reservation fee",
       `Ref: ${result.referenceNumber}`,
       `Car: ${result.vehicleName ?? result.vehicleId}`,
-      `Deposit: ${formatPhp(result.depositAmount)} (${result.depositPercent}%)`,
+      `Reservation fee: ${formatPhp(result.depositAmount)}`,
       `Total: ${formatPhp(result.quotedTotal)} · ${result.quotedDays} day(s)`,
       `Trip: ${input.pickupLocation} → ${input.destination} · ${input.passengerCount} pax`,
       input.fullName

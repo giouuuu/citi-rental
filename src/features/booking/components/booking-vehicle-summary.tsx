@@ -7,12 +7,14 @@ type BookingVehicleSummaryProps = {
   vehicle: PublicFleetVehicle;
   startAt?: string | null;
   expectedReturnAt?: string | null;
+  reservationFee?: number | null;
 };
 
 export function BookingVehicleSummary({
   vehicle,
   startAt,
   expectedReturnAt,
+  reservationFee,
 }: BookingVehicleSummaryProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -36,6 +38,7 @@ export function BookingVehicleSummary({
               hourly: vehicle.hourly_rate,
             }}
             end={expectedReturnAt}
+            reservationFee={reservationFee}
             start={startAt}
           />
         </div>

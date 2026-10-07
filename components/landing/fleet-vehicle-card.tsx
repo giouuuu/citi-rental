@@ -42,12 +42,15 @@ type FleetVehicleCardProps = {
   bookingQuery?: string;
   /** When true, skip sign-in/guest choice and go straight to the form. */
   signedIn?: boolean;
+  /** Flat fee to hold a booking, from Settings. */
+  reservationFee?: number | null;
 };
 
 export function FleetVehicleCard({
   vehicle,
   bookingQuery,
   signedIn = false,
+  reservationFee,
 }: FleetVehicleCardProps) {
   const categoryLabel = vehicle.category?.trim() || "Fleet";
   const transmission = vehicle.transmission ? titleCase(vehicle.transmission) : "—";
@@ -73,7 +76,12 @@ export function FleetVehicleCard({
           Available
         </Badge>
         {coverUrl && vehicle.gallery.length ? (
-          <VehicleGalleryDialog bookHref={href} trip={tripQuery} vehicle={vehicle}>
+          <VehicleGalleryDialog
+            bookHref={href}
+            reservationFee={reservationFee}
+            trip={tripQuery}
+            vehicle={vehicle}
+          >
             <button
               aria-label={`View ${vehicle.gallery.length} photos of ${vehicle.name}`}
               className="absolute inset-0 z-[1] cursor-zoom-in rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -125,6 +133,7 @@ export function FleetVehicleCard({
               hourly: vehicle.hourly_rate,
             }}
             end={tripQuery.end}
+            reservationFee={reservationFee}
             start={tripQuery.start}
           />
         </div>

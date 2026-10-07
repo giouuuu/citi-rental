@@ -254,6 +254,9 @@ Features:
 - Add optional charges from the owner-maintained charge types (Settings → Charge types):
   car wash, delivery, extension, fuel shortage, damage, other income. Owners/admins can
   remove a charge.
+- Record what a charge cost the business (e.g. ₱300 paid to the delivery driver on a ₱500
+  delivery charge), when adding it or later from the charge's cost button. The bill shows
+  charges, costs paid out, and what you keep. Owners and admins only.
 - Extend an active or overdue rental: move the return date (blocked by the next booking) and
   optionally add an Extension charge, suggested as extra days × the daily rate.
 - View rental payments.
@@ -266,6 +269,11 @@ Business rules:
 - Once the car is out (active/overdue), dates change only through Extend.
 - Charges are confirmed `penalty` rows on the payments ledger tagged with a charge type, so the
   balance, analytics outstanding, and the finance "charges billed" line count them.
+- A charge's cost is never on the renter's bill. It is a row in the finance `expenses` ledger
+  (`charge_payment_id`, `rental_id`), filed under the charge type's BIR line
+  (`rental_charge_types.expense_category_id`, else Miscellaneous). Removing the charge voids
+  its cost; the expense row is the one source of the amount, so edits in /finance show on the
+  rental.
 - A blocked customer cannot start a new rental.
 - Every transition validates the current state on the server. Disabling a button is a hint;
   the action and the database re-validate.

@@ -1,15 +1,16 @@
 import { describeBilledTime, type RentRates } from "@/features/rentals/lib/rent-pricing";
 import {
   formatPhp,
-  quoteDeposit,
   quoteRentalTotal,
+  quoteReservationFee,
 } from "@/features/vehicles/lib/rental-pricing";
 
 type VehicleRateQuoteProps = {
   rates: RentRates;
   start?: string | null;
   end?: string | null;
-  depositPercent?: number;
+  /** Flat fee to hold the booking; omit to hide the line. */
+  reservationFee?: number | null;
   className?: string;
 };
 
@@ -17,13 +18,14 @@ export function VehicleRateQuote({
   rates,
   start,
   end,
-  depositPercent = 30,
+  reservationFee,
   className,
 }: VehicleRateQuoteProps) {
   const quote = quoteRentalTotal(rates, start, end);
-  const deposit = quote
-    ? quoteDeposit(quote.total, depositPercent)
-    : null;
+  const deposit =
+    quote && reservationFee
+      ? quoteReservationFee(quote.total, reservationFee)
+      : null;
   const shortRates = [
     rates.halfDay ? `${formatPhp(rates.halfDay)} / 12 hrs` : null,
     rates.hourly ? `${formatPhp(rates.hourly)} / hr` : null,
@@ -51,11 +53,10 @@ export function VehicleRateQuote({
       ) : null}
       {deposit ? (
         <p className="mt-1 text-xs text-muted-foreground">
-          Deposit to confirm:{" "}
+          Reservation fee to confirm:{" "}
           <span className="font-semibold text-brand-950">
             {formatPhp(deposit.deposit)}
-          </span>{" "}
-          ({deposit.percent}%)
+          </span>
         </p>
       ) : null}
     </div>

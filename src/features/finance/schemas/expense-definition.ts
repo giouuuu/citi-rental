@@ -243,6 +243,7 @@ export const expenseDefinition: ResourceDefinition = {
     { key: "description", label: "Description" },
     { key: "category_name", label: "BIR line" },
     { key: "vehicle_plate", label: "Vehicle" },
+    { key: "rental_reference", label: "Rental" },
     { key: "gross_amount", label: "Paid", format: "money" },
     { key: "net_amount", label: "Net of VAT", format: "money" },
     { key: "status", label: "Status", format: "status" },

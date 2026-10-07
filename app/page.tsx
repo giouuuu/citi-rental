@@ -41,6 +41,7 @@ import {
   bookingContinuePath,
   bookingFormPath,
 } from "@/features/booking/lib/booking-continue";
+import { getPublicReservationFee } from "@/features/booking/services/public-booking-service";
 import { buildContactChannels } from "@/features/settings/lib/contact-channels";
 import { getPublicContactChannels } from "@/features/settings/services/get-public-contact-channels";
 import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-public-available-vehicles";
@@ -98,12 +99,13 @@ export default async function HomePage({
     start,
     end,
   };
-  const [availableVehicles, contactValues] = await Promise.all([
+  const [availableVehicles, contactValues, reservationFee] = await Promise.all([
     listPublicAvailableVehicles({
       startDate: trip.start,
       endDate: trip.end,
     }),
     getPublicContactChannels(),
+    getPublicReservationFee(),
   ]);
   const contactChannels = buildContactChannels(
     contactValues,
@@ -133,6 +135,7 @@ export default async function HomePage({
             ),
             vehicle,
             trip,
+            reservationFee,
           },
         ]
       : [],
@@ -309,6 +312,7 @@ export default async function HomePage({
         bookingQuery={bookingQuery}
         initialCategory={query.type}
         key={query.type ?? "all"}
+        reservationFee={reservationFee}
         signedIn={signedIn}
         trip={trip}
         vehicles={availableVehicles}

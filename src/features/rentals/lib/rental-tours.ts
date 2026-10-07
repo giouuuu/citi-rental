@@ -71,7 +71,7 @@ export const RENTAL_BILL_TOUR: ProductTourStep[] = [
     element: '[data-tour="add-charge"]',
     title: "Add a charge",
     description:
-      "Car wash, delivery, fuel shortage, extension, or other income. All optional. The amount fills in from Settings → Charge types, and you can change it.",
+      "Car wash, delivery, fuel shortage, extension, or other income. All optional. The amount fills in from Settings → Charge types, and you can change it. If the charge cost you something, like paying the delivery driver, enter it as the cost: it becomes an expense in Finance and never shows on the renter's bill.",
   },
   {
     element: '[data-tour="adjust-bill"]',

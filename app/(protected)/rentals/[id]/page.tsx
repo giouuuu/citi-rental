@@ -3,9 +3,7 @@ import { rentalDefinition } from "@/features/rentals";
 import { RENTAL_BOOKING_PAYMENT_FIELDS } from "@/features/rentals/schemas/rental-definition";
 import { ResourceDetailScreen } from "@/features/shared";
 import { RentalWorkflowActions } from "@/features/rentals";
-import {
-  ConfirmDepositCard,
-} from "@/features/rentals/components/confirm-deposit-card";
+import { ConfirmDepositCard } from "@/features/rentals/components/confirm-deposit-card";
 import { RentalDetailTabs } from "@/features/rentals/components/rental-detail-tabs";
 import { RentalPaymentPanel } from "@/features/rentals/components/rental-payment-panel";
 import {
@@ -19,6 +17,7 @@ import { needsDepositConfirmation } from "@/features/rentals/lib/needs-deposit-c
 import type { RentRates } from "@/features/rentals/lib/rent-pricing";
 import { listRentalPayments } from "@/features/rentals/services/list-rental-payments";
 import { listRentalChargeTypes } from "@/features/rentals/services/list-rental-charge-types";
+import { listRentalChargeCosts } from "@/features/rentals/services/list-rental-charge-costs";
 import { RENTAL_QUICK_CREATE } from "@/features/rentals/lib/rental-quick-create";
 import {
   getInspectionChecklistForRental,
@@ -50,6 +49,7 @@ export default async function Page({
     rates: RentRates | null;
   } | null = null;
   let chargeTypes: Awaited<ReturnType<typeof listRentalChargeTypes>> = [];
+  let chargeCosts: Record<string, number> = {};
   let depositAmount: number | null = null;
   let depositPercent: number | null = null;
   let paymentReference: string | null = null;
@@ -65,12 +65,18 @@ export default async function Page({
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
-    const [{ data }, paymentRows, inspectionRows, checklistData, chargeTypeRows] =
-      await Promise.all([
-        supabase
-          .from("rentals")
-          .select(
-            `
+    const [
+      { data },
+      paymentRows,
+      inspectionRows,
+      checklistData,
+      chargeTypeRows,
+      chargeCostRows,
+    ] = await Promise.all([
+      supabase
+        .from("rentals")
+        .select(
+          `
           status,
           payment_status,
           quoted_total,
@@ -91,22 +97,23 @@ export default async function Page({
           customers ( full_name, phone_number ),
           vehicles ( daily_rate, half_day_rate, hourly_rate )
         `,
-          )
-          .eq("id", id)
-          .maybeSingle(),
-        listRentalPayments(id),
-        listRentalInspections(id),
-        getInspectionChecklistForRental(id),
-        listRentalChargeTypes(),
-      ]);
+        )
+        .eq("id", id)
+        .maybeSingle(),
+      listRentalPayments(id),
+      listRentalInspections(id),
+      getInspectionChecklistForRental(id),
+      listRentalChargeTypes(),
+      listRentalChargeCosts(id),
+    ]);
     payments = paymentRows;
     chargeTypes = chargeTypeRows;
+    chargeCosts = chargeCostRows;
     inspections = inspectionRows;
     checklist = checklistData;
     if (data?.status) status = data.status as RentalWorkflowStatus;
     paymentStatus = data?.payment_status ?? null;
-    quotedTotal =
-      data?.quoted_total != null ? Number(data.quoted_total) : null;
+    quotedTotal = data?.quoted_total != null ? Number(data.quoted_total) : null;
     const rate = (value: unknown) => (value != null ? Number(value) : null);
     quotedDays = rate(data?.quoted_days);
     quotedHours = rate(data?.quoted_hours);
@@ -118,7 +125,9 @@ export default async function Page({
         hourly: rate(data?.quoted_hourly_rate),
       };
     }
-    const vehicle = Array.isArray(data?.vehicles) ? data.vehicles[0] : data?.vehicles;
+    const vehicle = Array.isArray(data?.vehicles)
+      ? data.vehicles[0]
+      : data?.vehicles;
     // Extensions price at the rates this rental was booked at; rentals quoted
     // by calendar days had no 12-hour or hourly rate, so use the car's.
     const vehicleDaily = rate(vehicle?.daily_rate);
@@ -147,8 +156,7 @@ export default async function Page({
       typeof data?.payment_reference === "string"
         ? data.payment_reference
         : null;
-    vehicleId =
-      typeof data?.vehicle_id === "string" ? data.vehicle_id : null;
+    vehicleId = typeof data?.vehicle_id === "string" ? data.vehicle_id : null;
     startingOdometer =
       data?.starting_odometer != null ? Number(data.starting_odometer) : null;
 
@@ -246,6 +254,7 @@ export default async function Page({
           }
           payments={
             <RentalPaymentPanel
+              chargeCosts={chargeCosts}
               chargeTypes={chargeTypes}
               depositAmount={depositAmount}
               depositPercent={depositPercent}

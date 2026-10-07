@@ -29,6 +29,8 @@ type VehicleGalleryDialogProps = {
   vehicle: PublicListedVehicle;
   bookHref: string;
   trip: { start?: string; end?: string };
+  /** Flat fee to hold a booking, from Settings. */
+  reservationFee?: number | null;
   /** The button that opens the gallery (the card photo, the hero car). */
   children: ReactElement;
 };
@@ -42,6 +44,7 @@ export function VehicleGalleryDialog({
   vehicle,
   bookHref,
   trip,
+  reservationFee,
   children,
 }: VehicleGalleryDialogProps) {
   const photos = vehicle.gallery;
@@ -213,6 +216,7 @@ export function VehicleGalleryDialog({
                 halfDay: vehicle.half_day_rate,
                 hourly: vehicle.hourly_rate,
               }}
+              reservationFee={reservationFee}
               start={trip.start}
             />
           </div>

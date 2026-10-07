@@ -9,6 +9,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import type { AddRentalChargeInput } from "@/features/rentals/actions/rental-charge-actions";
 import type { RentalChargeType } from "@/features/rentals/types/rental-payment";
+import { formatPhpExact } from "@/features/shared/lib/money";
 
 export function AddRentalChargeForm({
   rentalId,
@@ -24,6 +25,14 @@ export function AddRentalChargeForm({
   const [chargeTypeId, setChargeTypeId] = useState("");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
+  const [cost, setCost] = useState("");
+
+  const charged = Number(amount);
+  const paidOut = Number(cost);
+  const kept =
+    amount && cost && Number.isFinite(charged) && Number.isFinite(paidOut)
+      ? Math.round((charged - paidOut) * 100) / 100
+      : null;
 
   function chooseType(value: string) {
     setChargeTypeId(value);
@@ -39,6 +48,7 @@ export function AddRentalChargeForm({
       chargeTypeId,
       amount: amount ? Number(amount) : Number.NaN,
       notes: notes.trim() || undefined,
+      cost: cost ? Number(cost) : undefined,
     });
   }
 
@@ -58,7 +68,7 @@ export function AddRentalChargeForm({
         />
       </Field>
       <Field>
-        <FieldLabel htmlFor="charge-amount">Amount (PHP)</FieldLabel>
+        <FieldLabel htmlFor="charge-amount">Charged to renter (PHP)</FieldLabel>
         <Input
           id="charge-amount"
           inputMode="decimal"
@@ -70,6 +80,25 @@ export function AddRentalChargeForm({
           type="number"
           value={amount}
         />
+      </Field>
+      <Field className="sm:col-span-2">
+        <FieldLabel htmlFor="charge-cost">Cost you paid (optional)</FieldLabel>
+        <Input
+          id="charge-cost"
+          inputMode="decimal"
+          min={0}
+          onChange={(event) => setCost(event.target.value)}
+          placeholder="300"
+          step="0.01"
+          type="number"
+          value={cost}
+        />
+        <FieldDescription>
+          {kept != null
+            ? `You keep ${kept < 0 ? `− ${formatPhpExact(Math.abs(kept))}` : formatPhpExact(kept)}. `
+            : "What it cost you, e.g. paid to the delivery driver. "}
+          Saved as an expense in Finance. The renter never sees it.
+        </FieldDescription>
       </Field>
       <Field className="sm:col-span-2">
         <FieldLabel htmlFor="charge-notes">Note (optional)</FieldLabel>

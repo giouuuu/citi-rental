@@ -38,6 +38,8 @@ type VehicleListingProps = {
   trip?: FleetTripFilter;
   /** Category to preselect, e.g. from a "Browse by type" card (`?type=`). */
   initialCategory?: string;
+  /** Flat fee to hold a booking, from Settings. */
+  reservationFee?: number | null;
 };
 
 function formatTripDate(value?: string) {
@@ -56,6 +58,7 @@ export function VehicleListing({
   signedIn = false,
   trip,
   initialCategory,
+  reservationFee,
 }: VehicleListingProps) {
   const categories = useMemo(() => {
     const fromFleet = Array.from(
@@ -200,6 +203,7 @@ export function VehicleListing({
               <FleetVehicleCard
                 bookingQuery={bookingQuery}
                 key={vehicle.id}
+                reservationFee={reservationFee}
                 signedIn={signedIn}
                 vehicle={vehicle}
               />

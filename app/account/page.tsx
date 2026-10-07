@@ -102,8 +102,8 @@ export default async function AccountPage() {
 
         <AccountBookingSection
           bookings={awaitingPayment}
-          description="Draft bookings waiting for your deposit payment or staff confirmation."
-          emptyDescription="New bookings that need a deposit will appear here."
+          description="Draft bookings waiting for your reservation fee or staff confirmation."
+          emptyDescription="New bookings that need a reservation fee will appear here."
           emptyTitle="No payments pending"
           id="awaiting-payment"
           showBrowseCta

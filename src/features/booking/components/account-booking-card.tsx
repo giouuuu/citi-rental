@@ -92,7 +92,7 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
             </div>
             {booking.depositAmount != null ? (
               <div>
-                <dt className="text-muted-foreground">Deposit</dt>
+                <dt className="text-muted-foreground">Reservation fee</dt>
                 <dd className="font-medium tabular-nums text-brand-950">
                   {formatPhp(booking.depositAmount)}
                 </dd>
@@ -121,7 +121,7 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
                 <Link href={payHref}>
                   {booking.paymentStatus === "proof_submitted"
                     ? "View payment status"
-                    : "Pay deposit"}
+                    : "Pay reservation fee"}
                 </Link>
               </Button>
             ) : null}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatPhp, quoteDeposit, quoteRentalTotal } from "./rental-pricing";
+import { formatPhp, quoteRentalTotal, quoteReservationFee } from "./rental-pricing";
 
 const rates = { daily: 2000, halfDay: 1200, hourly: 200 };
 
@@ -42,12 +42,18 @@ describe("quoteRentalTotal", () => {
   });
 });
 
-describe("quoteDeposit", () => {
-  it("computes 30 percent deposit", () => {
-    expect(quoteDeposit(6000, 30)).toEqual({
-      percent: 30,
-      deposit: 1800,
-      balance: 4200,
+describe("quoteReservationFee", () => {
+  it("asks for the flat fee", () => {
+    expect(quoteReservationFee(6000, 500)).toEqual({
+      deposit: 500,
+      balance: 5500,
+    });
+  });
+
+  it("never asks for more than the trip", () => {
+    expect(quoteReservationFee(300, 500)).toEqual({
+      deposit: 300,
+      balance: 0,
     });
   });
 });

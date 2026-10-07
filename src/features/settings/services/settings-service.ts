@@ -25,7 +25,7 @@ export type OrganizationSettings = {
   tracker_delayed_threshold_minutes: number;
   location_retention_days: number;
   gps_provider: string;
-  deposit_percent: number;
+  reservation_fee: number;
   payment_qr_url: string;
   payment_instructions: string;
 } & ContactChannelFields;
@@ -39,7 +39,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       tracker_delayed_threshold_minutes: 15,
       location_retention_days: 90,
       gps_provider: "simulator",
-      deposit_percent: 30,
+      reservation_fee: 500,
       payment_qr_url: "",
       payment_instructions: "",
       ...emptyContactChannels,
@@ -51,7 +51,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     .from("company_profile")
     .select(
       [
-        "name, timezone, deposit_percent, payment_qr_url, payment_instructions",
+        "name, timezone, reservation_fee, payment_qr_url, payment_instructions",
         ...CONTACT_COLUMNS,
       ].join(", "),
     )
@@ -69,7 +69,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
   const organization = company as unknown as {
     name: string;
     timezone: string;
-    deposit_percent: number | null;
+    reservation_fee: number | null;
     payment_qr_url: string | null;
     payment_instructions: string | null;
   } & Record<(typeof CONTACT_COLUMNS)[number], string | null>;
@@ -94,7 +94,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     gps_provider: String(
       values.get("gps.provider") ?? process.env.GPS_PROVIDER ?? "simulator",
     ),
-    deposit_percent: Number(organization.deposit_percent ?? 30),
+    reservation_fee: Number(organization.reservation_fee ?? 500),
     payment_qr_url: organization.payment_qr_url ?? "",
     payment_instructions: organization.payment_instructions ?? "",
     ...(Object.fromEntries(

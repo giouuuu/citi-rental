@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Banknote, Plus, Scale, Trash2 } from "lucide-react";
+import { Banknote, Plus, Receipt, Scale, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,18 +19,22 @@ import type { RecordRentalPaymentInput } from "@/features/rentals/actions/record
 import {
   addRentalChargeAction,
   adjustRentalBillAction,
+  setRentalChargeCostAction,
   voidRentalChargeAction,
   type AddRentalChargeInput,
   type AdjustRentalBillInput,
+  type SetRentalChargeCostInput,
 } from "@/features/rentals/actions/rental-charge-actions";
 import { AddRentalChargeForm } from "@/features/rentals/components/add-rental-charge-form";
 import { AdjustRentalBillForm } from "@/features/rentals/components/adjust-rental-bill-form";
 import { RecordRentalPaymentForm } from "@/features/rentals/components/record-rental-payment-form";
 import { RentalPaymentHistoryList } from "@/features/rentals/components/rental-payment-history-list";
+import { SetChargeCostForm } from "@/features/rentals/components/set-charge-cost-form";
 import {
   buildRentalBill,
   describeRentLine,
   rentalBillStatus,
+  summarizeChargeCosts,
 } from "@/features/rentals/lib/rental-bill";
 import type { RentRates } from "@/features/rentals/lib/rent-pricing";
 import { RENTAL_BILL_TOUR } from "@/features/rentals/lib/rental-tours";
@@ -57,9 +61,18 @@ type RentalPaymentPanelProps = {
   depositPercent?: number | null;
   payments: RentalPayment[];
   chargeTypes: RentalChargeType[];
+  /** What each charge cost the business, by charge id. Internal; not on the renter's bill. */
+  chargeCosts?: Record<string, number>;
   /** The payment typed on the booking form did not save; ask for it again. */
   bookingPaymentFailed?: boolean;
 };
+
+/** ₱200.00, or − ₱100.00 when a charge cost more than it brought in. */
+function formatSigned(amount: number) {
+  return amount < 0
+    ? `− ${formatPhpExact(Math.abs(amount))}`
+    : formatPhpExact(amount);
+}
 
 function BillLine({
   label,
@@ -77,7 +90,9 @@ function BillLine({
   return (
     <div className="flex items-start justify-between gap-3 py-1.5">
       <div className="min-w-0">
-        <p className={strong ? "font-semibold text-brand-950" : "text-brand-950"}>
+        <p
+          className={strong ? "font-semibold text-brand-950" : "text-brand-950"}
+        >
           {label}
         </p>
         {detail ? (
@@ -108,11 +123,15 @@ export function RentalPaymentPanel({
   depositPercent,
   payments,
   chargeTypes,
+  chargeCosts = {},
   bookingPaymentFailed = false,
 }: RentalPaymentPanelProps) {
   const [error, setError] = useState("");
   const [removeError, setRemoveError] = useState("");
-  const [open, setOpen] = useState<"charge" | "adjust" | "payment" | null>(null);
+  // A panel, or the id of the charge whose cost is being edited.
+  const [open, setOpen] = useState<
+    "charge" | "adjust" | "payment" | string | null
+  >(null);
   const { isPending, runMutation } = useMutationCoordinator();
   const router = useRouter();
 
@@ -124,6 +143,8 @@ export function RentalPaymentPanel({
     payments,
   });
   const canAddCharges = rentalStatus !== "cancelled";
+  const costSummary = summarizeChargeCosts(bill.charges, chargeCosts);
+  const costCharge = bill.charges.find((charge) => charge.id === open) ?? null;
 
   function settle(
     result: { success: boolean; message?: string },
@@ -159,13 +180,26 @@ export function RentalPaymentPanel({
     });
   }
 
-  function removeCharge(paymentId: string) {
+  function setChargeCost(input: SetRentalChargeCostInput) {
     runMutation(async () => {
-      settle(await voidRentalChargeAction(paymentId), "Charge removed.", setRemoveError);
+      settle(
+        await setRentalChargeCostAction(input),
+        input.cost ? "Cost saved to Finance." : "Cost removed.",
+      );
     });
   }
 
-  function toggle(panel: "charge" | "adjust" | "payment") {
+  function removeCharge(paymentId: string) {
+    runMutation(async () => {
+      settle(
+        await voidRentalChargeAction(paymentId),
+        "Charge removed.",
+        setRemoveError,
+      );
+    });
+  }
+
+  function toggle(panel: string) {
     setError("");
     setOpen((current) => (current === panel ? null : panel));
   }
@@ -247,41 +281,74 @@ export function RentalPaymentPanel({
             const name =
               charge.chargeTypeName ??
               (isAdjustment ? "Bill adjustment" : "Charge");
+            const cost = chargeCosts[charge.id];
+            const costDetail =
+              cost != null
+                ? `Cost ${formatPhpExact(cost)} · you keep ${formatSigned(charge.amount - cost)}`
+                : null;
             return (
               <BillLine
                 action={
-                  <ConfirmActionDialog
-                    confirmLabel={
-                      isAdjustment ? "Remove adjustment" : "Remove charge"
-                    }
-                    description={
-                      isAdjustment
-                        ? "The bill goes back to what it was before this adjustment. The record is kept for history."
-                        : "It comes off the bill and the balance. The record is kept for history."
-                    }
-                    error={removeError}
-                    icon={Trash2}
-                    onConfirm={() => removeCharge(charge.id)}
-                    title={`Remove ${name}?`}
-                    trigger={
+                  <>
+                    {isAdjustment ? null : (
                       <Button
-                        aria-label={`Remove ${name}`}
+                        aria-label={
+                          cost != null
+                            ? `Edit cost of ${name}`
+                            : `Add cost of ${name}`
+                        }
+                        aria-pressed={open === charge.id}
                         disabled={isPending}
+                        onClick={() => toggle(charge.id)}
                         size="icon-xs"
+                        title={
+                          cost != null
+                            ? "Edit what this cost you"
+                            : "Add what this cost you"
+                        }
                         type="button"
                         variant="ghost"
                       >
-                        <Trash2 />
+                        <Receipt />
                       </Button>
-                    }
-                  />
+                    )}
+                    <ConfirmActionDialog
+                      confirmLabel={
+                        isAdjustment ? "Remove adjustment" : "Remove charge"
+                      }
+                      description={
+                        isAdjustment
+                          ? "The bill goes back to what it was before this adjustment. The record is kept for history."
+                          : cost != null
+                            ? "It comes off the bill and the balance, and its cost is voided in Finance. The records are kept for history."
+                            : "It comes off the bill and the balance. The record is kept for history."
+                      }
+                      error={removeError}
+                      icon={Trash2}
+                      onConfirm={() => removeCharge(charge.id)}
+                      title={`Remove ${name}?`}
+                      trigger={
+                        <Button
+                          aria-label={`Remove ${name}`}
+                          disabled={isPending}
+                          size="icon-xs"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <Trash2 />
+                        </Button>
+                      }
+                    />
+                  </>
                 }
                 amount={
                   charge.amount < 0
                     ? `− ${formatPhpExact(Math.abs(charge.amount))}`
                     : formatPhpExact(charge.amount)
                 }
-                detail={charge.notes}
+                detail={
+                  [charge.notes, costDetail].filter(Boolean).join(" · ") || null
+                }
                 key={charge.id}
                 label={name}
               />
@@ -306,10 +373,27 @@ export function RentalPaymentPanel({
             label="Balance"
             strong
           />
+          {costSummary ? (
+            <div className="mt-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+              <p className="tabular-nums">
+                Charges {formatPhpExact(costSummary.charged)} · Costs paid out{" "}
+                {formatPhpExact(costSummary.costs)} ·{" "}
+                <span className="font-medium text-brand-950">
+                  You keep {formatSigned(costSummary.kept)}
+                </span>
+              </p>
+              <p>
+                Costs are recorded as expenses in Finance. They are not on the
+                renter&apos;s bill.
+              </p>
+            </div>
+          ) : null}
           {depositAmount != null ? (
             <p className="pt-1 text-xs text-muted-foreground">
-              Deposit asked online
-              {depositPercent != null ? ` (${depositPercent}%)` : ""}:{" "}
+              {depositPercent != null
+                ? `Deposit asked online (${depositPercent}%)`
+                : "Reservation fee asked online"}
+              :{" "}
               {formatPhpExact(Number(depositAmount))}
             </p>
           ) : null}
@@ -342,7 +426,18 @@ export function RentalPaymentPanel({
             rentalId={rentalId}
           />
         ) : null}
-        {(open === "charge" || open === "adjust") && error ? (
+        {costCharge ? (
+          <SetChargeCostForm
+            chargeAmount={costCharge.amount}
+            chargeName={costCharge.chargeTypeName ?? "charge"}
+            currentCost={chargeCosts[costCharge.id] ?? null}
+            key={costCharge.id}
+            onSubmit={setChargeCost}
+            paymentId={costCharge.id}
+            pending={isPending}
+          />
+        ) : null}
+        {(open === "charge" || open === "adjust" || costCharge) && error ? (
           <Alert className="py-2" variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>

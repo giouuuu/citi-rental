@@ -19,7 +19,6 @@ export type BookingPaymentDetails = {
   /** Hours past the whole days; null on bookings quoted by calendar days. */
   quotedHours: number | null;
   quotedTotal: number;
-  depositPercent: number;
   depositAmount: number;
   balanceDue: number;
   paymentStatus: RentalPaymentStatus;
@@ -49,7 +48,6 @@ export type PublicBookingResult = {
   /** Hours past the whole days; null on bookings quoted by calendar days. */
   quotedHours: number | null;
   quotedTotal: number;
-  depositPercent: number;
   depositAmount: number;
   balanceDue: number;
   paymentStatus: RentalPaymentStatus;

@@ -10,6 +10,7 @@ import {
 } from "@/features/booking/components/paymongo-checkout-button";
 import { isPaymongoEnabled } from "@/features/booking/lib/paymongo";
 import { getBookingPaymentDetails } from "@/features/booking/services/public-booking-service";
+import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { Button } from "@/components/ui/button";
 
 type PayPageProps = {
@@ -18,8 +19,8 @@ type PayPageProps = {
 };
 
 export const metadata: Metadata = {
-  title: "Pay deposit",
-  description: "Pay your booking deposit and upload payment proof.",
+  title: "Pay reservation fee",
+  description: "Pay your reservation fee and upload payment proof.",
 };
 
 export default async function BookingPayPage({
@@ -46,11 +47,11 @@ export default async function BookingPayPage({
 
       <div className="mx-auto max-w-lg px-4 py-12 sm:px-6">
         <h1 className="text-3xl font-bold tracking-tight text-brand-950">
-          Pay deposit to confirm
+          Pay reservation fee to confirm
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Your booking is held as a draft until we verify your {booking.depositPercent}%
-          deposit. Upload the payment screenshot and reference number below.
+          Your booking is held as a draft until we verify your{" "}
+          {formatPhp(booking.depositAmount)} reservation fee. Upload the payment screenshot and reference number below.
         </p>
 
         <div className="mt-8">

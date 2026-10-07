@@ -68,7 +68,7 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
         settings.tracker_delayed_threshold_minutes,
       location_retention_days: settings.location_retention_days,
       gps_provider: settings.gps_provider as SettingsInput["gps_provider"],
-      deposit_percent: settings.deposit_percent,
+      reservation_fee: settings.reservation_fee,
       payment_qr_url: settings.payment_qr_url,
       payment_instructions: settings.payment_instructions,
       ...Object.fromEntries(
@@ -199,19 +199,19 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
             />
             <Controller
               control={form.control}
-              name="deposit_percent"
+              name="reservation_fee"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="deposit_percent">
-                    Deposit percent
+                  <FieldLabel htmlFor="reservation_fee">
+                    Reservation fee (₱)
                   </FieldLabel>
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
                     disabled={isPending}
-                    id="deposit_percent"
-                    max={100}
+                    id="reservation_fee"
                     min={1}
+                    step="0.01"
                     onChange={(event) =>
                       field.onChange(event.target.valueAsNumber)
                     }
@@ -223,7 +223,8 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                     }
                   />
                   <FieldDescription>
-                    Percent of trip total required before a booking is reserved.
+                    Fixed amount an online booking pays to hold the car. Never
+                    more than the trip total.
                   </FieldDescription>
                   {fieldState.invalid ? (
                     <FieldError errors={[fieldState.error]} />

@@ -121,7 +121,7 @@ export function BookingPaymentForm({
           </div>
           <div className="flex justify-between gap-4 border-t border-border pt-3">
             <dt className="font-semibold text-brand-950">
-              Deposit due ({booking.depositPercent}%)
+              Reservation fee due
             </dt>
             <dd className="font-bold text-brand-950">
               {formatPhp(booking.depositAmount)}
@@ -181,7 +181,7 @@ export function BookingPaymentForm({
           <AlertDescription>
             {booking.paymentStatus === "deposit_paid" ||
             booking.status === "reserved"
-              ? "Deposit confirmed. Your car is reserved."
+              ? "Reservation fee confirmed. Your car is reserved."
               : "Payment proof received. We will confirm your reservation shortly."}
             {booking.paymentReference
               ? ` Payment ref: ${booking.paymentReference}.`

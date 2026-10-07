@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { RentalPayment } from "@/features/rentals/types/rental-payment";
 
-import { buildRentalBill, describeRentLine, rentalBillStatus } from "./rental-bill";
+import {
+  buildRentalBill,
+  describeRentLine,
+  rentalBillStatus,
+  summarizeChargeCosts,
+} from "./rental-bill";
 
 function entry(overrides: Partial<RentalPayment>): RentalPayment {
   return {
@@ -137,5 +142,31 @@ describe("rentalBillStatus", () => {
 
   it("is unpaid with nothing in", () => {
     expect(rentalBillStatus(bill(0), "unpaid")).toBe("Unpaid");
+  });
+});
+
+describe("summarizeChargeCosts", () => {
+  it("sets the charges that carry a cost against what they cost", () => {
+    const delivery = entry({ paymentType: "penalty", amount: 500, chargeTypeName: "Delivery" });
+    const wash = entry({ paymentType: "penalty", amount: 200, chargeTypeName: "Car wash" });
+    const extension = entry({ paymentType: "penalty", amount: 1000, chargeTypeName: "Extension" });
+
+    expect(
+      summarizeChargeCosts([delivery, wash, extension], { [delivery.id]: 300, [wash.id]: 150 }),
+    ).toEqual({ charged: 700, costs: 450, kept: 250 });
+  });
+
+  it("goes negative when a charge cost more than it brought in", () => {
+    const delivery = entry({ paymentType: "penalty", amount: 300 });
+    expect(summarizeChargeCosts([delivery], { [delivery.id]: 400 })).toEqual({
+      charged: 300,
+      costs: 400,
+      kept: -100,
+    });
+  });
+
+  it("is null when no charge has a cost", () => {
+    const delivery = entry({ paymentType: "penalty", amount: 500 });
+    expect(summarizeChargeCosts([delivery], {})).toBeNull();
   });
 });

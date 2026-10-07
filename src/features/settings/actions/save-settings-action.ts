@@ -69,7 +69,7 @@ export async function saveSettingsAction(
     const { error: paymentError } = await supabase
       .from("company_profile")
       .update({
-        deposit_percent: parsed.data.deposit_percent,
+        reservation_fee: parsed.data.reservation_fee,
         payment_qr_url: parsed.data.payment_qr_url || null,
         payment_instructions: parsed.data.payment_instructions?.trim() || null,
         ...Object.fromEntries(

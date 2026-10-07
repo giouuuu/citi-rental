@@ -47,6 +47,8 @@ const addChargeSchema = z.object({
   chargeTypeId: z.uuid("Choose a charge type."),
   amount: z.coerce.number().positive("Amount must be greater than zero."),
   notes: z.string().trim().max(500, "Keep the note under 500 characters.").optional(),
+  /** What the business paid to deliver the charge; saved as a finance expense. */
+  cost: z.coerce.number().min(0, "The cost cannot be negative.").optional(),
 });
 
 export type AddRentalChargeInput = z.input<typeof addChargeSchema>;
@@ -63,19 +65,61 @@ export async function addRentalChargeAction(
   try {
     const { supabase, role } = await signedInRole();
     if (!isStaffRole(role)) throw new Error("Your role cannot add charges.");
+    const cost = parsed.data.cost || null;
+    if (cost && !isAdminRole(role))
+      throw new Error("Only owners and admins can record what a charge cost.");
 
     const { data, error } = await supabase.rpc("add_rental_charge", {
       p_rental_id: parsed.data.rentalId,
       p_charge_type_id: parsed.data.chargeTypeId,
       p_amount: parsed.data.amount,
       p_notes: parsed.data.notes || null,
+      p_cost: cost,
     });
     if (error) throw error;
 
     revalidateResource("/rentals");
+    if (cost) revalidateResource("/finance");
     return { success: true, data: { paymentId: String(data) } };
   } catch (error) {
     return { success: false, message: dbMessage(error, "The charge could not be added.") };
+  }
+}
+
+const chargeCostSchema = z.object({
+  paymentId: z.uuid("That charge was not found."),
+  // 0 clears the cost.
+  cost: z.coerce.number().min(0, "The cost cannot be negative."),
+});
+
+export type SetRentalChargeCostInput = z.input<typeof chargeCostSchema>;
+
+/** Sets, changes, or (with 0) clears what a charge cost; the finance expense follows. */
+export async function setRentalChargeCostAction(
+  input: SetRentalChargeCostInput,
+): Promise<ActionResult> {
+  if (!isSupabaseConfigured())
+    return { success: false, message: "Connect Supabase to record costs." };
+
+  const parsed = chargeCostSchema.safeParse(input);
+  if (!parsed.success) return firstFieldError(parsed.error);
+
+  try {
+    const { supabase, role } = await signedInRole();
+    if (!isAdminRole(role))
+      throw new Error("Only owners and admins can record what a charge cost.");
+
+    const { error } = await supabase.rpc("set_rental_charge_cost", {
+      p_payment_id: parsed.data.paymentId,
+      p_cost: parsed.data.cost,
+    });
+    if (error) throw error;
+
+    revalidateResource("/rentals");
+    revalidateResource("/finance");
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: dbMessage(error, "The cost could not be saved.") };
   }
 }
 
@@ -140,6 +184,8 @@ export async function voidRentalChargeAction(
     if (error) throw error;
 
     revalidateResource("/rentals");
+    // A removed charge voids its cost in the expense ledger too.
+    revalidateResource("/finance");
     return { success: true };
   } catch (error) {
     return { success: false, message: dbMessage(error, "The charge could not be removed.") };

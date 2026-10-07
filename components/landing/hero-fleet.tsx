@@ -34,6 +34,8 @@ export type HeroFleetCar = {
   vehicle: PublicListedVehicle;
   /** Trip dates, so the gallery quotes the same total as the search. */
   trip: { start?: string; end?: string };
+  /** Flat fee to hold a booking, from Settings. */
+  reservationFee: number | null;
 };
 
 type HeroFleetState = {
@@ -178,7 +180,12 @@ export function HeroCarGallery({ className }: { className?: string }) {
   }
 
   return (
-    <VehicleGalleryDialog bookHref={car.bookHref} trip={car.trip} vehicle={car.vehicle}>
+    <VehicleGalleryDialog
+      bookHref={car.bookHref}
+      reservationFee={car.reservationFee}
+      trip={car.trip}
+      vehicle={car.vehicle}
+    >
       <button
         aria-label={`View ${count} photos of ${carLabel(car)}`}
         className={cn(
@@ -245,7 +252,12 @@ export function HeroCarSummary() {
         </span>
       ) : null}
       {car.vehicle.gallery.length ? (
-        <VehicleGalleryDialog bookHref={car.bookHref} trip={car.trip} vehicle={car.vehicle}>
+        <VehicleGalleryDialog
+          bookHref={car.bookHref}
+          reservationFee={car.reservationFee}
+          trip={car.trip}
+          vehicle={car.vehicle}
+        >
           <button
             aria-label={`View ${car.vehicle.gallery.length} photos of ${carLabel(car)}`}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-sm font-medium text-brand-700 transition-colors duration-150 hover:text-brand-950 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"

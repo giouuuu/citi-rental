@@ -17,7 +17,7 @@ type ConfirmationPageProps = {
 
 export const metadata: Metadata = {
   title: "Continue to payment",
-  description: "Pay your booking deposit to confirm the reservation.",
+  description: "Pay your reservation fee to confirm the booking.",
 };
 
 export default async function BookingConfirmationPage({

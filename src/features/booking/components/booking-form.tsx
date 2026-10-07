@@ -51,6 +51,8 @@ type BookingFormProps = {
   initialPickupLocation?: string;
   initialFullName?: string;
   initialEmail?: string;
+  /** Flat fee to hold the booking, from Settings. */
+  reservationFee?: number | null;
   /** Guest contact from the lookup step; absent for signed-in customers. */
   contact?: ResolvedBookingContact;
   onChangeContact?: () => void;
@@ -72,6 +74,7 @@ export function BookingForm({
   initialPickupLocation,
   initialFullName,
   initialEmail,
+  reservationFee,
   contact,
   onChangeContact,
 }: BookingFormProps) {
@@ -164,6 +167,7 @@ export function BookingForm({
       <input type="hidden" {...form.register("vehicleId")} />
       <BookingVehicleSummary
         expectedReturnAt={expectedReturnAt}
+        reservationFee={reservationFee}
         startAt={startAt}
         vehicle={vehicle}
       />

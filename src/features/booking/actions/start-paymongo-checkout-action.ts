@@ -19,7 +19,7 @@ const schema = z.object({
 export type StartPaymongoCheckoutResult = ActionResult<{ checkoutUrl: string }>;
 
 /**
- * Creates a PayMongo Checkout Session for a draft booking's deposit and
+ * Creates a PayMongo Checkout Session for a draft booking's reservation fee and
  * returns the hosted page URL. The amount always comes from the booking row,
  * never from the browser.
  */
@@ -60,7 +60,7 @@ export async function startPaymongoCheckoutAction(
       amount: booking.depositAmount,
       referenceNumber,
       rentalId,
-      itemName: `Booking deposit — ${booking.vehicleName}`,
+      itemName: `Reservation fee — ${booking.vehicleName}`,
       description: `Reservation ${referenceNumber}`,
       successUrl: `${payUrl}&paymongo=success`,
       cancelUrl: `${payUrl}&paymongo=cancelled`,

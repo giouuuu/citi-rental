@@ -36,10 +36,10 @@ export function quoteRentalTotal(
   return startAt && returnAt ? quoteRent(startAt, returnAt, rates) : null;
 }
 
-export function quoteDeposit(total: number, percent = 30) {
-  const deposit = Math.round(total * (percent / 100));
+/** The flat reservation fee to hold a booking, never more than the trip. */
+export function quoteReservationFee(total: number, fee: number) {
+  const deposit = Math.min(fee, total);
   return {
-    percent,
     deposit,
     balance: Math.max(0, total - deposit),
   };

@@ -18,7 +18,10 @@ export const settingsSchema = z
     tracker_delayed_threshold_minutes: z.coerce.number().int().min(2).max(240),
     location_retention_days: z.coerce.number().int().min(1).max(3650),
     gps_provider: z.enum(["simulator", "traccar"]),
-    deposit_percent: z.coerce.number().min(1).max(100),
+    reservation_fee: z.coerce
+      .number()
+      .min(1, "Enter a reservation fee of at least ₱1.")
+      .max(1_000_000),
     payment_qr_url: z
       .union([z.url("Enter a valid QR image URL."), z.literal("")])
       .optional(),

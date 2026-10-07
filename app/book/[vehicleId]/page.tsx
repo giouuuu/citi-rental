@@ -7,7 +7,10 @@ import { BookingFlow } from "@/features/booking/components/booking-flow";
 import { bookingSignInPath } from "@/features/booking/lib/booking-continue";
 import { turnstileSiteKey } from "@/features/booking/lib/turnstile";
 import { listPublicVehicleBookedRanges } from "@/features/booking/services/list-public-vehicle-booked-ranges";
-import { getPublicVehicle } from "@/features/booking/services/public-booking-service";
+import {
+  getPublicReservationFee,
+  getPublicVehicle,
+} from "@/features/booking/services/public-booking-service";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,7 +38,10 @@ export default async function BookVehiclePage({
 
   if (!vehicle) notFound();
 
-  const bookedRanges = await listPublicVehicleBookedRanges(vehicleId);
+  const [bookedRanges, reservationFee] = await Promise.all([
+    listPublicVehicleBookedRanges(vehicleId),
+    getPublicReservationFee(),
+  ]);
 
   let signedIn = false;
   let initialFullName: string | undefined;
@@ -91,6 +97,7 @@ export default async function BookVehiclePage({
             initialPickupLocation={query.pickup}
             initialReturnAt={query.end}
             initialStartAt={query.start}
+            reservationFee={reservationFee}
             signInHref={bookingSignInPath(vehicle.id, query)}
             signedIn={signedIn}
             turnstileSiteKey={turnstileSiteKey()}
