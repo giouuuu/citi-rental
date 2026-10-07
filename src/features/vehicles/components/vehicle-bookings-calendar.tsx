@@ -5,7 +5,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import type { VehicleRental } from "@/features/vehicles/services/list-vehicle-rentals";
 import "./vehicle-bookings-calendar.css";
 
-const STATUS_COLOR: Record<string, string> = {
+export const STATUS_COLOR: Record<string, string> = {
   reserved: "#ca8a04",
   active: "#16a34a",
   overdue: "#dc2626",

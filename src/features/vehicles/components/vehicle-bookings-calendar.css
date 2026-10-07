@@ -1,22 +1,22 @@
 .vehicle-bookings-calendar {
   /* Toolbar */
   --fc-button-bg-color: transparent;
-  --fc-button-border-color: hsl(var(--border));
-  --fc-button-text-color: hsl(var(--foreground));
-  --fc-button-hover-bg-color: hsl(var(--muted));
-  --fc-button-hover-border-color: hsl(var(--border));
-  --fc-button-hover-text-color: hsl(var(--foreground));
-  --fc-button-active-bg-color: hsl(var(--muted));
-  --fc-button-active-border-color: hsl(var(--border));
-  --fc-button-active-text-color: hsl(var(--foreground));
+  --fc-button-border-color: var(--border);
+  --fc-button-text-color: var(--foreground);
+  --fc-button-hover-bg-color: var(--muted);
+  --fc-button-hover-border-color: var(--border);
+  --fc-button-hover-text-color: var(--foreground);
+  --fc-button-active-bg-color: var(--muted);
+  --fc-button-active-border-color: var(--border);
+  --fc-button-active-text-color: var(--foreground);
   --fc-button-disabled-opacity: 0.4;
 
   /* Grid */
-  --fc-border-color: hsl(var(--border));
-  --fc-today-bg-color: hsl(var(--muted) / 0.5);
+  --fc-border-color: var(--border);
+  --fc-today-bg-color: color-mix(in srgb, var(--muted) 50%, transparent);
   --fc-page-bg-color: transparent;
-  --fc-neutral-bg-color: hsl(var(--muted));
-  --fc-list-event-hover-bg-color: hsl(var(--muted));
+  --fc-neutral-bg-color: var(--muted);
+  --fc-list-event-hover-bg-color: var(--muted);
 
   /* Event */
   --fc-event-border-radius: 4px;
@@ -33,7 +33,7 @@
 .vehicle-bookings-calendar .fc-toolbar-title {
   font-size: 1rem;
   font-weight: 600;
-  color: hsl(var(--foreground));
+  color: var(--foreground);
 }
 
 /* Toolbar buttons */
@@ -49,15 +49,15 @@
 }
 
 .vehicle-bookings-calendar .fc-button:focus-visible {
-  outline: 2px solid hsl(var(--ring)) !important;
+  outline: 2px solid var(--ring) !important;
   outline-offset: 2px;
 }
 
 .vehicle-bookings-calendar .fc-button-primary:not(:disabled):active,
 .vehicle-bookings-calendar .fc-button-primary.fc-button-active {
-  background-color: hsl(var(--primary)) !important;
-  border-color: hsl(var(--primary)) !important;
-  color: hsl(var(--primary-foreground)) !important;
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
 }
 
 /* Day header (Sun Mon Tue …) */
@@ -65,7 +65,7 @@
   padding: 0.5rem 0;
   font-size: 0.75rem;
   font-weight: 500;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -73,18 +73,18 @@
 /* Day numbers */
 .vehicle-bookings-calendar .fc-daygrid-day-number {
   font-size: 0.8125rem;
-  color: hsl(var(--foreground));
+  color: var(--foreground);
   padding: 0.375rem 0.5rem;
 }
 
 .vehicle-bookings-calendar .fc-day-other .fc-daygrid-day-number {
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
 }
 
 /* Today highlight */
 .vehicle-bookings-calendar .fc-day-today .fc-daygrid-day-number {
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background-color: var(--primary);
+  color: var(--primary-foreground);
   border-radius: 9999px;
   width: 1.625rem;
   height: 1.625rem;
@@ -113,5 +113,5 @@
 /* More link */
 .vehicle-bookings-calendar .fc-daygrid-more-link {
   font-size: 0.72rem;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
 }
