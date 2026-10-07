@@ -24,6 +24,7 @@ import {
   applyServerFieldErrors,
   valuesToFormData,
 } from "@/features/shared/lib/form-utils";
+import { toManilaDateTimeInput } from "@/features/shared/lib/manila-time";
 import type {
   ActionResult,
   ResourceField,
@@ -55,6 +56,11 @@ function buildDefaultValues(
     }
     if (typeof value === "object" && value !== null) {
       values[field.name] = JSON.stringify(value, null, 2);
+      continue;
+    }
+    // Pickers speak Manila wall-clock; stored timestamps arrive in UTC.
+    if (field.type === "datetime-local" || field.type === "date-range") {
+      values[field.name] = value == null ? "" : toManilaDateTimeInput(String(value));
       continue;
     }
     values[field.name] = value == null ? "" : String(value);

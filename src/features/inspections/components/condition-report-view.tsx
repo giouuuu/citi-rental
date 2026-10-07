@@ -3,6 +3,7 @@ import {
   compareInspections,
   summarizeInspectionDelta,
 } from "@/features/inspections/lib/compare-inspections";
+import { formatManila } from "@/features/shared/lib/manila-time";
 import type { RentalInspection } from "@/features/inspections/types/inspection";
 
 export function ConditionReportView({
@@ -51,7 +52,7 @@ export function ConditionReportView({
             {inspection.inspectionType}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {new Date(inspection.inspectedAt).toLocaleString("en-PH")} ·{" "}
+            {formatManila(inspection.inspectedAt, "stamp")} ·{" "}
             {inspection.odometer.toLocaleString()} km · {inspection.fuelLevel}% fuel ·{" "}
             {inspection.cleanliness.replaceAll("_", " ")}
           </p>

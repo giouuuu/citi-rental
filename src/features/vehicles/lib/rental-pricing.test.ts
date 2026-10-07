@@ -47,4 +47,10 @@ describe("formatPhp", () => {
   it("formats PHP amounts", () => {
     expect(formatPhp(2000)).toMatch(/2,000/);
   });
+
+  it("counts Philippine days for stored UTC timestamps", () => {
+    // Oct 8 12:00 AM → Oct 9 6:00 PM in Manila.
+    expect(rentalDayCount("2026-10-07T16:00:00+00:00", "2026-10-09T10:00:00+00:00")).toBe(2);
+    expect(rentalDayCount("2026-10-08T00:00", "2026-10-09T18:00")).toBe(2);
+  });
 });

@@ -10,6 +10,8 @@ import {
   manilaDayStart,
   parseDateKey,
   parseManilaDateTimeInput,
+  parseManilaTimestamp,
+  toManilaDateTimeInput,
 } from "./manila-time";
 
 describe("manila-time", () => {
@@ -57,5 +59,18 @@ describe("Manila picker values", () => {
     expect(parseManilaDateTimeInput("2026-10-10")).toBeNull();
     expect(parseManilaDateTimeInput("2026-02-30T10:00")).toBeNull();
     expect(parseManilaDateTimeInput("2026-10-10T25:00")).toBeNull();
+  });
+
+  it("shows a stored UTC timestamp as Manila wall-clock for pickers", () => {
+    expect(toManilaDateTimeInput("2026-10-07 16:00:00+00")).toBe("2026-10-08T00:00");
+    expect(toManilaDateTimeInput("2026-10-09T10:00:00+00:00")).toBe("2026-10-09T18:00");
+    expect(toManilaDateTimeInput("2026-10-08T00:00")).toBe("2026-10-08T00:00");
+    expect(toManilaDateTimeInput("")).toBe("");
+  });
+
+  it("saves picker values as Manila time and keeps stored offsets", () => {
+    expect(parseManilaTimestamp("2026-10-08T00:00")?.toISOString()).toBe("2026-10-07T16:00:00.000Z");
+    expect(parseManilaTimestamp("2026-10-07T16:00:00+00:00")?.toISOString()).toBe("2026-10-07T16:00:00.000Z");
+    expect(parseManilaTimestamp("nope")).toBeNull();
   });
 });

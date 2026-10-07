@@ -16,13 +16,14 @@ import {
   notifyOwnerTelegram,
   siteUrl,
 } from "@/features/booking/lib/notify-owner-telegram";
+import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { uploadPaymentProof } from "@/features/booking/lib/upload-payment-proof";
 import { uploadBookingIdPhotos } from "@/features/booking/lib/upload-booking-id-photos";
 
 function toTimestamptz(value: string) {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) {
+  const date = parseManilaTimestamp(value);
+  if (!date) {
     throw new Error("Enter valid pick-up and return dates.");
   }
   return date.toISOString();

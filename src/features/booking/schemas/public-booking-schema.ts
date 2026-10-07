@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
+
 /** A picked image file; the server re-checks size and type before upload. */
 function idPhoto(message: string) {
   return z.custom<File>(
@@ -84,9 +86,9 @@ function refineTripDates(
   value: { startAt: string; expectedReturnAt: string },
   context: z.RefinementCtx,
 ) {
-  const start = new Date(value.startAt);
-  const end = new Date(value.expectedReturnAt);
-  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) {
+  const start = parseManilaTimestamp(value.startAt);
+  const end = parseManilaTimestamp(value.expectedReturnAt);
+  if (!start || !end) {
     context.addIssue({
       code: "custom",
       path: ["startAt"],

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/empty";
 import { InspectionComparison } from "@/features/inspections/components/inspection-comparison";
 import { statusLabel } from "@/features/inspections/lib/checklist-areas";
+import { formatManila } from "@/features/shared/lib/manila-time";
 import type { RentalInspection } from "@/features/inspections/types/inspection";
 
 function InspectionSummaryCard({ inspection }: { inspection: RentalInspection }) {
@@ -24,7 +25,7 @@ function InspectionSummaryCard({ inspection }: { inspection: RentalInspection })
             {inspection.inspectionType} inspection
           </h3>
           <p className="text-xs text-muted-foreground">
-            {new Date(inspection.inspectedAt).toLocaleString("en-PH")}
+            {formatManila(inspection.inspectedAt, "stamp")}
           </p>
         </div>
         <p className="text-sm tabular-nums">

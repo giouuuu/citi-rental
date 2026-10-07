@@ -19,7 +19,7 @@ import {
   wallClockTime,
   type BlockedRange,
 } from "@/features/shared/lib/booked-days";
-import { daysBetweenKeys } from "@/features/shared/lib/manila-time";
+import { daysBetweenKeys, manilaDateKey } from "@/features/shared/lib/manila-time";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -139,7 +139,7 @@ export function BookingRangeCalendar({
   const toKey = wallClockDateKey(end);
   const startTime = wallClockTime(start);
   const endTime = wallClockTime(end);
-  const todayKey = dateToKey(new Date());
+  const todayKey = manilaDateKey(new Date());
   const [month, setMonth] = useState<Date | undefined>(
     () => keyToDate(fromKey) ?? keyToDate(minDate) ?? new Date(),
   );

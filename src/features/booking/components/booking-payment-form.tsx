@@ -7,6 +7,7 @@ import { Info, Upload } from "lucide-react";
 import { submitPaymentProofAction } from "@/features/booking/actions/submit-payment-proof-action";
 import { compressPaymentProof } from "@/features/booking/lib/compress-payment-proof";
 import type { BookingPaymentDetails } from "@/features/booking/types/booking-payment";
+import { formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 
 function formatWhen(value: string) {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-PH", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  if (!Number.isFinite(new Date(value).getTime())) return value;
+  return formatManila(value, "stamp");
 }
 
 export function BookingPaymentForm({

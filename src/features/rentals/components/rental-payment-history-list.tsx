@@ -1,3 +1,4 @@
+import { formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import type { RentalPayment } from "@/features/rentals/types/rental-payment";
 
@@ -10,12 +11,8 @@ const PAYMENT_TYPE_LABELS: Record<RentalPayment["paymentType"], string> = {
 };
 
 function formatWhen(value: string) {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-PH", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  if (!Number.isFinite(new Date(value).getTime())) return value;
+  return formatManila(value, "stamp");
 }
 
 export function RentalPaymentHistoryList({

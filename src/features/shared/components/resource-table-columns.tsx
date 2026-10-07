@@ -5,6 +5,11 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Button } from "@/components/ui/button";
+import {
+  formatDateKey,
+  formatManila,
+  parseDateKey,
+} from "@/features/shared/lib/manila-time";
 import { formatPhpExact } from "@/features/shared/lib/money";
 import type {
   ResourceColumn,
@@ -18,14 +23,12 @@ function displayValue(value: unknown, format = "text") {
   if (format === "boolean") return value ? "Yes" : "No";
   if (format === "money") return formatPhpExact(Number(value));
   if (format === "date" || format === "datetime") {
-    const date = new Date(String(value));
-    if (Number.isNaN(date.getTime())) return String(value);
-    return new Intl.DateTimeFormat("en-PH", {
-      dateStyle: "medium",
-      ...(format === "datetime"
-        ? { timeStyle: "short", timeZone: "Asia/Manila" }
-        : {}),
-    }).format(date);
+    const text = String(value);
+    // A bare `YYYY-MM-DD` is already a Philippine calendar day.
+    const key = parseDateKey(text);
+    if (key) return formatDateKey(key);
+    if (Number.isNaN(new Date(text).getTime())) return text;
+    return formatManila(text, format === "datetime" ? "stamp" : "date");
   }
   return String(value).replaceAll("_", " ");
 }

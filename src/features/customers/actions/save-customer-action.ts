@@ -2,6 +2,7 @@
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { isStaffRole } from "@/features/shared/lib/app-roles";
+import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { customerDefinition } from "@/features/customers/schemas/customer-definition";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
@@ -25,7 +26,13 @@ export async function saveCustomerAction(formData: FormData): Promise<ActionResu
     if (!isStaffRole(profile.role)) throw new Error("Your role cannot modify customers.");
     const idValue = formData.get("__id");
     const id = typeof idValue === "string" && idValue ? idValue : undefined;
-    const payload = Object.fromEntries(Object.entries(parsed.data).filter(([, value]) => value !== undefined));
+    const payload: Record<string, unknown> = Object.fromEntries(Object.entries(parsed.data).filter(([, value]) => value !== undefined));
+    // The picker speaks Manila wall-clock; Postgres would read it as UTC.
+    if (typeof payload.tracking_consent_at === "string") {
+      const consentAt = parseManilaTimestamp(payload.tracking_consent_at);
+      if (!consentAt) return { success: false, message: "Review the highlighted customer fields.", fieldErrors: { tracking_consent_at: ["Enter a valid date and time."] } };
+      payload.tracking_consent_at = consentAt.toISOString();
+    }
     if (id) {
       const { data, error } = await supabase.from("customers").update(payload).eq("id", id).select("id").maybeSingle();
       if (error) throw error;

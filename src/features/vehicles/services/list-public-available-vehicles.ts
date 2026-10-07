@@ -2,6 +2,7 @@ import "server-only";
 
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { manilaDateKey } from "@/features/shared/lib/manila-time";
 import type { PublicFleetVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 
 type PublicFleetVehicleRow = {
@@ -29,7 +30,7 @@ function asDateOnly(value?: string | null) {
   if (DATE_ONLY.test(trimmed)) return trimmed;
   const date = new Date(trimmed);
   if (!Number.isFinite(date.getTime())) return null;
-  return date.toISOString().slice(0, 10);
+  return manilaDateKey(date);
 }
 
 export type ListPublicAvailableVehiclesOptions = {

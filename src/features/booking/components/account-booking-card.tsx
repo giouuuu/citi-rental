@@ -8,15 +8,12 @@ import {
   isAwaitingPayment,
   type CustomerBooking,
 } from "@/features/booking/types/customer-booking";
+import { formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 
 function formatWhen(value: string) {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-PH", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  if (!Number.isFinite(new Date(value).getTime())) return value;
+  return formatManila(value, "stamp");
 }
 
 function paymentLabel(booking: CustomerBooking) {

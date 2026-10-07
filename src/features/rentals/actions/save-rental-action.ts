@@ -14,11 +14,12 @@ import {
 import { isPublicCustomerBooking } from "@/features/rentals/lib/is-public-customer-booking";
 import { rentalBilledDays, rentalQuote } from "@/features/rentals/lib/rental-quote";
 import { isStaffRole } from "@/features/shared/lib/app-roles";
+import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 function toTimestamptz(value: string): string {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) {
+  const date = parseManilaTimestamp(value);
+  if (!date) {
     throw new Error("Enter a valid start and return date/time.");
   }
   return date.toISOString();

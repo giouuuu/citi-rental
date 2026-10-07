@@ -48,6 +48,26 @@ export function parseManilaDateTimeInput(value: string | null | undefined): Date
   return new Date(manilaDayStart(match[1]).getTime() + (hours * 60 + minutes) * 60_000);
 }
 
+/**
+ * A stored timestamp (`2026-10-07T16:00:00+00:00`) as the Manila wall-clock
+ * `YYYY-MM-DDTHH:mm` a picker shows. Values already in picker shape pass
+ * through; unparseable ones come back unchanged.
+ */
+export function toManilaDateTimeInput(value: string): string {
+  if (!value || parseManilaDateTimeInput(value)) return value;
+  const instant = new Date(value);
+  return Number.isFinite(instant.getTime()) ? manilaDateTimeInput(instant) : value;
+}
+
+/**
+ * The inverse for saving: a picker value is Manila time, anything else (an
+ * untouched stored timestamp) keeps its own offset. Null when unparseable.
+ */
+export function parseManilaTimestamp(value: string): Date | null {
+  const instant = parseManilaDateTimeInput(value) ?? new Date(value);
+  return Number.isFinite(instant.getTime()) ? instant : null;
+}
+
 export function addDaysToKey(key: string, days: number): string {
   return new Date(new Date(`${key}T00:00:00.000Z`).getTime() + days * DAY_MS)
     .toISOString()
@@ -98,6 +118,12 @@ const instantFormatters = {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: MANILA_TIME_ZONE,
+  }),
+  /** "Oct 8, 2026, 12:00 AM" — the shape resource tables use. */
+  stamp: new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "medium",
+    timeStyle: "short",
     timeZone: MANILA_TIME_ZONE,
   }),
   weekday: new Intl.DateTimeFormat("en-PH", {

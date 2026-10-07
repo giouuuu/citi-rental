@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/empty";
 import { resolveVehicleKnownDamageAction } from "@/features/inspections/actions/actions";
 import { statusLabel } from "@/features/inspections/lib/checklist-areas";
+import { formatManila } from "@/features/shared/lib/manila-time";
 import type { VehicleKnownDamage } from "@/features/inspections/types/inspection";
 
 export function VehicleKnownDamagesPanel({
@@ -51,7 +52,7 @@ export function VehicleKnownDamagesPanel({
               <p className="mt-1 text-sm text-muted-foreground">{damage.notes}</p>
             ) : null}
             <p className="mt-1 text-xs text-muted-foreground">
-              Noted {new Date(damage.createdAt).toLocaleDateString("en-PH")}
+              Noted {formatManila(damage.createdAt, "date")}
             </p>
           </div>
           {!damage.isResolved ? (

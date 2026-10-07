@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { format } from "date-fns";
 import {
   Controller,
   type Control,
@@ -11,6 +10,7 @@ import {
 
 import type { PublicVehicleBookedRange } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import { BookingRangeCalendar } from "@/features/shared/components/booking-range-calendar";
+import { manilaDateKey } from "@/features/shared/lib/manila-time";
 
 export function BookingDateRangeCalendar<T extends FieldValues, TOut extends FieldValues = T>({
   control,
@@ -34,7 +34,7 @@ export function BookingDateRangeCalendar<T extends FieldValues, TOut extends Fie
       })),
     [bookedRanges],
   );
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = manilaDateKey(new Date());
 
   return (
     <Controller

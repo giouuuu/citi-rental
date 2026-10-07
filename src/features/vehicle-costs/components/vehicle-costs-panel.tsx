@@ -19,18 +19,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  formatDateKey,
+  manilaDateKey,
+  parseDateKey,
+} from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { expenseCategoryLabel } from "@/features/vehicle-costs/lib/expense-categories";
 import type { VehicleExpense } from "@/features/vehicle-costs/services/list-vehicle-expenses";
 
 function formatDate(value: string) {
-  const date = new Date(`${value}T00:00:00`);
-  if (!Number.isFinite(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-PH", { dateStyle: "medium" }).format(date);
+  const key = parseDateKey(value);
+  return key ? formatDateKey(key) : value;
 }
 
 function isSameMonth(value: string, now: Date) {
-  return value.slice(0, 7) === now.toISOString().slice(0, 7);
+  return value.slice(0, 7) === manilaDateKey(now).slice(0, 7);
 }
 
 export function VehicleCostsPanel({

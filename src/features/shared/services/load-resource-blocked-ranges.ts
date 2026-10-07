@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { createClient } from "@/lib/supabase/server";
+import { toManilaDateTimeInput } from "@/features/shared/lib/manila-time";
 import type {
   ResourceBlockedRanges,
   ResourceField,
@@ -63,9 +64,10 @@ export async function loadResourceBlockedRanges(
         ]
           .filter(Boolean)
           .join(" · ");
+        // The calendar reads days as written, so hand it Manila wall-clock.
         (byKey[String(key)] ??= []).push({
-          startAt: String(startAt),
-          endAt: String(endAt),
+          startAt: toManilaDateTimeInput(String(startAt)),
+          endAt: toManilaDateTimeInput(String(endAt)),
           label: label || undefined,
         });
       }

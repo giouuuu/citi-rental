@@ -1,9 +1,10 @@
-import { format } from "date-fns";
 import { z } from "zod";
 
-/** Local calendar day as yyyy-MM-dd (string-comparable). */
+import { manilaDateKey } from "@/features/shared/lib/manila-time";
+
+/** Philippine calendar day as yyyy-MM-dd (string-comparable). */
 export function todayDateValue(now = new Date()): string {
-  return format(now, "yyyy-MM-dd");
+  return manilaDateKey(now);
 }
 
 export const bookingSearchSchema = z

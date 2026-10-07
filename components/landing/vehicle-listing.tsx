@@ -5,6 +5,7 @@ import { format, parse } from "date-fns";
 import { CarFront, CalendarDays, MapPin, Search } from "lucide-react";
 
 import { FleetVehicleCard } from "@/components/landing/fleet-vehicle-card";
+import { formatManila } from "@/features/shared/lib/manila-time";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -43,9 +44,8 @@ function formatTripDate(value?: string) {
   if (!value) return null;
   const parsed = parse(value, "yyyy-MM-dd", new Date());
   if (Number.isNaN(parsed.getTime())) {
-    const fallback = new Date(value);
-    if (!Number.isFinite(fallback.getTime())) return value;
-    return format(fallback, "MMM d, yyyy");
+    if (!Number.isFinite(new Date(value).getTime())) return value;
+    return formatManila(value, "date");
   }
   return format(parsed, "MMM d, yyyy");
 }

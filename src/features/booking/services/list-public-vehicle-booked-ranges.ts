@@ -2,6 +2,7 @@ import "server-only";
 
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { toManilaDateTimeInput } from "@/features/shared/lib/manila-time";
 
 export type PublicVehicleBookedRange = {
   startAt: string;
@@ -26,8 +27,9 @@ export async function listPublicVehicleBookedRanges(
 
   return (data as { start_at: string; expected_return_at: string }[]).map(
     (row) => ({
-      startAt: String(row.start_at),
-      expectedReturnAt: String(row.expected_return_at),
+      // The calendar reads days as written, so hand it Philippine wall-clock.
+      startAt: toManilaDateTimeInput(String(row.start_at)),
+      expectedReturnAt: toManilaDateTimeInput(String(row.expected_return_at)),
     }),
   );
 }

@@ -27,6 +27,10 @@ import {
 } from "@/features/booking/schemas/public-booking-schema";
 import type { PublicVehicleBookedRange } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import type { PublicFleetVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
+import {
+  parseManilaDateTimeInput,
+  toManilaDateTimeInput,
+} from "@/features/shared/lib/manila-time";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field";
@@ -56,10 +60,8 @@ function toDateTimeLocalValue(value?: string) {
   if (!value) return "";
   // A bare day from the landing search is a calendar day, not UTC midnight.
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value}T09:00`;
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "";
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
+  const local = toManilaDateTimeInput(value);
+  return parseManilaDateTimeInput(local) ? local : "";
 }
 
 export function BookingForm({

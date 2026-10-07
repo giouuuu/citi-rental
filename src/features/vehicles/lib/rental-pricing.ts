@@ -1,4 +1,9 @@
-import { differenceInCalendarDays, parseISO } from "date-fns";
+import {
+  daysBetweenKeys,
+  manilaDateKey,
+  parseDateKey,
+  parseManilaDateTimeInput,
+} from "@/features/shared/lib/manila-time";
 
 export { formatPhp } from "@/features/shared/lib/money";
 
@@ -9,13 +14,13 @@ export function rentalDayCount(
 ): number | null {
   if (!start?.trim() || !end?.trim()) return null;
 
-  const startDate = parseFlexibleDate(start);
-  const endDate = parseFlexibleDate(end);
-  if (!startDate || !endDate || endDate.getTime() < startDate.getTime()) {
+  const startKey = philippineDayKey(start);
+  const endKey = philippineDayKey(end);
+  if (!startKey || !endKey || endKey < startKey) {
     return null;
   }
 
-  return Math.max(1, differenceInCalendarDays(endDate, startDate) + 1);
+  return Math.max(1, daysBetweenKeys(startKey, endKey));
 }
 
 export function quoteRentalTotal(
@@ -37,12 +42,12 @@ export function quoteDeposit(total: number, percent = 30) {
   };
 }
 
-function parseFlexibleDate(value: string) {
+/** The Philippine calendar day of a date key, picker value, or stored timestamp. */
+function philippineDayKey(value: string) {
   const trimmed = value.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    const parsed = parseISO(`${trimmed}T00:00:00`);
-    return Number.isFinite(parsed.getTime()) ? parsed : null;
-  }
-  const parsed = new Date(trimmed);
-  return Number.isFinite(parsed.getTime()) ? parsed : null;
+  const key = parseDateKey(trimmed);
+  if (key) return key;
+  if (parseManilaDateTimeInput(trimmed)) return trimmed.slice(0, 10);
+  const instant = new Date(trimmed);
+  return Number.isFinite(instant.getTime()) ? manilaDateKey(instant) : null;
 }
