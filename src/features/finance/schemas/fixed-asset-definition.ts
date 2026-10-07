@@ -33,7 +33,16 @@ export const fixedAssetDefinition: ResourceDefinition = {
   description:
     "The register that depreciation is computed from. Every fleet unit needs its acquisition cost here, or its largest deduction goes missing.",
   writeRoles: ["owner"],
-  filters: [{ param: "status", column: "status", op: "eq", label: "Status", showValue: true }],
+  filters: [
+    {
+      param: "status",
+      column: "status",
+      op: "eq",
+      label: "Status",
+      picker: true,
+      valueLabels: { active: "Active", disposed: "Disposed" },
+    },
+  ],
   schema: z
     .object({
       name: requiredText("Asset name", 160),

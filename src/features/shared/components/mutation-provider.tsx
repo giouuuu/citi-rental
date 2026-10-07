@@ -27,9 +27,8 @@ export function MutationProvider({ children }: { children: React.ReactNode }) {
     () => ({ isPending, runMutation }),
     [isPending, runMutation],
   );
-  // Writes get the viewport-level bar; a table re-query gets its own bar above
-  // the rows. Same primitive, different position, so the two never read as the
-  // same event.
+  // Writes and page loads share the viewport-top bar, above the header, where
+  // a wait is seen first. A table re-query gets its own bar above the rows.
   const showBar = useDelayedPending(isPending);
 
   return (
@@ -37,7 +36,7 @@ export function MutationProvider({ children }: { children: React.ReactNode }) {
       {showBar ? (
         <Progress
           aria-label="Saving changes"
-          className="fixed inset-x-0 top-14 z-50 h-1 rounded-none bg-primary/15"
+          className="fixed inset-x-0 top-0 z-60 h-1 rounded-none bg-primary/15"
         />
       ) : null}
       <div aria-busy={isPending}>{children}</div>

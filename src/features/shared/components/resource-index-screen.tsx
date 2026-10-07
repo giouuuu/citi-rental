@@ -6,10 +6,12 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { ResourceList } from "@/features/shared/components/resource-list";
 import { parseResourceQuery } from "@/features/shared/schemas/resource-query-schema";
+import { loadResourceReferences } from "@/features/shared/services/load-resource-references";
+import { selectResourceRows } from "@/features/shared/services/select-resource-rows";
 import type {
   AppRole,
   ResourceDefinition,
-  ResourceRow,
+  ResourceField,
 } from "@/features/shared/types/resource";
 
 export async function ResourceIndexScreen({
@@ -60,42 +62,22 @@ export async function ResourceIndexScreen({
   if (profileError || !profile?.is_active)
     throw new Error("Your profile is not active.");
 
-  const columns = [
-    ...new Set(
-      [
-        "id",
-        definition.titleField,
-        definition.subtitleField,
-        ...definition.columns.map((column) => column.key),
-      ].filter(Boolean),
-    ),
-  ].join(",");
   const from = (resourceQuery.page - 1) * resourceQuery.pageSize;
-  const to = from + resourceQuery.pageSize;
-  let request = supabase
-    .from(definition.table)
-    .select(columns);
-  if (resourceQuery.q)
-    request = request.ilike(
-      definition.searchColumn,
-      `%${resourceQuery.q}%`,
-    );
-  for (const filter of definition.filters ?? []) {
-    const value = resourceQuery.filters?.[filter.param];
-    if (!value) continue;
-    request =
-      filter.op === "gte"
-        ? request.gte(filter.column, value)
-        : filter.op === "lte"
-          ? request.lte(filter.column, value)
-          : request.eq(filter.column, value);
-  }
-  const { data, error } = await request
-    .order(resourceQuery.sort, { ascending: resourceQuery.direction === "asc" })
-    .order("id", { ascending: resourceQuery.direction === "asc" })
-    .range(from, to);
-  if (error) throw new Error(error.message);
-  const rows = (data ?? []) as unknown as ResourceRow[];
+  // One extra row tells us whether there is a next page.
+  // Pickers over another table (customer, vehicle) load their choices the way
+  // the form's reference fields do, keyed by filter param.
+  const referenceFilters: ResourceField[] = (definition.filters ?? []).flatMap((filter) =>
+    filter.picker && filter.reference
+      ? [{ name: filter.param, label: filter.label, reference: filter.reference }]
+      : [],
+  );
+  const [rows, filterOptions] = await Promise.all([
+    selectResourceRows(supabase, definition, resourceQuery, {
+      from,
+      to: from + resourceQuery.pageSize,
+    }),
+    loadResourceReferences(supabase, referenceFilters),
+  ]);
 
   return (
     <ResourceList
@@ -105,6 +87,7 @@ export async function ResourceIndexScreen({
         definition.allowCreate !== false
       }
       definition={definition}
+      filterOptions={filterOptions}
       query={resourceQuery}
       result={{
         rows: rows.slice(0, resourceQuery.pageSize),

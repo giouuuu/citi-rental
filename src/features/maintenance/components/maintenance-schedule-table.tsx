@@ -31,6 +31,7 @@ import {
   MAINTENANCE_FALLBACK_SORT,
   MAINTENANCE_ROUTE,
 } from "@/features/maintenance/lib/maintenance-options";
+import { ExportButton } from "@/features/shared/components/export-button";
 import { ResourceEmptyState } from "@/features/shared/components/resource-empty-state";
 import { ResourceSearchForm } from "@/features/shared/components/resource-search-form";
 import { ResourceTablePagination } from "@/features/shared/components/resource-table-pagination";
@@ -225,6 +226,13 @@ export function MaintenanceScheduleTable({
               ]}
               value={status}
             />
+            <div className="ml-auto">
+              <ExportButton
+                disabled={rows.length === 0}
+                href={resourceTableUrl("/maintenance/export", query, { page: 1 }, MAINTENANCE_FALLBACK_SORT)}
+                size="sm"
+              />
+            </div>
           </div>
         }
       />

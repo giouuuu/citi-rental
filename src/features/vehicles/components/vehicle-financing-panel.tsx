@@ -23,6 +23,7 @@ import { voidLoanPaymentAction } from "@/features/finance/actions/vehicle-loan-a
 import type { LoanProgress, ScheduledInstallment, VehicleLoan } from "@/features/finance/lib/loan-schedule";
 import { LOAN_STATUS_LABELS } from "@/features/finance/schemas/vehicle-loan-definition";
 import { ConfirmActionDialog } from "@/features/shared/components/confirm-action-dialog";
+import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
 import { formatDateKey, formatPhp, formatPhpExact } from "@/features/shared/client";
 import { useVehicleActions } from "@/features/vehicles/components/vehicle-actions-provider";
@@ -160,6 +161,30 @@ export function VehicleFinancingPanel({
         <Card>
           <CardHeader>
             <CardTitle>Earlier loans</CardTitle>
+            <CardAction>
+              <ExportRowsButton
+                fileName="earlier-loans"
+                sheets={[
+                  {
+                    name: "Earlier loans",
+                    columns: [
+                      { key: "lender", header: "Lender" },
+                      { key: "financed", header: "Financed", format: "money" },
+                      { key: "paid", header: "Installments paid", format: "number" },
+                      { key: "term", header: "Term (months)", format: "number" },
+                      { key: "status", header: "Status" },
+                    ],
+                    rows: history.map(({ loan, progress }) => ({
+                      lender: loan.lenderName,
+                      financed: loan.amountFinanced,
+                      paid: progress.settledCount,
+                      term: loan.termMonths,
+                      status: LOAN_STATUS_LABELS[loan.status],
+                    })),
+                  },
+                ]}
+              />
+            </CardAction>
           </CardHeader>
           <CardContent>
             <Table aria-label="Earlier loans">
@@ -239,6 +264,42 @@ function LoanCard({ entry: { loan, progress } }: { entry: VehicleLoanView }) {
           {loan.accountNumber ? ` · Account ${loan.accountNumber}` : ""}
         </CardDescription>
         <CardAction className="flex flex-wrap gap-2">
+          <ExportRowsButton
+            fileName={`loan-schedule-${loan.lenderName
+              .toLowerCase()
+              .replaceAll(/[^a-z0-9]+/g, "-")
+              .replaceAll(/^-+|-+$/g, "")}`}
+            sheets={[
+              {
+                name: "Installment schedule",
+                columns: [
+                  { key: "number", header: "#", format: "number" },
+                  { key: "dueDate", header: "Due", format: "date" },
+                  { key: "paidOn", header: "Paid on", format: "date" },
+                  { key: "reference", header: "Reference" },
+                  { key: "payment", header: "Payment", format: "money" },
+                  { key: "interest", header: "Interest", format: "money" },
+                  { key: "principal", header: "Principal", format: "money" },
+                  { key: "balanceAfter", header: "Balance after", format: "money" },
+                  { key: "status", header: "Status" },
+                ],
+                rows: progress.schedule.map((row) => {
+                  const paid = row.paymentRecord;
+                  return {
+                    number: row.number,
+                    dueDate: row.dueDate,
+                    paidOn: paid?.paidOn,
+                    reference: paid?.referenceNumber,
+                    payment: paid ? paid.amountPaid : row.payment,
+                    interest: paid ? paid.interest : row.interest,
+                    principal: paid ? paid.principal : row.principal,
+                    balanceAfter: row.balanceAfter,
+                    status: INSTALLMENT_LABELS[row.state],
+                  };
+                }),
+              },
+            ]}
+          />
           <Button onClick={() => editLoan(loanRow(loan))} size="sm" variant="outline">
             <Pencil /> Edit loan
           </Button>

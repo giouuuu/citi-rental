@@ -3,7 +3,7 @@ import { KeyRound } from "lucide-react";
 
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -13,6 +13,7 @@ import {
   summarizeCustomerRentals,
 } from "@/features/customers/lib/summarize-customer-rentals";
 import type { CustomerRental } from "@/features/customers/types/customer-rental";
+import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/shared/lib/money";
 
@@ -65,6 +66,40 @@ export function CustomerRentalHistory({ rentals }: { rentals: CustomerRental[] }
             Newest first{rentals.length >= CUSTOMER_RENTAL_LIMIT ? ` · latest ${CUSTOMER_RENTAL_LIMIT} shown` : ""}.
             {summary.cancellations ? ` ${summary.cancellations} cancelled.` : ""}
           </CardDescription>
+          <CardAction>
+            <ExportRowsButton
+              fileName="rental-history"
+              sheets={[
+                {
+                  name: "Rental history",
+                  columns: [
+                    { key: "reference", header: "Reference" },
+                    { key: "plate", header: "Plate" },
+                    { key: "car", header: "Car" },
+                    { key: "startAt", header: "Start", format: "datetime" },
+                    { key: "endAt", header: "Return", format: "datetime" },
+                    { key: "late", header: "Returned late" },
+                    { key: "status", header: "Status" },
+                    { key: "quoted", header: "Quoted", format: "money" },
+                    { key: "collected", header: "Collected", format: "money" },
+                    { key: "owes", header: "Owes", format: "money" },
+                  ],
+                  rows: rentals.map((rental) => ({
+                    reference: rental.reference,
+                    plate: rental.vehiclePlate,
+                    car: rental.vehicleName,
+                    startAt: rental.startAt,
+                    endAt: rental.actualReturnAt ?? rental.expectedReturnAt,
+                    late: isLateReturn(rental) ? "Yes" : "No",
+                    status: rental.status.charAt(0).toUpperCase() + rental.status.slice(1).replaceAll("_", " "),
+                    quoted: rental.quotedTotal,
+                    collected: rental.collected,
+                    owes: rentalOutstanding(rental),
+                  })),
+                },
+              ]}
+            />
+          </CardAction>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>

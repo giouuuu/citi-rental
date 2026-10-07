@@ -16,6 +16,7 @@ import type {
   ResourceColumn,
   ResourceRow,
 } from "@/features/shared/types/resource";
+import { cn } from "@/lib/utils";
 
 const columnHelper = createColumnHelper<ResourceRow>();
 
@@ -76,41 +77,34 @@ export function buildResourceColumns({
           }),
         ]
       : []),
-    ...columns.map((column) =>
-      columnHelper.accessor((row) => row[column.key], {
-        id: column.key,
-        size: column.format === "image" ? 88 : undefined,
-        enableSorting: column.format !== "image",
-        header: ({ column: tableColumn }) => (
-          <DataTableColumnHeader column={tableColumn} title={column.label} />
-        ),
-        cell: (context) =>
-          column.format === "status" ? (
-            <StatusBadge status={String(context.getValue() ?? "unknown")} />
-          ) : column.format === "image" ? (
-            context.getValue() ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt=""
-                className="h-10 w-14 rounded-md border object-cover"
-                src={String(context.getValue())}
-              />
-            ) : (
-              <span className="text-muted-foreground">No photo</span>
-            )
-          ) : (
-            <span
-              className={
-                column.format === "number" || column.format === "money"
-                  ? "font-mono tabular-nums"
-                  : undefined
-              }
-            >
-              {displayValue(context.getValue(), column.format)}
-            </span>
+    ...columns
+      .filter((column) => !column.exportOnly)
+      .map((column) =>
+        columnHelper.accessor((row) => row[column.key], {
+          id: column.key,
+          size: column.format === "image" ? 88 : undefined,
+          enableSorting: column.format !== "image",
+          header: ({ column: tableColumn }) => (
+            <DataTableColumnHeader column={tableColumn} title={column.label} />
           ),
-      }),
-    ),
+          cell: (context) =>
+            column.secondary?.length ? (
+              <div className="flex flex-col items-start gap-0.5">
+                <CellValue column={column} value={context.getValue()} />
+                {column.secondary.map((line) => (
+                  <CellValue
+                    column={line}
+                    key={line.key}
+                    secondary
+                    value={context.row.original[line.key]}
+                  />
+                ))}
+              </div>
+            ) : (
+              <CellValue column={column} value={context.getValue()} />
+            ),
+        }),
+      ),
     columnHelper.display({
       id: "open",
       size: 48,
@@ -127,4 +121,48 @@ export function buildResourceColumns({
       ),
     }),
   ];
+}
+
+function CellValue({
+  column,
+  value,
+  secondary = false,
+}: {
+  column: ResourceColumn;
+  value: unknown;
+  /** A smaller, muted line under the cell's main value. */
+  secondary?: boolean;
+}) {
+  if (column.format === "status")
+    return value ? (
+      <StatusBadge
+        className={secondary ? "h-5 px-2 text-[11px]" : undefined}
+        status={String(value)}
+      />
+    ) : secondary ? null : (
+      <StatusBadge status="unknown" />
+    );
+  if (column.format === "image")
+    return value ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        alt=""
+        className="h-10 w-14 rounded-md border object-cover"
+        src={String(value)}
+      />
+    ) : (
+      <span className="text-muted-foreground">No photo</span>
+    );
+  const numeric = column.format === "number" || column.format === "money";
+  return (
+    <span
+      className={cn(
+        numeric && "font-mono tabular-nums",
+        secondary && "text-xs text-muted-foreground",
+      )}
+    >
+      {secondary && column.prefix ? `${column.prefix} ` : null}
+      {displayValue(value, column.format)}
+    </span>
+  );
 }

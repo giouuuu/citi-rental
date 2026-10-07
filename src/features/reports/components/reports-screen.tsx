@@ -25,6 +25,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ExportButton } from "@/features/shared/components/export-button";
+import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { ReportFilters } from "@/features/reports/components/report-filters";
 import {
   defaultDateRangePresets,
@@ -138,11 +140,37 @@ export async function ReportsScreen({
               vehicleId={vehicleId}
               vehicles={vehicles}
             />
-            <Button asChild variant="outline">
-              <Link href={exportHref}>
-                <Download /> Export CSV
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <ExportRowsButton
+                fileName="vehicle-revenue"
+                size="default"
+                sheets={[
+                  {
+                    name: "Vehicle revenue",
+                    columns: [
+                      { key: "plateNumber", header: "Plate" },
+                      { key: "vehicleName", header: "Vehicle" },
+                      { key: "rentalCount", header: "Rentals", format: "number" },
+                      { key: "rentedDays", header: "Days out", format: "number" },
+                      { key: "utilizationPercent", header: "Utilization", format: "percent" },
+                      { key: "quotedTotal", header: "Quoted", format: "money" },
+                      { key: "collected", header: "Collected", format: "money" },
+                      { key: "penalties", header: "Penalties", format: "money" },
+                      { key: "outstanding", header: "Outstanding", format: "money" },
+                    ],
+                    rows: rows.map((row) => ({
+                      ...row,
+                      utilizationPercent: row.utilizationPercent / 100,
+                    })),
+                  },
+                ]}
+              />
+              <Button asChild variant="outline">
+                <Link href={exportHref}>
+                  <Download /> Export CSV
+                </Link>
+              </Button>
+            </div>
           </div>
 
           {rows.length ? (
@@ -223,7 +251,11 @@ export async function ReportsScreen({
               <CardTitle>{item.title}</CardTitle>
               <CardDescription>{item.description}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-wrap gap-2">
+              <ExportButton
+                href={`/reports/export?type=${item.type}&format=xlsx`}
+                size="default"
+              />
               <Button asChild variant="outline">
                 <Link href={`/reports/export?type=${item.type}`}>
                   <Download /> Export CSV

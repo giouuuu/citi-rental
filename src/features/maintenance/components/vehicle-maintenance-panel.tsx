@@ -33,7 +33,9 @@ import {
   type MaintenanceRecord,
   type ScheduledPlan,
 } from "@/features/maintenance/lib/maintenance-schedule";
+import { SCHEDULE_XLSX_COLUMNS, scheduleXlsxRows } from "@/features/maintenance/lib/maintenance-export";
 import { ConfirmActionDialog } from "@/features/shared/components/confirm-action-dialog";
+import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
 import { formatDateKey, formatPhp, formatPhpExact } from "@/features/shared/client";
 import { cn } from "@/lib/utils";
@@ -67,6 +69,11 @@ export function VehicleMaintenancePanel({
   const [recordDialog, setRecordDialog] = useState<{ planId: string | null } | null>(null);
   const [rowError, setRowError] = useState<string | undefined>();
 
+  const fileSlug =
+    vehicleLabel
+      .toLowerCase()
+      .replaceAll(/[^a-z0-9]+/g, "-")
+      .replaceAll(/^-+|-+$/g, "") || "car";
   const recorded = records.filter((record) => record.status === "recorded");
   const totalSpent = recorded.reduce((sum, record) => sum + record.cost, 0);
 
@@ -114,6 +121,16 @@ export function VehicleMaintenancePanel({
           </CardDescription>
           {schedule.length > 0 ? (
             <CardAction className="flex flex-wrap gap-2">
+              <ExportRowsButton
+                fileName={`service-schedule-${fileSlug}`}
+                sheets={[
+                  {
+                    name: "Service schedule",
+                    columns: SCHEDULE_XLSX_COLUMNS.filter((column) => column.key !== "plate" && column.key !== "car"),
+                    rows: scheduleXlsxRows(schedule, false),
+                  },
+                ]}
+              />
               <Button onClick={() => setPlanDialog({ plan: null })} size="sm" variant="outline">
                 <Plus /> Add plan
               </Button>
@@ -225,11 +242,35 @@ export function VehicleMaintenancePanel({
               ? `${recorded.length} ${recorded.length === 1 ? "service" : "services"}, ${formatPhp(totalSpent)} spent in total. Each cost is booked as this car's expense.`
               : "Every service you record lands here with what it cost."}
           </CardDescription>
-          {canSeeExpenses && recorded.length > 0 ? (
-            <CardAction>
-              <Button asChild size="sm" variant="ghost">
-                <Link href={`/finance/expenses?vehicle=${vehicleId}`}>All expenses for this car</Link>
-              </Button>
+          {records.length > 0 ? (
+            <CardAction className="flex flex-wrap gap-2">
+              <ExportRowsButton
+                fileName={`service-history-${fileSlug}`}
+                sheets={[
+                  {
+                    name: "Service history",
+                    columns: [
+                      { key: "performedOn", header: "Date", format: "date" },
+                      { key: "title", header: "Service" },
+                      { key: "notes", header: "Notes" },
+                      { key: "odometer", header: "Odometer (km)", format: "number" },
+                      { key: "shopName", header: "Shop" },
+                      { key: "documentNumber", header: "Document number" },
+                      { key: "cost", header: "Cost", format: "money" },
+                      { key: "status", header: "Status" },
+                    ],
+                    rows: records.map((record) => ({
+                      ...record,
+                      status: record.status === "void" ? "Void" : "Recorded",
+                    })),
+                  },
+                ]}
+              />
+              {canSeeExpenses && recorded.length > 0 ? (
+                <Button asChild size="sm" variant="ghost">
+                  <Link href={`/finance/expenses?vehicle=${vehicleId}`}>All expenses for this car</Link>
+                </Button>
+              ) : null}
             </CardAction>
           ) : null}
         </CardHeader>

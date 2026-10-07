@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { resolveFallbackSort } from "@/features/shared/lib/resource-table-url";
+import {
+  flatResourceColumns,
+  resolveFallbackSort,
+} from "@/features/shared/lib/resource-table-url";
 import type {
   ResourceDefinition,
   ResourceQuery,
@@ -24,7 +27,9 @@ export function parseResourceQuery(
     ]),
   );
   const parsed = querySchema.parse(values);
-  const allowedSorts = new Set(definition.columns.map((column) => column.key));
+  const allowedSorts = new Set(
+    flatResourceColumns(definition.columns).map((column) => column.key),
+  );
   const fallbackSort = resolveFallbackSort(definition.columns);
   const filters: Record<string, string> = {};
   for (const filter of definition.filters ?? []) {

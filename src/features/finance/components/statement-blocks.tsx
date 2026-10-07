@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CircleAlert, CircleCheck, Download, Plus } from "lucide-react";
 
+import { ExportButton } from "@/features/shared/components/export-button";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,8 +38,8 @@ function windowQuery(window: FinanceWindow) {
   return `from=${window.from}&to=${window.to}`;
 }
 
-export function exportHref(type: string, window: FinanceWindow) {
-  return `/finance/export?type=${type}&${windowQuery(window)}`;
+export function exportHref(type: string, window: FinanceWindow, format?: "xlsx") {
+  return `/finance/export?type=${type}&${windowQuery(window)}${format ? `&format=${format}` : ""}`;
 }
 
 function BlockHeader({
@@ -59,11 +60,14 @@ function BlockHeader({
         <CardDescription>{description}</CardDescription>
       </div>
       {exportType ? (
-        <Button asChild className="shrink-0 print:hidden" size="sm" variant="ghost">
-          <a download href={exportHref(exportType, window)}>
-            <Download /> CSV
-          </a>
-        </Button>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 print:hidden">
+          <ExportButton href={exportHref(exportType, window, "xlsx")} size="sm" />
+          <Button asChild size="sm" variant="ghost">
+            <a download href={exportHref(exportType, window)}>
+              <Download /> CSV
+            </a>
+          </Button>
+        </div>
       ) : null}
     </CardHeader>
   );
@@ -548,11 +552,14 @@ export function TaxWorksheetBlock({
             <h3 className="text-sm font-semibold" id="monthly">
               By month
             </h3>
-            <Button asChild className="print:hidden" size="sm" variant="ghost">
-              <a download href={exportHref("monthly", window)}>
-                <Download /> CSV
-              </a>
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-1 print:hidden">
+              <ExportButton href={exportHref("monthly", window, "xlsx")} size="sm" />
+              <Button asChild size="sm" variant="ghost">
+                <a download href={exportHref("monthly", window)}>
+                  <Download /> CSV
+                </a>
+              </Button>
+            </div>
           </div>
           <Table aria-label="By month">
             <TableHeader>

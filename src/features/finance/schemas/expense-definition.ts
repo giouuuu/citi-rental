@@ -61,11 +61,32 @@ export const expenseDefinition: ResourceDefinition = {
   writeRoles: ["owner"],
   archive: { field: "status", value: "void", label: "Void expense" },
   filters: [
-    { param: "category", column: "category_id", op: "eq", label: "One BIR line" },
-    { param: "vehicle", column: "vehicle_id", op: "eq", label: "One vehicle" },
+    {
+      param: "category",
+      column: "category_id",
+      op: "eq",
+      label: "Deduction line",
+      picker: true,
+      reference: { table: "expense_categories", labelColumn: "name" },
+    },
+    {
+      param: "vehicle",
+      column: "vehicle_id",
+      op: "eq",
+      label: "Car",
+      picker: true,
+      reference: { table: "vehicles", labelColumn: "plate_number", secondaryColumn: "name" },
+    },
     { param: "from", column: "expense_date", op: "gte", label: "From", showValue: true },
     { param: "to", column: "expense_date", op: "lte", label: "To", showValue: true },
-    { param: "status", column: "status", op: "eq", label: "Status", showValue: true },
+    {
+      param: "status",
+      column: "status",
+      op: "eq",
+      label: "Status",
+      picker: true,
+      valueLabels: { recorded: "Recorded", void: "Void" },
+    },
   ],
   schema: z
     .object({

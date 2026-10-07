@@ -3,7 +3,57 @@ import { NextRequest, NextResponse } from "next/server";
 import { toCsv } from "@/features/reports/lib/to-csv";
 import { getVehicleRevenueReport } from "@/features/reports/services/get-vehicle-revenue-report";
 import { resolveReportWindow } from "@/features/reports/lib/report-window";
+import { isAdminRole } from "@/features/shared/lib/app-roles";
+import { toXlsx, xlsxResponse, type XlsxColumn } from "@/features/shared/lib/to-xlsx";
 import { createClient } from "@/lib/supabase/server";
+
+const revenueColumns: XlsxColumn[] = [
+  { key: "plateNumber", header: "Plate" },
+  { key: "vehicleName", header: "Vehicle" },
+  { key: "rentalCount", header: "Rentals", format: "number" },
+  { key: "rentedDays", header: "Days out", format: "number" },
+  { key: "utilizationPercent", header: "Utilization", format: "percent" },
+  { key: "quotedTotal", header: "Quoted", format: "money" },
+  { key: "collected", header: "Collected", format: "money" },
+  { key: "penalties", header: "Penalties", format: "money" },
+  { key: "outstanding", header: "Outstanding", format: "money" },
+];
+
+const rentalColumns: XlsxColumn[] = [
+  { key: "reference_number", header: "Reference" },
+  { key: "status", header: "Status", format: "status" },
+  { key: "customer_id", header: "Customer ID" },
+  { key: "vehicle_id", header: "Vehicle ID" },
+  { key: "start_at", header: "Start", format: "datetime" },
+  { key: "expected_return_at", header: "Expected return", format: "datetime" },
+  { key: "actual_return_at", header: "Actual return", format: "datetime" },
+  { key: "pickup_location", header: "Pickup location" },
+  { key: "return_location", header: "Return location" },
+  { key: "starting_odometer", header: "Starting odometer", format: "number" },
+  { key: "ending_odometer", header: "Ending odometer", format: "number" },
+  { key: "starting_fuel_level", header: "Starting fuel" },
+  { key: "ending_fuel_level", header: "Ending fuel" },
+  { key: "created_at", header: "Created", format: "datetime" },
+  { key: "updated_at", header: "Updated", format: "datetime" },
+  { key: "id", header: "ID" },
+];
+
+const vehicleColumns: XlsxColumn[] = [
+  { key: "plate_number", header: "Plate" },
+  { key: "name", header: "Name" },
+  { key: "make", header: "Make" },
+  { key: "model", header: "Model" },
+  { key: "year", header: "Year" },
+  { key: "category", header: "Category" },
+  { key: "transmission", header: "Transmission" },
+  { key: "fuel_type", header: "Fuel type" },
+  { key: "seating_capacity", header: "Seats", format: "number" },
+  { key: "current_odometer", header: "Odometer", format: "number" },
+  { key: "status", header: "Status", format: "status" },
+  { key: "created_at", header: "Created", format: "datetime" },
+  { key: "updated_at", header: "Updated", format: "datetime" },
+  { key: "id", header: "ID" },
+];
 
 const tableReports = {
   rentals: {
@@ -20,6 +70,19 @@ const tableReports = {
   },
 } as const;
 
+function sheetResponse(
+  asXlsx: boolean,
+  rows: Record<string, unknown>[],
+  columns: XlsxColumn[],
+  name: string,
+  sheetName: string,
+) {
+  if (!asXlsx) return csvResponse(toCsv(rows), name);
+  return toXlsx([{ name: sheetName, columns, rows }]).then((workbook) =>
+    xlsxResponse(workbook, name),
+  );
+}
+
 function csvResponse(csv: string, name: string) {
   return new NextResponse(csv, {
     headers: {
@@ -32,6 +95,7 @@ function csvResponse(csv: string, name: string) {
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const type = params.get("type");
+  const asXlsx = params.get("format") === "xlsx";
 
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
@@ -39,10 +103,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_active")
+    .select("role, is_active")
     .eq("id", claims.claims.sub)
     .maybeSingle();
-  if (!profile?.is_active)
+  if (!profile?.is_active || !isAdminRole(profile.role))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Revenue reads through the same service the screen uses, so the CSV and the
@@ -57,9 +121,15 @@ export async function GET(request: NextRequest) {
       to,
       vehicleId: params.get("vehicle_id"),
     });
-    return csvResponse(
-      toCsv(rows as unknown as Record<string, unknown>[]),
+    return sheetResponse(
+      asXlsx,
+      // Utilization is a whole percent in the service; Excel's percent format wants a fraction.
+      asXlsx
+        ? rows.map((row) => ({ ...row, utilizationPercent: row.utilizationPercent / 100 }))
+        : (rows as unknown as Record<string, unknown>[]),
+      revenueColumns,
       "vehicle-revenue",
+      "Vehicle revenue",
     );
   }
 
@@ -81,8 +151,11 @@ export async function GET(request: NextRequest) {
           .limit(10000);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  return csvResponse(
-    toCsv((data ?? []) as unknown as Record<string, unknown>[]),
+  return sheetResponse(
+    asXlsx,
+    (data ?? []) as unknown as Record<string, unknown>[],
+    type === "rentals" ? rentalColumns : vehicleColumns,
     report.name,
+    type === "rentals" ? "Rental history" : "Fleet",
   );
 }

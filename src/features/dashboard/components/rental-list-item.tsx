@@ -1,11 +1,21 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { StatusBadge } from "@/components/design-system/status-badge";
+import { StatusBadge, type StatusTone } from "@/components/design-system/status-badge";
 import type { DashboardRental } from "@/features/dashboard/types/dashboard";
 
 /** One compact rental row for the dashboard's side lists. */
-export function RentalListItem({ rental, detail }: { rental: DashboardRental; detail: ReactNode }) {
+export function RentalListItem({
+  rental,
+  detail,
+  label,
+  tone = rental.status,
+}: {
+  rental: DashboardRental;
+  detail: ReactNode;
+  label?: string;
+  tone?: StatusTone;
+}) {
   return (
     <li>
       <Link
@@ -18,7 +28,7 @@ export function RentalListItem({ rental, detail }: { rental: DashboardRental; de
           </span>
           <span className="mt-0.5 block text-xs text-muted-foreground">{detail}</span>
         </span>
-        <StatusBadge label={rental.status === "draft" ? "Awaiting deposit" : undefined} status={rental.status} />
+        <StatusBadge label={label} status={tone} />
       </Link>
     </li>
   );

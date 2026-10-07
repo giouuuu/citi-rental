@@ -29,7 +29,7 @@ export const vehicleDefinition: ResourceDefinition = {
       column: "service_status",
       op: "eq",
       label: "Service",
-      showValue: true,
+      picker: true,
       valueLabels: {
         overdue: "Overdue",
         due_soon: "Due soon",

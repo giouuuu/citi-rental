@@ -91,6 +91,22 @@ export type ResourceColumn = {
     | "money"
     | "boolean"
     | "image";
+  /**
+   * Read the value from the row's linked `table` record (one foreign key away)
+   * instead of a column of its own; `key` names the result. With
+   * `secondaryColumn` the cell reads "label · secondary". Sorts on `column`.
+   */
+  reference?: { table: string; column: string; secondaryColumn?: string };
+  /**
+   * Smaller lines under the value, in the same cell, so related values share
+   * one column instead of widening the table. Each is still fetched, sortable
+   * by URL and exported as a column of its own.
+   */
+  secondary?: Omit<ResourceColumn, "secondary" | "exportOnly">[];
+  /** Words before the value when it is shown as a `secondary` line, e.g. "Balance". */
+  prefix?: string;
+  /** Fetched, sortable and exported, but not shown in the table. */
+  exportOnly?: boolean;
 };
 
 /**
@@ -112,6 +128,18 @@ export type ResourceFilter = {
    * as its choices, instead of a chip that only links can set.
    */
   picker?: boolean;
+  /** A `picker` whose choices are the rows of `table`, as reference fields label them. */
+  reference?: { table: string; labelColumn: string; secondaryColumn?: string };
+  /**
+   * The column is a timestamp: a `YYYY-MM-DD` value is a whole Philippine day,
+   * so `gte` starts at its first instant and `lte` runs through its last.
+   */
+  timestamp?: boolean;
+  /**
+   * Joins a `gte` and an `lte` on different columns into one date-range
+   * picker (they pair on the column otherwise). Give both the same name.
+   */
+  pair?: string;
 };
 
 export type ResourceDefinition = {

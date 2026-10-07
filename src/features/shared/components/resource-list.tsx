@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/design-system/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ExportButton } from "@/features/shared/components/export-button";
 import { ResourceTable } from "@/features/shared/components/resource-table";
 import { defaultDateRangePresets } from "@/features/shared/lib/date-range-presets";
 import { manilaDateKey } from "@/features/shared/lib/manila-time";
@@ -19,7 +20,19 @@ import type {
   ResourceFilter,
   ResourcePage,
   ResourceQuery,
+  ResourceReferences,
 } from "@/features/shared/types/resource";
+
+/** The list's current search, sort and filters, minus paging: the export takes every match. */
+function exportHref(route: string, query: ResourceQuery) {
+  const params = new URLSearchParams();
+  if (query.q) params.set("q", query.q);
+  params.set("sort", query.sort);
+  params.set("direction", query.direction);
+  for (const [param, value] of Object.entries(query.filters ?? {}))
+    params.set(param, value);
+  return `/export${route}?${params}`;
+}
 
 function filterValueLabel(filter: ResourceFilter, value: string | undefined) {
   return (value && filter.valueLabels?.[value]) ?? value;
@@ -31,17 +44,21 @@ export function ResourceList({
   query,
   canWrite,
   bulkActions,
+  filterOptions = {},
 }: {
   definition: ResourceDefinition;
   result: ResourcePage;
   query: ResourceQuery;
   canWrite: boolean;
+  /** Choices for `reference` pickers, keyed by filter param. */
+  filterOptions?: ResourceReferences;
   /** Controls for checked rows; offered only to roles that can write. */
   bulkActions?: ReactNode;
 }) {
   const dateRange = resolveDateRangeFilter(definition.filters);
   const pickers = (definition.filters ?? []).filter(
-    (filter) => filter.picker && filter.op === "eq" && filter.valueLabels,
+    (filter) =>
+      filter.picker && filter.op === "eq" && (filter.valueLabels || filter.reference),
   );
   // The date pair and the pickers show their own value, so they get no chip.
   const activeFilters = (definition.filters ?? []).filter(
@@ -55,13 +72,19 @@ export function ResourceList({
     <div className="space-y-6">
       <PageHeader
         actions={
-          canWrite ? (
-            <Button asChild>
-              <Link href={`${definition.route}/new`}>
-                <Plus /> Add {definition.singular.toLowerCase()}
-              </Link>
-            </Button>
-          ) : undefined
+          <>
+            <ExportButton
+              disabled={result.page === 1 && result.rows.length === 0}
+              href={exportHref(definition.route, query)}
+            />
+            {canWrite ? (
+              <Button asChild>
+                <Link href={`${definition.route}/new`}>
+                  <Plus /> Add {definition.singular.toLowerCase()}
+                </Link>
+              </Button>
+            ) : null}
+          </>
         }
         breadcrumbs={[
           definition.parent ?? { label: "Workspace", href: "/dashboard" },
@@ -112,9 +135,12 @@ export function ResourceList({
             pickers={pickers.map((filter) => ({
               param: filter.param,
               label: filter.label,
-              options: Object.entries(filter.valueLabels ?? {}).map(
-                ([value, label]) => ({ value, label }),
-              ),
+              options: filter.reference
+                ? (filterOptions[filter.param] ?? [])
+                : Object.entries(filter.valueLabels ?? {}).map(([value, label]) => ({
+                    value,
+                    label,
+                  })),
             }))}
             plural={definition.plural}
             query={query}

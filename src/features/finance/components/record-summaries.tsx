@@ -12,6 +12,7 @@ import {
 import { MoneyCell, StatementLines } from "@/features/finance/components/statement-lines";
 import { bookValueAt, depreciationSchedule } from "@/features/finance/lib/depreciation";
 import { fixedAssetFromRow } from "@/features/finance/services/finance-service";
+import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { formatDateKey, manilaDateKey } from "@/features/shared/lib/manila-time";
 import { toMoney } from "@/features/shared/lib/money";
 import type { ResourceRow } from "@/features/shared/types/resource";
@@ -72,16 +73,35 @@ export function DepreciationScheduleCard({ row }: { row: ResourceRow }) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Depreciation schedule</CardTitle>
-        <CardDescription>
-          Starts in the month acquired{asset.disposedOn ? " and stops with the month disposed" : ""}.{" "}
-          {asset.vehicleId ? (
-            <Link className="underline underline-offset-4" href={`/vehicles/${asset.vehicleId}`}>
-              Open the vehicle
-            </Link>
-          ) : null}
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div className="space-y-1.5">
+          <CardTitle>Depreciation schedule</CardTitle>
+          <CardDescription>
+            Starts in the month acquired{asset.disposedOn ? " and stops with the month disposed" : ""}.{" "}
+            {asset.vehicleId ? (
+              <Link className="underline underline-offset-4" href={`/vehicles/${asset.vehicleId}`}>
+                Open the vehicle
+              </Link>
+            ) : null}
+          </CardDescription>
+        </div>
+        <div className="shrink-0">
+          <ExportRowsButton
+            fileName="depreciation-schedule"
+            sheets={[
+              {
+                name: "Depreciation by year",
+                columns: [
+                  { key: "year", header: "Year" },
+                  { key: "amount", header: "Depreciation", format: "money" },
+                  { key: "accumulated", header: "Accumulated", format: "money" },
+                  { key: "bookValue", header: "Book value at year end", format: "money" },
+                ],
+                rows: [...years.entries()].map(([year, entry]) => ({ year, ...entry })),
+              },
+            ]}
+          />
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <StatementLines

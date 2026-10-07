@@ -21,6 +21,7 @@ import { ProfitChart } from "@/features/finance/components/profit-chart";
 import { MoneyCell } from "@/features/finance/components/statement-lines";
 import { depreciationBetween, depreciationSchedule, type FixedAsset } from "@/features/finance/lib/depreciation";
 import type { FinancePeriodOption, FinanceWindow } from "@/features/finance/lib/finance-period";
+import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { formatDateKey, formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhp, formatPhpExact } from "@/features/shared/lib/money";
 import { cn } from "@/lib/utils";
@@ -170,6 +171,43 @@ async function OverviewBody({
                 ? "Income beside this car's costs. The gap between the bars is the month's profit."
                 : "Income this car brought in each month."}
             </CardDescription>
+            <CardAction>
+              <ExportRowsButton
+                fileName={`vehicle-by-month-${window.from}-to-${window.to}`}
+                sheets={[
+                  {
+                    name: "By month",
+                    columns: [
+                      { key: "month", header: "Month" },
+                      { key: "rentedDays", header: "Days rented", format: "number" },
+                      { key: "income", header: "Income", format: "money" },
+                      ...(o.financeVisible
+                        ? [
+                            { key: "expenses", header: "Costs", format: "money" as const },
+                            { key: "profit", header: "Profit", format: "money" as const },
+                          ]
+                        : []),
+                    ],
+                    rows: [
+                      ...o.monthly.map((month) => ({
+                        month: formatDateKey(`${month.month}-01`, "month"),
+                        rentedDays: month.rentedDays,
+                        income: month.income,
+                        expenses: month.expenses,
+                        profit: month.profit,
+                      })),
+                      {
+                        month: "Total",
+                        rentedDays: o.rentedDays,
+                        income: o.income,
+                        expenses: o.expenses,
+                        profit: o.profit,
+                      },
+                    ],
+                  },
+                ]}
+              />
+            </CardAction>
           </CardHeader>
           <CardContent className="space-y-4">
             <ProfitChart
@@ -392,6 +430,38 @@ function ActivityCard({
             : "Rentals and payments for this car in the period, newest first."}
           {activity.length >= 60 ? " Showing the latest 60." : ""}
         </CardDescription>
+        <CardAction>
+          <ExportRowsButton
+            fileName="vehicle-activity"
+            sheets={[
+              {
+                name: "Activity",
+                columns: [
+                  { key: "when", header: "When", format: "date" },
+                  { key: "what", header: "What" },
+                  { key: "detail", header: "Detail" },
+                  { key: "status", header: "Status" },
+                  { key: "amount", header: "Amount", format: "money" },
+                ],
+                rows: activity.map((entry) => ({
+                  when: entry.occurredAt,
+                  what: activityTitle(entry),
+                  detail: entry.kind !== "payment" ? entry.detail : null,
+                  status:
+                    entry.kind === "rental" && entry.status
+                      ? entry.status.charAt(0).toUpperCase() + entry.status.slice(1).replaceAll("_", " ")
+                      : null,
+                  amount:
+                    entry.amount === null
+                      ? null
+                      : entry.kind === "expense" || entry.kind === "loan_payment"
+                        ? -Math.abs(entry.amount)
+                        : entry.amount,
+                })),
+              },
+            ]}
+          />
+        </CardAction>
       </CardHeader>
       <CardContent>
         {activity.length === 0 ? (

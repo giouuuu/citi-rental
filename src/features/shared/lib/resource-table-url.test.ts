@@ -126,6 +126,15 @@ describe("resolveDateRangeFilter", () => {
     ).toEqual({ fromParam: "from", toParam: "to" });
   });
 
+  it("pairs bounds on different columns that share a pair name", () => {
+    expect(
+      resolveDateRangeFilter([
+        { param: "from", column: "ends_at", op: "gte", label: "From", pair: "dates" },
+        { param: "to", column: "starts_at", op: "lte", label: "To", pair: "dates" },
+      ]),
+    ).toEqual({ fromParam: "from", toParam: "to" });
+  });
+
   it("ignores a lone bound or bounds on different columns", () => {
     expect(resolveDateRangeFilter([{ param: "from", column: "a", op: "gte", label: "From" }])).toBeNull();
     expect(

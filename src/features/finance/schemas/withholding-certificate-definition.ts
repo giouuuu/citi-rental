@@ -27,7 +27,14 @@ export const withholdingCertificateDefinition: ResourceDefinition = {
     "Tax corporate clients withheld from their payments. Each certificate is a credit against income tax — chase the pending ones.",
   writeRoles: ["owner"],
   filters: [
-    { param: "status", column: "status", op: "eq", label: "Status", showValue: true },
+    {
+      param: "status",
+      column: "status",
+      op: "eq",
+      label: "Status",
+      picker: true,
+      valueLabels: { pending: "Pending", received: "Received" },
+    },
     { param: "from", column: "period_to", op: "gte", label: "Period ends from", showValue: true },
     { param: "to", column: "period_to", op: "lte", label: "Period ends by", showValue: true },
   ],

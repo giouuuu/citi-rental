@@ -17,8 +17,17 @@ export const RESOURCE_QUERY_DEFAULTS = {
  * so the builder can drop the param whenever it matches the fallback.
  */
 export function resolveFallbackSort(columns: readonly ResourceColumn[]): string {
-  if (columns.some((column) => column.key === "updated_at")) return "updated_at";
+  if (flatResourceColumns(columns).some((column) => column.key === "updated_at"))
+    return "updated_at";
   return columns[0]?.key ?? "id";
+}
+
+/**
+ * Every value a list carries, its `secondary` lines spread out as columns of
+ * their own: what is fetched, sortable and exported.
+ */
+export function flatResourceColumns(columns: readonly ResourceColumn[]): ResourceColumn[] {
+  return columns.flatMap((column) => [column, ...(column.secondary ?? [])]);
 }
 
 /**
@@ -66,15 +75,16 @@ export function resourceTableUrl(
 }
 
 /**
- * A `gte`/`lte` pair on one column is a date range: the list shows it as one
- * picker instead of two filter chips.
+ * A `gte`/`lte` pair on one column (or sharing a `pair` name) is a date range:
+ * the list shows it as one picker instead of two filter chips.
  */
 export function resolveDateRangeFilter(
   filters: readonly ResourceFilter[] = [],
 ): { fromParam: string; toParam: string } | null {
+  const pairKey = (filter: ResourceFilter) => filter.pair ?? filter.column;
   for (const from of filters) {
     if (from.op !== "gte") continue;
-    const to = filters.find((filter) => filter.op === "lte" && filter.column === from.column);
+    const to = filters.find((filter) => filter.op === "lte" && pairKey(filter) === pairKey(from));
     if (to) return { fromParam: from.param, toParam: to.param };
   }
   return null;

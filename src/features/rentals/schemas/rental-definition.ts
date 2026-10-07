@@ -262,30 +262,108 @@ export const rentalDefinition: ResourceDefinition = {
       className: "md:col-span-2",
     },
   ],
+  filters: [
+    {
+      param: "customer",
+      column: "customer_id",
+      op: "eq",
+      label: "Customer",
+      picker: true,
+      reference: { table: "customers", labelColumn: "full_name", secondaryColumn: "phone_number" },
+    },
+    {
+      param: "vehicle",
+      column: "vehicle_id",
+      op: "eq",
+      label: "Car",
+      picker: true,
+      reference: { table: "vehicles", labelColumn: "plate_number", secondaryColumn: "name" },
+    },
+    // Rentals that touch the range: still out on or after From, starting on or before To.
+    { param: "from", column: "expected_return_at", op: "gte", label: "From", timestamp: true, pair: "dates" },
+    { param: "to", column: "start_at", op: "lte", label: "To", timestamp: true, pair: "dates" },
+  ],
+  // Related values stack in one cell so the list fits without sideways
+  // scrolling; the export still gets every value as its own column.
   columns: [
-    { key: "reference_number", label: "Reference" },
-    { key: "start_at", label: "Starts", format: "datetime" },
-    { key: "expected_return_at", label: "Expected return", format: "datetime" },
-    { key: "status", label: "Status", format: "status" },
-    { key: "payment_status", label: "Payment", format: "status" },
-    { key: "updated_at", label: "Updated", format: "datetime" },
+    {
+      key: "customer_name",
+      label: "Customer",
+      reference: { table: "customers", column: "full_name" },
+      secondary: [{ key: "reference_number", label: "Reference" }],
+    },
+    {
+      key: "vehicle_plate",
+      label: "Car",
+      reference: { table: "vehicles", column: "plate_number" },
+      secondary: [
+        { key: "vehicle_name", label: "Car name", reference: { table: "vehicles", column: "name" } },
+      ],
+    },
+    {
+      key: "start_at",
+      label: "Dates",
+      format: "datetime",
+      secondary: [
+        { key: "expected_return_at", label: "Expected return", format: "datetime", prefix: "to" },
+      ],
+    },
+    {
+      key: "status",
+      label: "Status",
+      format: "status",
+      secondary: [{ key: "payment_status", label: "Payment", format: "status" }],
+    },
+    // Computed columns (rental_list_bill_columns migration) read the payments ledger.
+    {
+      key: "bill_total",
+      label: "Bill",
+      format: "money",
+      secondary: [{ key: "bill_balance", label: "Balance", format: "money", prefix: "Balance" }],
+    },
+    { key: "amount_paid", label: "Paid", format: "money", exportOnly: true },
+    { key: "updated_at", label: "Updated", format: "datetime", exportOnly: true },
   ],
   // Built once per server start; ids are stable so dashboard links resolve.
-  demoRows: buildDemoWorkspace()
-    .rentals.toSorted((a, b) => b.startAt.localeCompare(a.startAt))
-    .map((rental) => ({
-      id: rental.id,
-      reference_number: rental.referenceNumber,
-      customer_id: rental.customerId,
-      vehicle_id: rental.vehicleId,
-      start_at: rental.startAt,
-      expected_return_at: rental.expectedReturnAt,
-      actual_return_at: rental.actualReturnAt,
-      pickup_location: rental.pickupLocation,
-      status: rental.status,
-      updated_at: rental.createdAt,
-    })),
+  demoRows: demoRentalRows(),
 };
+
+/** The demo workspace as list rows, with the bill read off its payments ledger. */
+function demoRentalRows() {
+  const workspace = buildDemoWorkspace();
+  const customers = new Map(workspace.customers.map((customer) => [customer.id, customer]));
+  const vehicles = new Map(workspace.vehicles.map((vehicle) => [vehicle.id, vehicle]));
+  return workspace.rentals
+    .toSorted((a, b) => b.startAt.localeCompare(a.startAt))
+    .map((rental) => {
+      const payments = workspace.payments.filter((payment) => payment.rentalId === rental.id);
+      const sum = (types: string[]) =>
+        payments
+          .filter((payment) => types.includes(payment.paymentType))
+          .reduce((total, payment) => total + payment.amount, 0);
+      const billTotal = rental.quotedTotal + sum(["penalty"]);
+      const amountPaid = sum(["deposit", "balance", "adjustment"]) - sum(["refund"]);
+      const vehicle = vehicles.get(rental.vehicleId);
+      return {
+        id: rental.id,
+        reference_number: rental.referenceNumber,
+        customer_id: rental.customerId,
+        customer_name: customers.get(rental.customerId)?.fullName ?? null,
+        vehicle_id: rental.vehicleId,
+        vehicle_plate: vehicle?.plateNumber ?? null,
+        vehicle_name: vehicle?.name ?? null,
+        start_at: rental.startAt,
+        expected_return_at: rental.expectedReturnAt,
+        actual_return_at: rental.actualReturnAt,
+        pickup_location: rental.pickupLocation,
+        status: rental.status,
+        bill_total: billTotal,
+        amount_paid: amountPaid,
+        bill_balance: Math.max(0, billTotal - amountPaid),
+        updated_at: rental.createdAt,
+      };
+    });
+}
 
 // The booking payment fields are not rental columns; never select them.
 rentalDefinition.detailColumns = rentalDefinition.fields

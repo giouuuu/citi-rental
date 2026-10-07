@@ -173,6 +173,7 @@ export function ResourceTable(props: Props) {
             <Combobox
               aria-label={picker.label}
               className="w-40"
+              contentClassName="min-w-64"
               key={picker.param}
               onValueChange={(value) => setFilter(picker.param, value)}
               options={[

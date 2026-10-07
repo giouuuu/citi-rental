@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { manilaDayEnd, manilaDayStart } from "@/features/shared/lib/manila-time";
+import type { XlsxColumn } from "@/features/shared/lib/to-xlsx";
 import { EXCEPTION_COPY, type FinanceStatement } from "@/features/finance/lib/statement";
 
 export const FINANCE_EXPORT_TYPES = [
@@ -170,4 +171,116 @@ export async function ledgerExportRows(
   }
 
   return [];
+}
+
+const C = (key: string, header: string, format?: XlsxColumn["format"]): XlsxColumn => ({ key, header, format });
+
+const EXPORT_COLUMNS: Partial<Record<FinanceExportType, XlsxColumn[]>> = {
+  statement: [C("section", "Section"), C("line", "Line"), C("amount", "Amount", "money")],
+  receipts: [
+    C("confirmed_at", "Confirmed", "datetime"),
+    C("rental_reference", "Rental reference"),
+    C("vehicle", "Vehicle"),
+    C("channel", "Channel"),
+    C("payment_type", "Payment type", "status"),
+    C("method", "Method", "status"),
+    C("amount", "Amount", "money"),
+    C("vat_treatment", "VAT treatment", "status"),
+    C("vat_rate", "VAT rate", "number"),
+    C("vat_amount", "VAT amount", "money"),
+    C("net_of_vat", "Net of VAT", "money"),
+    C("counted_in_receipts", "Counted in receipts"),
+    C("external_reference", "External reference"),
+    C("payment_id", "Payment ID"),
+  ],
+  expenses: [
+    C("id", "Expense ID"),
+    C("expense_date", "Date", "date"),
+    C("bir_line", "BIR line"),
+    C("category_name", "Category"),
+    C("description", "Description"),
+    C("vehicle_plate", "Vehicle"),
+    C("supplier_name", "Supplier"),
+    C("supplier_tin", "Supplier TIN"),
+    C("supplier_vat_registered", "Supplier VAT registered", "boolean"),
+    C("document_type", "Document type", "status"),
+    C("document_number", "Document number"),
+    C("gross_amount", "Gross amount", "money"),
+    C("input_vat", "Input VAT", "money"),
+    C("net_amount", "Net amount", "money"),
+    C("withholding_required", "Withholding required", "boolean"),
+    C("ewt_percent", "EWT %", "number"),
+    C("ewt_amount", "EWT amount", "money"),
+    C("ewt_remitted", "EWT remitted", "boolean"),
+    C("payment_method", "Payment method", "status"),
+    C("status", "Status", "status"),
+  ],
+  withholding: [
+    C("id", "Certificate ID"),
+    C("payor_name", "Payor"),
+    C("payor_tin", "Payor TIN"),
+    C("atc_code", "ATC code"),
+    C("period_from", "Period from", "date"),
+    C("period_to", "Period to", "date"),
+    C("income_payment", "Income payment", "money"),
+    C("tax_withheld", "Tax withheld", "money"),
+    C("status", "Status", "status"),
+    C("received_on", "Received on", "date"),
+    C("certificate_reference", "Certificate reference"),
+  ],
+  depreciation: [
+    C("asset", "Asset"),
+    C("vehicle", "Vehicle"),
+    C("acquisition_date", "Acquisition date", "date"),
+    C("acquisition_cost", "Acquisition cost", "money"),
+    C("salvage_value", "Salvage value", "money"),
+    C("useful_life_months", "Useful life (months)", "number"),
+    C("method", "Method", "status"),
+    C("disposed_on", "Disposed on", "date"),
+    C("depreciation_this_period", "Depreciation this period", "money"),
+    C("accumulated_to_period_end", "Accumulated to period end", "money"),
+    C("book_value_at_period_end", "Book value at period end", "money"),
+  ],
+  vehicles: [
+    C("plate_number", "Plate number"),
+    C("name", "Vehicle"),
+    C("receipts_net_of_vat", "Receipts (net of VAT)", "money"),
+    C("tagged_costs_net", "Tagged costs (net)", "money"),
+    C("depreciation", "Depreciation", "money"),
+    C("margin", "Margin", "money"),
+    C("has_acquisition_cost", "Has acquisition cost", "boolean"),
+  ],
+  monthly: [
+    C("month", "Month"),
+    C("net_receipts", "Net receipts", "money"),
+    C("output_vat", "Output VAT", "money"),
+    C("expenses_net", "Expenses (net)", "money"),
+    C("creditable_input_vat", "Creditable input VAT", "money"),
+    C("ewt_withheld", "EWT withheld", "money"),
+  ],
+  exceptions: [
+    C("severity", "Severity", "status"),
+    C("issue", "Issue"),
+    C("record_type", "Record type", "status"),
+    C("record_id", "Record ID"),
+    C("record", "Record"),
+    C("date", "Date", "date"),
+    C("amount", "Amount", "money"),
+  ],
+};
+
+const EXPORT_SHEET_NAMES: Record<FinanceExportType, string> = {
+  statement: "Statement",
+  receipts: "Receipts",
+  expenses: "Expenses",
+  depreciation: "Depreciation",
+  vehicles: "Vehicle margin",
+  monthly: "By month",
+  exceptions: "Exceptions",
+  withholding: "Withholding",
+};
+
+/** One Excel sheet for an export type, with explicit headers and formats. */
+export function financeExportSheet(type: FinanceExportType, rows: Row[]) {
+  return { name: EXPORT_SHEET_NAMES[type], columns: EXPORT_COLUMNS[type] ?? [], rows };
 }

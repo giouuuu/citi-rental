@@ -25,7 +25,7 @@ export async function MonthToDateCard({ todayKey }: { todayKey: string }) {
     : null;
 
   return (
-    <Card className="xl:col-span-3">
+    <Card className="xl:col-span-4">
       <CardHeader>
         <CardTitle>Month to date</CardTitle>
         <CardDescription>{result.ok ? "Since the 1st, Manila time." : result.message}</CardDescription>

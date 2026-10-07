@@ -4,6 +4,7 @@ import { UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -29,6 +30,7 @@ import { getAnalyticsOverview } from "@/features/analytics/services/get-analytic
 import { listTopCustomers } from "@/features/analytics/services/list-top-customers";
 import type { AnalyticsWindow } from "@/features/analytics/types/analytics";
 import { PanelError } from "@/features/analytics/components/panel-error";
+import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { formatPhp } from "@/features/shared/lib/money";
 
 export async function CustomerInsights({ window }: { window: AnalyticsWindow }) {
@@ -68,6 +70,28 @@ export async function CustomerInsights({ window }: { window: AnalyticsWindow }) 
           <CardDescription>
             Ranked by money collected this period. Lifetime columns cover every rental on record.
           </CardDescription>
+          <CardAction>
+            <ExportRowsButton
+              fileName="top-customers"
+              sheets={[
+                {
+                  name: "Top customers",
+                  columns: [
+                    { key: "fullName", header: "Customer" },
+                    { key: "phoneNumber", header: "Phone" },
+                    { key: "isBlocked", header: "Blocked", format: "boolean" },
+                    { key: "rentalsInWindow", header: "Rentals (period)", format: "number" },
+                    { key: "collectedInWindow", header: "Collected (period)", format: "money" },
+                    { key: "rentalsLifetime", header: "Rentals (lifetime)", format: "number" },
+                    { key: "collectedLifetime", header: "Lifetime value", format: "money" },
+                    { key: "outstanding", header: "Owes", format: "money" },
+                    { key: "lateReturnsLifetime", header: "Late returns", format: "number" },
+                  ],
+                  rows: top.data.map((customer) => ({ ...customer })),
+                },
+              ]}
+            />
+          </CardAction>
         </CardHeader>
         <CardContent>
           {top.data.length ? (

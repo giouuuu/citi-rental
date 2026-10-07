@@ -4,6 +4,7 @@ import { CarFront, Hourglass } from "lucide-react";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -32,6 +33,7 @@ import {
 import { listVehiclePerformance } from "@/features/analytics/services/list-vehicle-performance";
 import type { AnalyticsWindow } from "@/features/analytics/types/analytics";
 import { PanelError } from "@/features/analytics/components/panel-error";
+import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/shared/lib/money";
 
@@ -55,6 +57,41 @@ export async function VehiclePerformancePanel({ window }: { window: AnalyticsWin
               Ranked by money collected in the period. Utilization is days rented out of{" "}
               {window.days} days.
             </CardDescription>
+            <CardAction>
+              <ExportRowsButton
+                fileName="vehicle-performance"
+                sheets={[
+                  {
+                    name: "Performance by car",
+                    columns: [
+                      { key: "plateNumber", header: "Plate number" },
+                      { key: "name", header: "Car" },
+                      { key: "category", header: "Category" },
+                      { key: "status", header: "Status", format: "status" },
+                      { key: "rentalCount", header: "Rentals", format: "number" },
+                      { key: "utilization", header: "Utilization", format: "percent" },
+                      { key: "collected", header: "Collected", format: "money" },
+                      { key: "perDay", header: "Per day", format: "money" },
+                      { key: "charges", header: "Charges", format: "money" },
+                    ],
+                    rows: rows.map((row) => {
+                      const utilization = utilizationPercent(row.rentedDays, row.windowDays);
+                      return {
+                        plateNumber: row.plateNumber,
+                        name: row.name,
+                        category: row.category,
+                        status: row.onRentNow ? "rented" : row.status,
+                        rentalCount: row.rentalCount,
+                        utilization: utilization === null ? null : utilization / 100,
+                        collected: row.collected,
+                        perDay: row.windowDays ? row.collected / row.windowDays : 0,
+                        charges: row.penaltiesBilled,
+                      };
+                    }),
+                  },
+                ]}
+              />
+            </CardAction>
           </CardHeader>
           <CardContent>
             {rows.length ? (

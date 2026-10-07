@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import {
   formatDateKey,
   manilaDateKey,
@@ -52,11 +53,33 @@ export function VehicleCostsPanel({
     <Card>
       <CardHeader className="flex-row items-center justify-between border-b">
         <CardTitle>Expenses</CardTitle>
-        <Button asChild size="sm">
-          <Link href="/expenses/new">
-            <Plus /> Record expense
-          </Link>
-        </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <ExportRowsButton
+            fileName="vehicle-expenses"
+            sheets={[
+              {
+                name: "Expenses",
+                columns: [
+                  { key: "incurredOn", header: "Date", format: "date" },
+                  { key: "category", header: "Category" },
+                  { key: "amount", header: "Amount", format: "money" },
+                  { key: "vendor", header: "Vendor" },
+                ],
+                rows: expenses.map((expense) => ({
+                  incurredOn: expense.incurredOn,
+                  category: expenseCategoryLabel(expense.category),
+                  amount: expense.amount,
+                  vendor: expense.vendor,
+                })),
+              },
+            ]}
+          />
+          <Button asChild size="sm">
+            <Link href="/expenses/new">
+              <Plus /> Record expense
+            </Link>
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4 pt-5">
         <dl className="grid grid-cols-2 gap-4 sm:max-w-sm">

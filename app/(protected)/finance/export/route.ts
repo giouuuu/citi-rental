@@ -4,11 +4,13 @@ import { requireOwner } from "@/features/finance/actions/save-finance-record";
 import { resolveFinanceWindow } from "@/features/finance/lib/finance-period";
 import {
   FINANCE_EXPORT_TYPES,
+  financeExportSheet,
   ledgerExportRows,
   statementExportRows,
   type FinanceExportType,
 } from "@/features/finance/services/finance-export";
 import { getFinanceStatement, getTaxSettings } from "@/features/finance/services/finance-service";
+import { toXlsx, xlsxResponse } from "@/features/shared/lib/to-xlsx";
 import { toCsv } from "@/features/reports/lib/to-csv";
 
 const LEDGER_TYPES = new Set<FinanceExportType>(["receipts", "expenses", "withholding"]);
@@ -44,6 +46,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Export failed.";
     return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  if (params.get("format") === "xlsx") {
+    const workbook = await toXlsx([financeExportSheet(type, rows)]);
+    return xlsxResponse(workbook, `finance-${type}-${window.from}-to-${window.to}`);
   }
 
   return new NextResponse(toCsv(rows), {

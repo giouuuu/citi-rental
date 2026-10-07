@@ -24,6 +24,7 @@ import { financePeriodOptions, resolveFinanceWindow, type FinanceWindow } from "
 import type { TaxSettings } from "@/features/finance/lib/income-tax";
 import { buildProfitOverview } from "@/features/finance/lib/profit-overview";
 import { getFinanceStatement, getTaxSettings } from "@/features/finance/services/finance-service";
+import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { formatDateKey } from "@/features/shared/lib/manila-time";
 import { formatPhp, formatPhpExact } from "@/features/shared/lib/money";
 import { cn } from "@/lib/utils";
@@ -140,9 +141,36 @@ async function OverviewBody({ window, settings }: { window: FinanceWindow; setti
 
       <div className="grid gap-6 xl:grid-cols-5">
         <Card className="xl:col-span-3">
-          <CardHeader>
-            <CardTitle>Month by month</CardTitle>
-            <CardDescription>The gap between the two bars is that month&apos;s profit.</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div className="space-y-1.5">
+              <CardTitle>Month by month</CardTitle>
+              <CardDescription>The gap between the two bars is that month&apos;s profit.</CardDescription>
+            </div>
+            <div className="shrink-0 print:hidden">
+              <ExportRowsButton
+                fileName="profit-by-month"
+                sheets={[
+                  {
+                    name: "Profit by month",
+                    columns: [
+                      { key: "month", header: "Month" },
+                      { key: "income", header: "Income", format: "money" },
+                      { key: "expenses", header: "Expenses", format: "money" },
+                      { key: "profit", header: "Profit", format: "money" },
+                    ],
+                    rows: [
+                      ...o.months.map((month) => ({
+                        month: formatDateKey(`${month.month}-01`, "month"),
+                        income: month.income,
+                        expenses: month.expenses,
+                        profit: month.profit,
+                      })),
+                      { month: "Total", income: o.income, expenses: o.expenses, profit: o.profit },
+                    ],
+                  },
+                ]}
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <ProfitChart
@@ -217,12 +245,38 @@ async function OverviewBody({ window, settings }: { window: FinanceWindow; setti
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Profit by car</CardTitle>
-          <CardDescription>
-            What each car brought in, minus the costs recorded against it (servicing, repairs, fuel). Shared costs such
-            as rent and salaries are not split per car.
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div className="space-y-1.5">
+            <CardTitle>Profit by car</CardTitle>
+            <CardDescription>
+              What each car brought in, minus the costs recorded against it (servicing, repairs, fuel). Shared costs
+              such as rent and salaries are not split per car.
+            </CardDescription>
+          </div>
+          <div className="shrink-0 print:hidden">
+            <ExportRowsButton
+              fileName="profit-by-car"
+              sheets={[
+                {
+                  name: "Profit by car",
+                  columns: [
+                    { key: "plate", header: "Plate number" },
+                    { key: "name", header: "Car" },
+                    { key: "income", header: "Income", format: "money" },
+                    { key: "costs", header: "Car costs", format: "money" },
+                    { key: "profit", header: "Profit", format: "money" },
+                  ],
+                  rows: o.cars.map((car) => ({
+                    plate: car.plateNumber,
+                    name: car.name,
+                    income: car.income,
+                    costs: car.costs,
+                    profit: car.profit,
+                  })),
+                },
+              ]}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <Table aria-label="Profit by car">

@@ -54,7 +54,13 @@ export async function ForwardOccupancy() {
         <ChartDataTable
           caption="Share of fleet booked per day, next 30 days"
           columns={["Day", "Booked"]}
-          rows={rows.map((row) => ({ key: row.bucketStart, cells: [row.label, share(row.utilization)] }))}
+          exportFileName="booked-ahead"
+          exportFormats={["text", "percent"]}
+          rows={rows.map((row) => ({
+            key: row.bucketStart,
+            cells: [row.label, share(row.utilization)],
+            raw: [row.label, row.utilization === null ? null : row.utilization / 100],
+          }))}
         />
       </CardContent>
     </Card>

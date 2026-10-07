@@ -41,9 +41,12 @@ export async function AnalyticsTrends({ window, aside }: { window: AnalyticsWind
             <ChartDataTable
               caption="Collected revenue by period"
               columns={["Period", "Collected"]}
+              exportFileName="collected-revenue"
+              exportFormats={["text", "money"]}
               rows={rows.map((row) => ({
                 key: row.bucketStart,
                 cells: [row.label, formatPhp(row.collected)],
+                raw: [row.label, row.collected],
               }))}
             />
           </CardContent>
@@ -61,9 +64,12 @@ export async function AnalyticsTrends({ window, aside }: { window: AnalyticsWind
             <ChartDataTable
               caption="Bookings by source and period"
               columns={["Period", "Website", "Front desk", "Cancelled"]}
+              exportFileName="bookings-by-source"
+              exportFormats={["text", "number", "number", "number"]}
               rows={rows.map((row) => ({
                 key: row.bucketStart,
                 cells: [row.label, String(row.website), String(row.frontDesk), String(row.cancellations)],
+                raw: [row.label, row.website, row.frontDesk, row.cancellations],
               }))}
             />
           </CardContent>
@@ -78,9 +84,12 @@ export async function AnalyticsTrends({ window, aside }: { window: AnalyticsWind
             <ChartDataTable
               caption="Fleet utilization by period"
               columns={["Period", "Utilization"]}
+              exportFileName="fleet-utilization"
+              exportFormats={["text", "percent"]}
               rows={rows.map((row) => ({
                 key: row.bucketStart,
                 cells: [row.label, row.utilization === null ? "—" : `${row.utilization}%`],
+                raw: [row.label, row.utilization === null ? null : row.utilization / 100],
               }))}
             />
           </CardContent>

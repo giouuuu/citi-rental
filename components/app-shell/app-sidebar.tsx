@@ -58,9 +58,10 @@ export function AppSidebar({
               asChild
               className="h-11 hover:bg-sidebar-accent"
               size="lg"
-              tooltip="City Rentals"
+              tooltip="View the website"
             >
-              <Link href="/dashboard">
+              {/* The brand opens the customer site; Dashboard is in the nav. */}
+              <Link aria-label={`City Rentals — view the ${companyName} website`} href="/">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sm font-black text-sidebar-primary-foreground shadow-sm">
                   M
                 </span>
