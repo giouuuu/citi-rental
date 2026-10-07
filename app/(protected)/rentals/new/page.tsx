@@ -18,6 +18,8 @@ export default async function Page({
 }) {
   const initialValues: Record<string, string> = {
     reference_number: suggestRentalReference(),
+    payment_now: "none",
+    payment_method: "cash",
     ...initialValuesFromSearchParams(rentalDefinition.fields, await searchParams),
   };
   const vehicleId = initialValues.vehicle_id;

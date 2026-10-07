@@ -3,7 +3,10 @@
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/features/shared/types/resource";
-import { rentalDefinition } from "@/features/rentals/schemas/rental-definition";
+import {
+  RENTAL_BOOKING_PAYMENT_FIELDS,
+  rentalDefinition,
+} from "@/features/rentals/schemas/rental-definition";
 import {
   mapRentalDbError,
   parseAvailabilityResult,
@@ -104,6 +107,8 @@ export async function saveRentalAction(
         ? parsed.data.quoted_daily_rate
         : null;
     delete payload.quoted_daily_rate;
+    // Booking payments go on the ledger after the insert, never on the row.
+    for (const name of RENTAL_BOOKING_PAYMENT_FIELDS) delete payload[name];
 
     const { data: availability, error: availabilityError } = await supabase.rpc(
       "check_vehicle_availability",
@@ -206,14 +211,43 @@ export async function saveRentalAction(
     }
 
     const rate = enteredRate ?? vehicleRate;
-    if (rate != null) {
-      Object.assign(
-        payload,
-        rentalQuote(
-          rate,
-          rentalBilledDays(new Date(startAt), new Date(expectedReturnAt)),
-        ),
-      );
+    const quote =
+      rate != null
+        ? rentalQuote(
+            rate,
+            rentalBilledDays(new Date(startAt), new Date(expectedReturnAt)),
+          )
+        : null;
+    if (quote) Object.assign(payload, quote);
+
+    // Check the payment before saving anything, so a bad amount never leaves
+    // a rental behind without its payment.
+    const paymentNow = String(parsed.data.payment_now ?? "none");
+    const paymentAmount: number | null =
+      paymentNow === "full"
+        ? (quote?.quoted_total ?? null)
+        : paymentNow === "deposit" && parsed.data.payment_amount != null
+          ? Number(parsed.data.payment_amount)
+          : null;
+    if (paymentNow === "full" && !quote) {
+      return {
+        success: false,
+        message: "Set a daily rate to take the full payment.",
+        fieldErrors: {
+          quoted_daily_rate: ["Set a daily rate to take the full payment."],
+        },
+      };
+    }
+    if (paymentNow === "deposit" && quote && (paymentAmount ?? 0) > quote.quoted_total) {
+      return {
+        success: false,
+        message: "The down payment is more than the rent.",
+        fieldErrors: {
+          payment_amount: [
+            `More than the rent of ₱${quote.quoted_total.toLocaleString("en-PH")}. Choose Paid in full instead.`,
+          ],
+        },
+      };
     }
 
     const { data, error } = await supabase
@@ -223,10 +257,39 @@ export async function saveRentalAction(
       .single();
     if (error) throw error;
     const savedId = String(data.id);
+    const href = `${rentalDefinition.route}/${savedId}`;
+
+    if (paymentAmount != null && paymentAmount > 0) {
+      const { error: paymentError } = await supabase.rpc("record_rental_payment", {
+        p_rental_id: savedId,
+        // A down payment is the deposit; full payment settles the balance.
+        p_payment_type: paymentNow === "full" ? "balance" : "deposit",
+        p_amount: paymentAmount,
+        p_method: String(parsed.data.payment_method ?? "cash"),
+        p_external_reference: parsed.data.payment_reference
+          ? String(parsed.data.payment_reference)
+          : null,
+        p_notes: "Taken at booking",
+        p_confirm: true,
+      });
+      revalidateResource("/rentals");
+      // The rental is saved either way; land on the bill so staff see the
+      // payment, or the warning that it still needs recording.
+      return {
+        success: true,
+        data: {
+          id: savedId,
+          href: paymentError
+            ? `${href}?tab=payments&payment=failed`
+            : `${href}?tab=payments`,
+        },
+      };
+    }
+
     revalidateResource("/rentals");
     return {
       success: true,
-      data: { id: savedId, href: `${rentalDefinition.route}/${savedId}` },
+      data: { id: savedId, href },
     };
   } catch (error) {
     return { success: false, message: mapRentalDbError(error) };

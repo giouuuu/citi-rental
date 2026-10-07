@@ -46,6 +46,8 @@ type RentalPaymentPanelProps = {
   depositPercent?: number | null;
   payments: RentalPayment[];
   chargeTypes: RentalChargeType[];
+  /** The payment typed on the booking form did not save; ask for it again. */
+  bookingPaymentFailed?: boolean;
 };
 
 function BillLine({
@@ -94,6 +96,7 @@ export function RentalPaymentPanel({
   depositPercent,
   payments,
   chargeTypes,
+  bookingPaymentFailed = false,
 }: RentalPaymentPanelProps) {
   const [error, setError] = useState("");
   const [removeError, setRemoveError] = useState("");
@@ -157,6 +160,14 @@ export function RentalPaymentPanel({
 
   return (
     <div className="space-y-5">
+      {bookingPaymentFailed && bill.received.length === 0 ? (
+        <Alert variant="destructive">
+          <AlertDescription>
+            The rental was saved, but the payment taken at booking was not
+            recorded. Use Record payment below to add it.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <div
         className="space-y-3 rounded-xl border border-border bg-card p-4"
         data-tour="rental-bill"

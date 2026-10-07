@@ -45,10 +45,16 @@ export const MANUAL_RENTAL_TOUR: ProductTourStep[] = [
       "Set this when the renter signs the GPS tracking consent. The car can't go out without it.",
   },
   {
+    element: '[data-field="payment_now"]',
+    title: "Payment now",
+    description:
+      "Took a down payment or the full rent? Pick it here with how they paid, and it's recorded with the booking.",
+  },
+  {
     element: "[data-resource-submit]",
     title: "Save",
     description:
-      "The rental is saved as a draft. Open its Bill & payments tab to add car wash, delivery, or other fees and to take payments.",
+      "The rental is saved as a draft. Its Bill & payments tab is where you add car wash, delivery, or other fees and take more payments.",
     side: "top",
   },
 ];

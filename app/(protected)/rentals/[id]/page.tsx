@@ -1,5 +1,6 @@
 import { saveRentalAction } from "@/features/rentals";
 import { rentalDefinition } from "@/features/rentals";
+import { RENTAL_BOOKING_PAYMENT_FIELDS } from "@/features/rentals/schemas/rental-definition";
 import { ResourceDetailScreen } from "@/features/shared";
 import { RentalWorkflowActions } from "@/features/rentals";
 import {
@@ -32,7 +33,7 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; payment?: string }>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
 
@@ -192,6 +193,8 @@ export default async function Page({
       }
       definition={rentalDefinition}
       formReadOnly={(row) => isPublicCustomerBooking(row)}
+      // Payments after booking go on the Bill & payments tab.
+      hiddenFields={[...RENTAL_BOOKING_PAYMENT_FIELDS]}
       quickCreate={status === "draft" ? RENTAL_QUICK_CREATE : undefined}
       id={id}
       saved={query.saved === "1"}
@@ -226,6 +229,7 @@ export default async function Page({
               payments={payments}
               quotedDailyRate={quotedDailyRate}
               quotedDays={quotedDays}
+              bookingPaymentFailed={query.payment === "failed"}
               quotedTotal={quotedTotal}
               rentalId={id}
               rentalStatus={status}

@@ -35,6 +35,7 @@ export async function ResourceDetailScreen({
   actions,
   formReadOnly,
   quickCreate,
+  hiddenFields,
   children,
 }: {
   definition: ResourceDefinition;
@@ -47,6 +48,8 @@ export async function ResourceDetailScreen({
   formReadOnly?: boolean | ((row: ResourceRow) => boolean);
   /** Create a linked record (a customer) from its picker. */
   quickCreate?: ResourceFormProps["quickCreate"];
+  /** Create-only fields to leave off the edit form. */
+  hiddenFields?: string[];
   children?: (parts: {
     form: ReactNode;
     row: ResourceRow;
@@ -164,6 +167,7 @@ export async function ResourceDetailScreen({
               singular: definition.singular,
               fields: definition.fields,
             }}
+            hiddenFields={hiddenFields}
             quickCreate={quickCreate}
             readOnly={isFormReadOnly}
             references={references}

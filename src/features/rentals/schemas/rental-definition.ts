@@ -5,7 +5,68 @@ import {
   optionalText,
   requiredText,
 } from "@/features/shared/schemas/schema-helpers";
-import type { ResourceDefinition } from "@/features/shared/types/resource";
+import type {
+  ResourceDefinition,
+  ResourceField,
+} from "@/features/shared/types/resource";
+
+/**
+ * Money taken while booking at the counter. Not rental columns: the save
+ * action records them on the payments ledger, so they only show on create.
+ */
+export const RENTAL_BOOKING_PAYMENT_FIELDS = [
+  "payment_now",
+  "payment_amount",
+  "payment_method",
+  "payment_reference",
+] as const;
+
+const NO_PAYMENT_NOW = ["", "none"];
+
+const bookingPaymentFields: ResourceField[] = [
+  {
+    name: "payment_now",
+    label: "Payment received now",
+    type: "select",
+    options: [
+      { value: "none", label: "None yet" },
+      { value: "deposit", label: "Down payment" },
+      { value: "full", label: "Paid in full" },
+    ],
+    description:
+      "Take a down payment or the full rent while booking. Later payments go on the Bill & payments tab.",
+  },
+  {
+    name: "payment_amount",
+    label: "Down payment (PHP)",
+    type: "number",
+    step: "0.01",
+    lockWhen: {
+      field: "payment_now",
+      values: [...NO_PAYMENT_NOW, "full"],
+      message: "Choose Down payment to type an amount. Paid in full uses the rent total.",
+    },
+  },
+  {
+    name: "payment_method",
+    label: "Paid by",
+    type: "select",
+    options: [
+      { value: "cash", label: "Cash" },
+      { value: "gcash", label: "GCash" },
+      { value: "maya", label: "Maya" },
+      { value: "bank", label: "Bank" },
+      { value: "other", label: "Other" },
+    ],
+    lockWhen: { field: "payment_now", values: NO_PAYMENT_NOW },
+  },
+  {
+    name: "payment_reference",
+    label: "Payment reference",
+    placeholder: "GCash / bank ref (optional)",
+    lockWhen: { field: "payment_now", values: NO_PAYMENT_NOW },
+  },
+];
 
 export const rentalDefinition: ResourceDefinition = {
   key: "rental",
@@ -53,7 +114,19 @@ export const rentalDefinition: ResourceDefinition = {
         .optional(),
       tracking_consent_at: optionalText(40),
       notes: optionalText(),
+      payment_now: z.enum(["none", "deposit", "full"]).optional(),
+      payment_amount: optionalNumber(0),
+      payment_method: z.enum(["cash", "gcash", "maya", "bank", "other"]).optional(),
+      payment_reference: optionalText(120),
     })
+    .refine(
+      (value) =>
+        value.payment_now !== "deposit" || (value.payment_amount ?? 0) > 0,
+      {
+        path: ["payment_amount"],
+        message: "Enter the down payment amount.",
+      },
+    )
     .refine(
       (value) =>
         new Date(value.expected_return_at).getTime() >
@@ -181,6 +254,7 @@ export const rentalDefinition: ResourceDefinition = {
       label: "Tracking consent time",
       type: "datetime-local",
     },
+    ...bookingPaymentFields,
     {
       name: "notes",
       label: "Notes",
@@ -212,3 +286,11 @@ export const rentalDefinition: ResourceDefinition = {
       updated_at: rental.createdAt,
     })),
 };
+
+// The booking payment fields are not rental columns; never select them.
+rentalDefinition.detailColumns = rentalDefinition.fields
+  .map((field) => field.name)
+  .filter(
+    (name) =>
+      !(RENTAL_BOOKING_PAYMENT_FIELDS as readonly string[]).includes(name),
+  );
