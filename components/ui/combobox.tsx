@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronsUpDownIcon } from "lucide-react"
+import { ChevronsUpDownIcon, PlusIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import {
@@ -11,6 +11,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from "@/components/ui/command"
 import { inputSurfaceClassName } from "@/components/ui/input"
 import {
@@ -63,6 +64,8 @@ function Combobox({
   contentClassName,
   align = "start",
   side,
+  createLabel,
+  onCreate,
   "aria-invalid": ariaInvalid,
   "aria-label": ariaLabel,
   "aria-describedby": ariaDescribedBy,
@@ -84,12 +87,20 @@ function Combobox({
   contentClassName?: string
   align?: "start" | "center" | "end"
   side?: "top" | "right" | "bottom" | "left"
+  /**
+   * Adds an always-visible "add new" item under the list. Gets the search
+   * text, so a name that matched nothing can seed the new record.
+   */
+  onCreate?: (search: string) => void
+  /** Text of the add-new item; receives the current search. */
+  createLabel?: (search: string) => string
   "aria-invalid"?: boolean | "true" | "false"
   "aria-label"?: string
   "aria-describedby"?: string
 }) {
   const [open, setOpen] = React.useState(false)
   const [uncontrolled, setUncontrolled] = React.useState(defaultValue ?? "")
+  const [search, setSearch] = React.useState("")
   const current = value ?? uncontrolled
   const selected = options.find((option) => option.value === current)
   const withSearch = searchable ?? options.length >= SEARCHABLE_AT
@@ -107,9 +118,14 @@ function Combobox({
     setOpen(false)
   }
 
+  function openChange(next: boolean) {
+    setOpen(next)
+    if (!next) setSearch("")
+  }
+
   return (
     // Modal so the list scrolls when the picker sits inside a Dialog.
-    <Popover modal onOpenChange={setOpen} open={open}>
+    <Popover modal onOpenChange={openChange} open={open}>
       {name ? (
         <input name={name} required={required} type="hidden" value={current} />
       ) : null}
@@ -150,7 +166,12 @@ function Combobox({
       >
         <Command defaultValue={current || undefined} filter={filterOptions} loop>
           {withSearch ? (
-            <CommandInput aria-label={searchPlaceholder} placeholder={searchPlaceholder} />
+            <CommandInput
+              aria-label={searchPlaceholder}
+              onValueChange={setSearch}
+              placeholder={searchPlaceholder}
+              value={search}
+            />
           ) : null}
           <CommandList ref={revealChecked}>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
@@ -181,6 +202,27 @@ function Combobox({
                   ))}
               </CommandGroup>
             ))}
+            {onCreate ? (
+              <>
+                <CommandSeparator alwaysRender />
+                <CommandGroup forceMount>
+                  <CommandItem
+                    forceMount
+                    onSelect={() => {
+                      const typed = search.trim()
+                      openChange(false)
+                      onCreate(typed)
+                    }}
+                    value="__create__"
+                  >
+                    <PlusIcon aria-hidden="true" />
+                    <span className="truncate">
+                      {createLabel?.(search.trim()) ?? "Add new"}
+                    </span>
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            ) : null}
           </CommandList>
         </Command>
       </PopoverContent>

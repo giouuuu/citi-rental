@@ -1,7 +1,9 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { Controller, type Control, type FieldValues } from "react-hook-form";
 
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
@@ -27,6 +29,8 @@ export function ResourceFormField({
   row,
   readOnly,
   isPending,
+  quickCreateLabel,
+  onQuickCreate,
 }: {
   control: Control<FieldValues>;
   definitionKey: string;
@@ -35,7 +39,11 @@ export function ResourceFormField({
   row?: ResourceRow | null;
   readOnly: boolean;
   isPending: boolean;
+  /** For `select` fields: offer to create the record being picked. */
+  quickCreateLabel?: string;
+  onQuickCreate?: (search: string) => void;
 }) {
+  const canQuickCreate = Boolean(onQuickCreate && quickCreateLabel && !readOnly);
   const id = `${definitionKey}-${fieldDef.name}`;
 
   return (
@@ -97,14 +105,29 @@ export function ResourceFormField({
             </div>
           ) : (
             <>
-              <FieldLabel htmlFor={id}>
-                {fieldDef.label}
-                {fieldDef.required ? (
-                  <span aria-hidden="true" className="text-destructive">
-                    *
-                  </span>
+              <div className="flex min-h-6 items-center justify-between gap-2">
+                <FieldLabel htmlFor={id}>
+                  {fieldDef.label}
+                  {fieldDef.required ? (
+                    <span aria-hidden="true" className="text-destructive">
+                      *
+                    </span>
+                  ) : null}
+                </FieldLabel>
+                {canQuickCreate ? (
+                  <Button
+                    className="-my-1 text-primary"
+                    disabled={isPending}
+                    onClick={() => onQuickCreate?.("")}
+                    size="xs"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <Plus />
+                    {quickCreateLabel}
+                  </Button>
                 ) : null}
-              </FieldLabel>
+              </div>
               {fieldDef.type === "textarea" ? (
                 <Textarea
                   aria-invalid={fieldState.invalid}
@@ -124,6 +147,15 @@ export function ResourceFormField({
                   disabled={readOnly || isPending}
                   id={id}
                   onValueChange={field.onChange}
+                  createLabel={
+                    canQuickCreate
+                      ? (search) =>
+                          search
+                            ? `Add “${search}” as a new ${fieldDef.label.toLowerCase()}`
+                            : `Add a new ${fieldDef.label.toLowerCase()}`
+                      : undefined
+                  }
+                  onCreate={canQuickCreate ? onQuickCreate : undefined}
                   options={options}
                   placeholder={`Select ${fieldDef.label.toLowerCase()}`}
                   searchPlaceholder={`Search ${fieldDef.label.toLowerCase()}…`}

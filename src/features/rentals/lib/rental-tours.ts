@@ -17,7 +17,7 @@ export const MANUAL_RENTAL_TOUR: ProductTourStep[] = [
     element: '[data-field="customer_id"]',
     title: "Customer",
     description:
-      "Pick the renter. New renter? Add them under Customers first. Blocked customers are hidden.",
+      "Pick the renter. New renter? Click New customer to add them without leaving this page. Blocked customers are hidden.",
   },
   {
     element: '[data-field="vehicle_id"]',

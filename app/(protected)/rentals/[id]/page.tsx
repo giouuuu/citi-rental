@@ -17,6 +17,7 @@ import { isPublicCustomerBooking } from "@/features/rentals/lib/is-public-custom
 import { needsDepositConfirmation } from "@/features/rentals/lib/needs-deposit-confirmation";
 import { listRentalPayments } from "@/features/rentals/services/list-rental-payments";
 import { listRentalChargeTypes } from "@/features/rentals/services/list-rental-charge-types";
+import { RENTAL_QUICK_CREATE } from "@/features/rentals/lib/rental-quick-create";
 import {
   getInspectionChecklistForRental,
   listRentalInspections,
@@ -191,6 +192,7 @@ export default async function Page({
       }
       definition={rentalDefinition}
       formReadOnly={(row) => isPublicCustomerBooking(row)}
+      quickCreate={status === "draft" ? RENTAL_QUICK_CREATE : undefined}
       id={id}
       saved={query.saved === "1"}
     >

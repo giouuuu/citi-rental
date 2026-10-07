@@ -3,6 +3,7 @@ import { z } from "zod";
 import { saveRentalAction } from "@/features/rentals";
 import { rentalDefinition } from "@/features/rentals";
 import { listMaintenanceAlerts, MaintenanceDueAlert } from "@/features/maintenance";
+import { RENTAL_QUICK_CREATE } from "@/features/rentals/lib/rental-quick-create";
 import { MANUAL_RENTAL_TOUR } from "@/features/rentals/lib/rental-tours";
 import { suggestRentalReference } from "@/features/rentals/lib/rental-reference";
 import { ResourceCreateScreen } from "@/features/shared";
@@ -36,6 +37,7 @@ export default async function Page({
       // Return readings belong to the return inspection, not a new booking.
       hiddenFields={["actual_return_at", "ending_odometer", "ending_fuel_level"]}
       initialValues={initialValues}
+      quickCreate={RENTAL_QUICK_CREATE}
       notice={
         servicesDue?.ok ? (
           <MaintenanceDueAlert

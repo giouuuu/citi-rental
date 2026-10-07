@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/design-system/page-header";
+import type { ResourceFormProps } from "@/features/shared/types/resource-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -30,6 +31,7 @@ export async function ResourceCreateScreen({
   notice,
   hiddenFields,
   actions,
+  quickCreate,
 }: {
   definition: ResourceDefinition;
   action: SaveAction;
@@ -41,6 +43,8 @@ export async function ResourceCreateScreen({
   hiddenFields?: string[];
   /** Extra header buttons, e.g. a product tour. */
   actions?: ReactNode;
+  /** Create a linked record (a customer) from its picker. */
+  quickCreate?: ResourceFormProps["quickCreate"];
 }) {
   let role: AppRole = "customer";
   let references: ResourceReferences = {};
@@ -96,6 +100,7 @@ export async function ResourceCreateScreen({
             fields: definition.fields,
           }}
           hiddenFields={hiddenFields}
+          quickCreate={quickCreate}
           references={references}
         />
       ) : (

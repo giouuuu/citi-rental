@@ -9,6 +9,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { ArchiveButton } from "@/features/shared/components/archive-button";
 import { ResourceForm } from "@/features/shared/components/resource-form";
+import type { ResourceFormProps } from "@/features/shared/types/resource-form";
 import { loadResourceBlockedRanges } from "@/features/shared/services/load-resource-blocked-ranges";
 import { loadResourceReferences } from "@/features/shared/services/load-resource-references";
 import type {
@@ -33,6 +34,7 @@ export async function ResourceDetailScreen({
   saved,
   actions,
   formReadOnly,
+  quickCreate,
   children,
 }: {
   definition: ResourceDefinition;
@@ -43,6 +45,8 @@ export async function ResourceDetailScreen({
   actions?: ReactNode;
   /** Force the edit form read-only (in addition to role checks). */
   formReadOnly?: boolean | ((row: ResourceRow) => boolean);
+  /** Create a linked record (a customer) from its picker. */
+  quickCreate?: ResourceFormProps["quickCreate"];
   children?: (parts: {
     form: ReactNode;
     row: ResourceRow;
@@ -160,6 +164,7 @@ export async function ResourceDetailScreen({
               singular: definition.singular,
               fields: definition.fields,
             }}
+            quickCreate={quickCreate}
             readOnly={isFormReadOnly}
             references={references}
             row={row}
