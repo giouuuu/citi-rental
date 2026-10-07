@@ -1,11 +1,17 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import { settingsSchema } from "@/features/settings/schemas/settings-schema";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
+import {
+  CONTACT_CHANNEL_KEYS,
+  contactChannelField,
+} from "@/features/settings/lib/contact-channels";
 
 export async function saveSettingsAction(
   formData: FormData,
@@ -66,11 +72,20 @@ export async function saveSettingsAction(
         deposit_percent: parsed.data.deposit_percent,
         payment_qr_url: parsed.data.payment_qr_url || null,
         payment_instructions: parsed.data.payment_instructions?.trim() || null,
+        ...Object.fromEntries(
+          CONTACT_CHANNEL_KEYS.map(contactChannelField).map((column) => [
+            column,
+            parsed.data[column]?.trim() || null,
+          ]),
+        ),
       })
       .eq("id", company.id);
     if (paymentError) throw paymentError;
 
     revalidateResource("/settings");
+    // The landing page's contact button reads these channels. Page scope:
+    // layout scope on "/" would drop every cached route.
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     return {

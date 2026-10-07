@@ -17,6 +17,7 @@ import {
 
 import { ZekeMark } from "@/components/brand/zeke-mark";
 import { BookingSearch } from "@/components/landing/booking-search";
+import { ContactFab } from "@/components/landing/contact-fab";
 import { todayDateValue } from "@/components/landing/booking-search-schema";
 import {
   heroCars,
@@ -40,6 +41,8 @@ import {
   bookingContinuePath,
   bookingFormPath,
 } from "@/features/booking/lib/booking-continue";
+import { buildContactChannels } from "@/features/settings/lib/contact-channels";
+import { getPublicContactChannels } from "@/features/settings/services/get-public-contact-channels";
 import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-public-available-vehicles";
 
 /**
@@ -95,10 +98,17 @@ export default async function HomePage({
     start,
     end,
   };
-  const availableVehicles = await listPublicAvailableVehicles({
-    startDate: trip.start,
-    endDate: trip.end,
-  });
+  const [availableVehicles, contactValues] = await Promise.all([
+    listPublicAvailableVehicles({
+      startDate: trip.start,
+      endDate: trip.end,
+    }),
+    getPublicContactChannels(),
+  ]);
+  const contactChannels = buildContactChannels(
+    contactValues,
+    "Hi Zeke Car Rentals! I'd like to ask about renting a car.",
+  );
   const signedIn = await isBookingUserSignedIn();
   const bookingParams = new URLSearchParams();
   if (trip.pickup) bookingParams.set("pickup", trip.pickup);
@@ -547,6 +557,13 @@ export default async function HomePage({
           </div>
         </div>
       </footer>
+
+      <ContactFab
+        avoidSelector="#find-a-car"
+        channels={contactChannels}
+        className="focus-in"
+        style={focusDelay(HERO_SCENE_INTRO_MS)}
+      />
     </LandingIntro>
   );
 }

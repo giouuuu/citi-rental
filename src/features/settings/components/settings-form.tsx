@@ -27,6 +27,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { saveSettingsAction } from "@/features/settings/actions/actions";
 import {
+  CONTACT_CHANNEL_KEYS,
+  contactChannelField,
+  contactChannelSettings,
+} from "@/features/settings/lib/contact-channels";
+import {
   settingsSchema,
   type SettingsInput,
 } from "@/features/settings/schemas/settings-schema";
@@ -66,6 +71,12 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
       deposit_percent: settings.deposit_percent,
       payment_qr_url: settings.payment_qr_url,
       payment_instructions: settings.payment_instructions,
+      ...Object.fromEntries(
+        CONTACT_CHANNEL_KEYS.map(contactChannelField).map((column) => [
+          column,
+          settings[column],
+        ]),
+      ),
     },
   });
 
@@ -270,6 +281,52 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
               )}
             />
           </FieldGroup>
+          <section
+            aria-labelledby="contact-channels-title"
+            className="space-y-4 border-t pt-5"
+          >
+            <div>
+              <h3 className="text-sm font-medium" id="contact-channels-title">
+                Customer contact channels
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Shown on the public site&apos;s chat button. Fill in the apps
+                you answer on; empty ones stay hidden.
+              </p>
+            </div>
+            <FieldGroup className="grid items-start gap-5 md:grid-cols-2">
+              {CONTACT_CHANNEL_KEYS.map((key) => {
+                const name = contactChannelField(key);
+                const channel = contactChannelSettings[key];
+                return (
+                  <Controller
+                    control={form.control}
+                    key={name}
+                    name={name}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor={name}>{channel.label}</FieldLabel>
+                        <Input
+                          {...field}
+                          aria-invalid={fieldState.invalid}
+                          autoComplete="off"
+                          disabled={isPending}
+                          id={name}
+                          inputMode={channel.kind === "phone" ? "tel" : undefined}
+                          placeholder={channel.placeholder}
+                          value={field.value ?? ""}
+                        />
+                        <FieldDescription>{channel.description}</FieldDescription>
+                        {fieldState.invalid ? (
+                          <FieldError errors={[fieldState.error]} />
+                        ) : null}
+                      </Field>
+                    )}
+                  />
+                );
+              })}
+            </FieldGroup>
+          </section>
           <div className="flex justify-end border-t pt-5">
             <Button disabled={isPending} type="submit">
               {isPending ? <LoaderCircle className="animate-spin" /> : <Save />}

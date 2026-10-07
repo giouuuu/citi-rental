@@ -2,6 +2,21 @@ import "server-only";
 
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import {
+  CONTACT_CHANNEL_KEYS,
+  contactChannelField,
+} from "@/features/settings/lib/contact-channels";
+
+type ContactChannelFields = Record<
+  ReturnType<typeof contactChannelField>,
+  string
+>;
+
+const CONTACT_COLUMNS = CONTACT_CHANNEL_KEYS.map(contactChannelField);
+
+const emptyContactChannels = Object.fromEntries(
+  CONTACT_COLUMNS.map((column) => [column, ""]),
+) as ContactChannelFields;
 
 export type OrganizationSettings = {
   name: string;
@@ -13,7 +28,7 @@ export type OrganizationSettings = {
   deposit_percent: number;
   payment_qr_url: string;
   payment_instructions: string;
-};
+} & ContactChannelFields;
 
 export async function getOrganizationSettings(): Promise<OrganizationSettings> {
   if (!isSupabaseConfigured())
@@ -27,13 +42,19 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       deposit_percent: 30,
       payment_qr_url: "",
       payment_instructions: "",
+      ...emptyContactChannels,
     };
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims?.sub) throw new Error("Unauthorized");
   const { data: company, error } = await supabase
     .from("company_profile")
-    .select("name, timezone, deposit_percent, payment_qr_url, payment_instructions")
+    .select(
+      [
+        "name, timezone, deposit_percent, payment_qr_url, payment_instructions",
+        ...CONTACT_COLUMNS,
+      ].join(", "),
+    )
     .single();
   if (error) throw new Error(error.message);
   const { data: appSettings } = await supabase
@@ -51,7 +72,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     deposit_percent: number | null;
     payment_qr_url: string | null;
     payment_instructions: string | null;
-  };
+  } & Record<(typeof CONTACT_COLUMNS)[number], string | null>;
   const values = new Map(
     (appSettings ?? []).map((setting) => [
       setting.setting_key,
@@ -76,6 +97,9 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     deposit_percent: Number(organization.deposit_percent ?? 30),
     payment_qr_url: organization.payment_qr_url ?? "",
     payment_instructions: organization.payment_instructions ?? "",
+    ...(Object.fromEntries(
+      CONTACT_COLUMNS.map((column) => [column, organization[column] ?? ""]),
+    ) as ContactChannelFields),
   };
 }
 

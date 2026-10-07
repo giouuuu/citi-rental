@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+const phoneChannel = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === "" || /^\+?[\d\s()-]{7,24}$/.test(value),
+    "Use international format, e.g. +63 917 123 4567.",
+  )
+  .optional();
+const handleChannel = z.string().trim().max(200).optional();
+
 export const settingsSchema = z
   .object({
     name: z.string().trim().min(2).max(120),
@@ -13,6 +23,14 @@ export const settingsSchema = z
       .union([z.url("Enter a valid QR image URL."), z.literal("")])
       .optional(),
     payment_instructions: z.string().trim().max(2000).optional(),
+    contact_phone: phoneChannel,
+    contact_whatsapp: phoneChannel,
+    contact_viber: phoneChannel,
+    contact_wechat: handleChannel,
+    contact_kakaotalk: handleChannel,
+    contact_line: handleChannel,
+    contact_telegram: handleChannel,
+    contact_messenger: handleChannel,
   })
   .refine(
     (value) =>
