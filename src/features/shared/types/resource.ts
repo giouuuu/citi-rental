@@ -44,6 +44,13 @@ export type ResourceField = {
   /** For `image`: the row column holding the current image URL. Defaults to `photo_url`. */
   previewColumn?: string;
   /**
+   * For `image`: offer "Remove image" on the saved one. The save action must
+   * handle the `<name>__remove` flag it submits.
+   */
+  removable?: boolean;
+  /** For a removable `image`: what else removing it does, shown once marked. */
+  removeNote?: string;
+  /**
    * For `date-range`: this field holds the start and `endField` the end, both
    * `YYYY-MM-DDTHH:mm`. The end field is edited here, not on its own.
    */

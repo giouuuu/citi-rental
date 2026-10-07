@@ -1,35 +1,44 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  formatPhp,
-  quoteDeposit,
-  quoteRentalTotal,
-  rentalDayCount,
-} from "./rental-pricing";
+import { formatPhp, quoteDeposit, quoteRentalTotal } from "./rental-pricing";
 
-describe("rentalDayCount", () => {
-  it("counts inclusive calendar days", () => {
-    expect(rentalDayCount("2026-07-27", "2026-07-27")).toBe(1);
-    expect(rentalDayCount("2026-07-27", "2026-07-29")).toBe(3);
-  });
-
-  it("handles datetime-local values", () => {
-    expect(rentalDayCount("2026-07-27T09:00", "2026-07-28T18:00")).toBe(2);
-  });
-
-  it("returns null for invalid ranges", () => {
-    expect(rentalDayCount(null, "2026-07-28")).toBeNull();
-    expect(rentalDayCount("2026-07-29", "2026-07-28")).toBeNull();
-  });
-});
+const rates = { daily: 2000, halfDay: 1200, hourly: 200 };
 
 describe("quoteRentalTotal", () => {
-  it("multiplies daily rate by days", () => {
-    expect(quoteRentalTotal(2000, "2026-07-27", "2026-07-29")).toEqual({
-      days: 3,
-      dailyRate: 2000,
-      total: 6000,
+  it("prices search days as 24-hour periods", () => {
+    expect(quoteRentalTotal(rates, "2026-07-27", "2026-07-29")).toMatchObject({
+      days: 2,
+      hours: 0,
+      total: 4000,
     });
+  });
+
+  it("prices a same-day search from 9 AM to 6 PM", () => {
+    expect(quoteRentalTotal(rates, "2026-07-27", "2026-07-27")).toMatchObject({
+      days: 0,
+      hours: 9,
+      total: 1200,
+    });
+  });
+
+  it("prices picked times on elapsed hours", () => {
+    expect(quoteRentalTotal(rates, "2026-07-27T09:00", "2026-07-28T11:00")).toMatchObject({
+      days: 1,
+      hours: 2,
+      total: 2400,
+    });
+  });
+
+  it("reads stored UTC timestamps", () => {
+    // Oct 8 12:00 AM → Oct 9 6:00 PM in Manila: 1 day 18 hours.
+    expect(
+      quoteRentalTotal({ daily: 1350 }, "2026-10-07T16:00:00+00:00", "2026-10-09T10:00:00+00:00"),
+    ).toMatchObject({ days: 1, hours: 18, total: 2700 });
+  });
+
+  it("is null for missing or backwards trips", () => {
+    expect(quoteRentalTotal(rates, null, "2026-07-28")).toBeNull();
+    expect(quoteRentalTotal(rates, "2026-07-29", "2026-07-28")).toBeNull();
   });
 });
 
@@ -46,11 +55,5 @@ describe("quoteDeposit", () => {
 describe("formatPhp", () => {
   it("formats PHP amounts", () => {
     expect(formatPhp(2000)).toMatch(/2,000/);
-  });
-
-  it("counts Philippine days for stored UTC timestamps", () => {
-    // Oct 8 12:00 AM → Oct 9 6:00 PM in Manila.
-    expect(rentalDayCount("2026-10-07T16:00:00+00:00", "2026-10-09T10:00:00+00:00")).toBe(2);
-    expect(rentalDayCount("2026-10-08T00:00", "2026-10-09T18:00")).toBe(2);
   });
 });

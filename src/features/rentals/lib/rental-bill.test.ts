@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { RentalPayment } from "@/features/rentals/types/rental-payment";
 
-import { buildRentalBill, rentalBillStatus } from "./rental-bill";
+import { buildRentalBill, describeRentLine, rentalBillStatus } from "./rental-bill";
 
 function entry(overrides: Partial<RentalPayment>): RentalPayment {
   return {
@@ -20,6 +20,7 @@ function entry(overrides: Partial<RentalPayment>): RentalPayment {
     submittedAt: "2026-10-09T00:00:00.000Z",
     confirmedAt: "2026-10-09T00:00:00.000Z",
     chargeTypeName: null,
+    chargeTypeCode: null,
     ...overrides,
   };
 }
@@ -27,7 +28,7 @@ function entry(overrides: Partial<RentalPayment>): RentalPayment {
 describe("buildRentalBill", () => {
   it("adds charges to the rent and subtracts what was paid", () => {
     const bill = buildRentalBill({
-      quotedDailyRate: 2500,
+      quotedRates: { daily: 2500 },
       quotedDays: 3,
       quotedTotal: 7500,
       payments: [
@@ -46,7 +47,7 @@ describe("buildRentalBill", () => {
 
   it("counts only confirmed money and takes refunds back out", () => {
     const bill = buildRentalBill({
-      quotedDailyRate: 1000,
+      quotedRates: { daily: 1000 },
       quotedDays: 2,
       quotedTotal: 2000,
       payments: [
@@ -62,7 +63,7 @@ describe("buildRentalBill", () => {
 
   it("never shows a negative balance when overpaid", () => {
     const bill = buildRentalBill({
-      quotedDailyRate: null,
+      quotedRates: null,
       quotedDays: null,
       quotedTotal: null,
       payments: [entry({ paymentType: "balance", amount: 500 })],
@@ -73,10 +74,50 @@ describe("buildRentalBill", () => {
   });
 });
 
+describe("buildRentalBill adjustments", () => {
+  it("takes a negative bill adjustment off the total", () => {
+    const bill = buildRentalBill({
+      quotedRates: { daily: 1350 },
+      quotedDays: 4,
+      quotedTotal: 5400,
+      payments: [
+        entry({
+          paymentType: "penalty",
+          amount: -400,
+          method: null,
+          chargeTypeName: "Bill adjustment",
+          chargeTypeCode: "bill_adjustment",
+        }),
+      ],
+    });
+
+    expect(bill.total).toBe(5000);
+    expect(bill.balance).toBe(5000);
+  });
+});
+
+describe("describeRentLine", () => {
+  const rates = { daily: 1350, halfDay: 900, hourly: 150 };
+
+  it("spells out elapsed-time rent", () => {
+    expect(describeRentLine({ rates, days: 3, hours: 2, total: 4350 })).toBe(
+      "3 days 2 hours · ₱1,350.00 × 3 days + 2 hours × ₱150.00",
+    );
+  });
+
+  it("keeps the calendar-day wording on older quotes", () => {
+    expect(describeRentLine({ rates, days: 4, hours: null, total: 5400 })).toBe("₱1,350.00 × 4 days");
+  });
+
+  it("is null without a rate", () => {
+    expect(describeRentLine({ rates: null, days: null, hours: null, total: 0 })).toBeNull();
+  });
+});
+
 describe("rentalBillStatus", () => {
   const bill = (paid: number, total = 3000) =>
     buildRentalBill({
-      quotedDailyRate: 1000,
+      quotedRates: { daily: 1000 },
       quotedDays: 3,
       quotedTotal: total,
       payments: paid ? [entry({ paymentType: "balance", amount: paid })] : [],

@@ -36,7 +36,7 @@ export const MANUAL_RENTAL_TOUR: ProductTourStep[] = [
     element: '[data-field="quoted_daily_rate"]',
     title: "Daily rate",
     description:
-      "Leave it blank to use the car's rate, or type the price you agreed. Rent is the rate × the days.",
+      "Leave it blank to use the car's rate, or type the price you agreed. Rent is priced on the time the car is out: the daily rate per 24 hours, and the car's 12-hour or hourly rate for leftover hours.",
   },
   {
     element: '[data-field="tracking_consent_at"]',
@@ -74,15 +74,21 @@ export const RENTAL_BILL_TOUR: ProductTourStep[] = [
       "Car wash, delivery, fuel shortage, extension, or other income. All optional. The amount fills in from Settings → Charge types, and you can change it.",
   },
   {
+    element: '[data-tour="adjust-bill"]',
+    title: "Adjust the bill",
+    description:
+      "Bill wrong, or agreed a discount? Take money off or add it, with the reason. It shows on the bill, and you can remove it to undo.",
+  },
+  {
     element: '[data-tour="record-payment"]',
     title: "Record a payment",
     description:
-      "Log cash, GCash, Maya, or bank payments here. Use Discount / adjustment to take money off the bill.",
+      "Log cash, GCash, Maya, or bank payments here. To take money off the bill, use Adjust bill instead.",
   },
   {
     element: '[data-tour="extend-rental"]',
     title: "Extend",
     description:
-      "Renter keeping the car longer? Extend moves the return date, checks the next booking, and adds the extra days to the bill.",
+      "Renter keeping the car longer? Extend moves the return date, checks the next booking, and prices the extra time for the bill.",
   },
 ];

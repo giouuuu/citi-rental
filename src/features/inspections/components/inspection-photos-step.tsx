@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { CheckIcon } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   OPTIONAL_OVERVIEW_PHOTO_KINDS,
@@ -12,6 +11,9 @@ import {
 } from "@/features/inspections/lib/checklist-areas";
 import type { ChecklistDraftItem } from "@/features/inspections/components/inspection-checklist-panel";
 import type { RentalInspection } from "@/features/inspections/types/inspection";
+import { ImageDropzone } from "@/features/shared/components/image-dropzone";
+import { compressImage } from "@/features/shared/lib/compress-image";
+import { fillSlotsFrom } from "@/features/shared/lib/file-accept";
 import { cn } from "@/lib/utils";
 
 /** Everything still missing before the photos step can be left. */
@@ -40,7 +42,8 @@ function PhotoSlot({
   file,
   referenceUrl,
   referenceLabel,
-  onFile,
+  multiple = false,
+  onFiles,
 }: {
   id: string;
   label: string;
@@ -48,7 +51,9 @@ function PhotoSlot({
   file: File | null;
   referenceUrl?: string | null;
   referenceLabel?: string;
-  onFile: (file: File | null) => void;
+  /** Several dropped photos spill into the next empty slots of this group. */
+  multiple?: boolean;
+  onFiles: (files: File[]) => void;
 }) {
   return (
     <div
@@ -86,12 +91,14 @@ function PhotoSlot({
         </div>
       ) : null}
 
-      <Input
+      <ImageDropzone
         accept="image/*"
         capture="environment"
         id={id}
-        type="file"
-        onChange={(event) => onFile(event.target.files?.[0] ?? null)}
+        multiple={multiple}
+        prepare={compressImage}
+        value={file}
+        onFiles={onFiles}
       />
     </div>
   );
@@ -131,6 +138,27 @@ export function InspectionPhotosStep({
     if (areaCode) pickupDamageByArea.set(areaCode, photo);
   }
 
+  /** Place dropped files from `start` onward, reporting each slot that changed. */
+  function placeFiles(
+    slots: readonly string[],
+    start: string,
+    files: File[],
+    current: Record<string, File | null>,
+    onSlot: (slot: string, file: File | null) => void,
+  ) {
+    if (files.length === 0) {
+      onSlot(start, null);
+      return;
+    }
+    const next = fillSlotsFrom({ slots, start, files, current });
+    for (const slot of slots) {
+      if (next[slot] !== current[slot]) onSlot(slot, next[slot] ?? null);
+    }
+  }
+
+  const requiredKinds = REQUIRED_OVERVIEW_PHOTO_KINDS.map((kind) => kind.value);
+  const damagedAreas = damaged.map((item) => item.areaCode);
+
   const capturedRequired = REQUIRED_OVERVIEW_PHOTO_KINDS.filter(
     (kind) => overviewFiles[kind.value],
   ).length;
@@ -142,7 +170,8 @@ export function InspectionPhotosStep({
           <div>
             <h3 className="text-sm font-semibold">Required angles</h3>
             <p className="text-xs text-muted-foreground">
-              Front, rear, both sides, interior, and dashboard.
+              Front, rear, both sides, interior, and dashboard. Drop several
+              photos on one slot to fill the empty slots after it, in order.
             </p>
           </div>
           <span className="text-xs font-medium text-muted-foreground">
@@ -158,8 +187,17 @@ export function InspectionPhotosStep({
               label={kind.label}
               referenceLabel="Pickup reference"
               referenceUrl={pickupByKind.get(kind.value)?.signedUrl}
+              multiple
               required
-              onFile={(file) => onOverview(kind.value, file)}
+              onFiles={(files) =>
+                placeFiles(
+                  requiredKinds,
+                  kind.value,
+                  files,
+                  overviewFiles,
+                  onOverview,
+                )
+              }
             />
           ))}
         </div>
@@ -174,7 +212,7 @@ export function InspectionPhotosStep({
               file={overviewFiles[kind.value] ?? null}
               id={kind.value}
               label={kind.label}
-              onFile={(file) => onOverview(kind.value, file)}
+              onFiles={(files) => onOverview(kind.value, files[0] ?? null)}
             />
           ))}
         </div>
@@ -197,8 +235,17 @@ export function InspectionPhotosStep({
                 label={item.label}
                 referenceLabel="Pickup close-up"
                 referenceUrl={pickupDamageByArea.get(item.areaCode)?.signedUrl}
+                multiple
                 required
-                onFile={(file) => onDamage(item.areaCode, file)}
+                onFiles={(files) =>
+                  placeFiles(
+                    damagedAreas,
+                    item.areaCode,
+                    files,
+                    damageFiles,
+                    onDamage,
+                  )
+                }
               />
             ))}
           </div>

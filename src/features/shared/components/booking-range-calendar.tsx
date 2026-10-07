@@ -19,7 +19,12 @@ import {
   wallClockTime,
   type BlockedRange,
 } from "@/features/shared/lib/booked-days";
-import { daysBetweenKeys, manilaDateKey } from "@/features/shared/lib/manila-time";
+import { formatDuration } from "@/features/shared/lib/format-duration";
+import {
+  daysBetweenKeys,
+  manilaDateKey,
+  parseManilaDateTimeInput,
+} from "@/features/shared/lib/manila-time";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +53,12 @@ function dateToKey(date: Date) {
 function formatKey(key: string, pattern = "EEE, MMM d, yyyy") {
   const date = keyToDate(key);
   return date ? format(date, pattern) : key;
+}
+
+/** "Oct 1, 9:00 AM" from a day key and an `HH:mm` time. */
+function formatKeyTime(key: string, time: string, pattern = "MMM d") {
+  const date = time ? parse(`${key} ${time}`, "yyyy-MM-dd HH:mm", new Date()) : undefined;
+  return date && isValid(date) ? format(date, `${pattern}, h:mm a`) : formatKey(key, pattern);
 }
 
 /** Booked days, keyed `YYYY-MM-DD`, for the day buttons to read. */
@@ -182,7 +193,12 @@ export function BookingRangeCalendar({
     .filter((range) => (wallClockDateKey(range.endAt) ?? "") >= todayKey)
     .toSorted((a, b) => a.startAt.localeCompare(b.startAt));
 
+  // The rent is priced on this duration, the time the car is out.
   const days = fromKey && toKey ? daysBetweenKeys(fromKey, toKey) : null;
+  const startInstant = parseManilaDateTimeInput(start);
+  const endInstant = parseManilaDateTimeInput(end);
+  const duration =
+    startInstant && endInstant ? formatDuration(startInstant, endInstant) : null;
 
   return (
     <Field data-invalid={invalid || undefined}>
@@ -309,10 +325,10 @@ export function BookingRangeCalendar({
         ) : days ? (
           <>
             <span className="font-medium text-foreground">
-              {days} {days === 1 ? "day" : "days"}
+              {duration ?? `${days} ${days === 1 ? "day" : "days"}`}
             </span>
             {" · "}
-            {formatKey(fromKey!, "MMM d")} → {formatKey(toKey!, "MMM d, yyyy")}
+            {formatKeyTime(fromKey!, startTime)} → {formatKeyTime(toKey!, endTime, "MMM d, yyyy")}
           </>
         ) : fromKey ? (
           `Now choose the ${endLabel.toLowerCase()} day.`

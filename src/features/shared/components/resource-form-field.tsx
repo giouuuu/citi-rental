@@ -1,7 +1,12 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import { Controller, type Control, type FieldValues } from "react-hook-form";
+import { Plus, Trash2, Undo2 } from "lucide-react";
+import {
+  Controller,
+  useController,
+  type Control,
+  type FieldValues,
+} from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,11 +20,89 @@ import { Combobox } from "@/components/ui/combobox";
 import { DatePicker, DateTimePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageDropzone } from "@/features/shared/components/image-dropzone";
+import { compressImage } from "@/features/shared/lib/compress-image";
 import type {
   ResourceField,
   ResourceOption,
   ResourceRow,
 } from "@/features/shared/types/resource";
+import { cn } from "@/lib/utils";
+
+/**
+ * The saved image above an image field. A removable one can be marked for
+ * removal; the save action reads `<name>__remove` and clears it on Save. The
+ * flag unregisters with the preview, so it never outlives the image it named.
+ */
+function SavedImage({
+  control,
+  name,
+  url,
+  removable,
+  removeNote,
+  replacing,
+  disabled,
+}: {
+  control: Control<FieldValues>;
+  name: string;
+  url: string;
+  removable: boolean;
+  removeNote?: string;
+  replacing: boolean;
+  disabled: boolean;
+}) {
+  const { field } = useController({
+    control,
+    name: `${name}__remove`,
+    shouldUnregister: true,
+  });
+  const marked = field.value === true && !replacing;
+
+  return (
+    <div className="space-y-2">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        alt="Current image"
+        className={cn(
+          "h-40 w-full max-w-sm rounded-lg border bg-muted object-contain transition-opacity",
+          (marked || replacing) && "opacity-40",
+        )}
+        src={url}
+      />
+      {replacing ? (
+        <p className="text-xs text-muted-foreground">
+          Replaced by the new image when you save.
+        </p>
+      ) : removable && marked ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            Removed when you save.{removeNote ? ` ${removeNote}` : ""}
+          </span>
+          <Button
+            disabled={disabled}
+            onClick={() => field.onChange(false)}
+            size="xs"
+            type="button"
+            variant="ghost"
+          >
+            <Undo2 />
+            Undo
+          </Button>
+        </div>
+      ) : removable && !disabled ? (
+        <Button
+          onClick={() => field.onChange(true)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Trash2 />
+          Remove image
+        </Button>
+      ) : null}
+    </div>
+  );
+}
 
 export function ResourceFormField({
   control,
@@ -77,27 +160,26 @@ export function ResourceFormField({
               <FieldLabel htmlFor={id}>{fieldDef.label}</FieldLabel>
               {typeof row?.[fieldDef.previewColumn ?? "photo_url"] === "string" &&
               row[fieldDef.previewColumn ?? "photo_url"] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  alt="Current image"
-                  className="h-40 w-full max-w-sm rounded-lg border bg-muted object-contain"
-                  src={String(row[fieldDef.previewColumn ?? "photo_url"])}
+                <SavedImage
+                  control={control}
+                  disabled={readOnly || isPending}
+                  name={fieldDef.name}
+                  removable={Boolean(fieldDef.removable)}
+                  removeNote={fieldDef.removeNote}
+                  replacing={field.value instanceof File}
+                  url={String(row[fieldDef.previewColumn ?? "photo_url"])}
                 />
               ) : null}
-              <Input
-                accept={
-                  fieldDef.accept ?? "image/jpeg,image/png,image/webp,image/gif"
-                }
-                aria-invalid={fieldState.invalid}
+              <ImageDropzone
+                accept={fieldDef.accept}
                 disabled={readOnly || isPending}
                 id={id}
+                invalid={fieldState.invalid}
                 onBlur={field.onBlur}
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  field.onChange(file ?? undefined);
-                }}
+                onFiles={(files) => field.onChange(files[0] ?? undefined)}
+                prepare={(file) => compressImage(file, { keepTransparency: true })}
                 ref={field.ref}
-                type="file"
+                value={field.value instanceof File ? field.value : null}
               />
               {fieldDef.description ? (
                 <FieldDescription>{fieldDef.description}</FieldDescription>

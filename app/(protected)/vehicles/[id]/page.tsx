@@ -39,6 +39,8 @@ import {
   type VehicleAssetView,
   type VehicleLoanView,
 } from "@/features/vehicles/components/vehicle-financing-panel";
+import { VehicleWebsiteBadge } from "@/features/vehicles/components/vehicle-website-badge";
+import { listVehicleSwitcher } from "@/features/vehicles/services/list-vehicle-switcher";
 import { VehicleHeaderActions } from "@/features/vehicles/components/vehicle-header-actions";
 import {
   VEHICLE_OVERVIEW_DEFAULT_PERIOD,
@@ -73,7 +75,7 @@ export default async function Page({
   const role = configured ? await getViewerRole() : null;
   const isOwner = role === "owner";
 
-  const [rentals, damages, photos, vehicle, booksResult, expenseReferences, maintenance, expenses] = await Promise.all([
+  const [rentals, damages, photos, vehicle, booksResult, expenseReferences, maintenance, expenses, fleet] = await Promise.all([
     configured ? listVehicleRentals(id) : [],
     configured ? listVehicleKnownDamages(id, { includeResolved: true }) : [],
     configured ? listVehiclePhotos(id) : [],
@@ -98,6 +100,7 @@ export default async function Page({
       : ({} as ResourceReferences),
     configured ? getVehicleMaintenance(id) : null,
     configured ? listVehicleExpenses(id) : [],
+    configured ? listVehicleSwitcher(id) : [],
   ]);
 
   const books = booksResult?.ok ? booksResult.data : null;
@@ -131,6 +134,16 @@ export default async function Page({
     };
   }
 
+  const currentListing = fleet.find((entry) => entry.id === id) ?? null;
+  const switcherOptions = fleet.map((entry) => ({
+    value: entry.id,
+    label: entry.plateNumber,
+    description: [entry.name, entry.blockers.length ? "Not on website" : "On website"]
+      .filter(Boolean)
+      .join(" · "),
+    keywords: [entry.plateNumber, entry.name ?? ""],
+  }));
+
   const vehicleLabel = [vehicle?.plate_number, vehicle?.name].filter(Boolean).join(" · ");
 
   const currentOdometer =
@@ -163,6 +176,16 @@ export default async function Page({
         definition={vehicleDefinition}
         id={id}
         saved={query.saved === "1"}
+        switcher={{
+          label: "Switch vehicle",
+          options: switcherOptions,
+          searchPlaceholder: "Search plate or model…",
+        }}
+        titleAdornment={
+          currentListing ? (
+            <VehicleWebsiteBadge blockers={currentListing.blockers} vehicleId={id} />
+          ) : null
+        }
       >
         {({ form, row }) => (
           <VehicleDetailTabs

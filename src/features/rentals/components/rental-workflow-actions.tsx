@@ -32,6 +32,7 @@ import type {
   VehicleKnownDamage,
 } from "@/features/inspections/types/inspection";
 import { toast } from "sonner";
+import type { RentRates } from "@/features/rentals/lib/rent-pricing";
 
 const ACTIONS: {
   status: RentalTransitionTarget;
@@ -82,11 +83,11 @@ export function RentalWorkflowActions({
   knownDamages?: VehicleKnownDamage[];
   inspections?: RentalInspection[];
   startingOdometer?: number | null;
-  /** Dates and rate the Extend dialog prices extra days from. */
+  /** Dates and rates the Extend dialog prices the extra time from. */
   schedule?: {
     startAt: string;
     expectedReturnAt: string;
-    dailyRate: number | null;
+    rates: RentRates | null;
   } | null;
 }) {
   const [error, setError] = useState("");
@@ -167,7 +168,7 @@ export function RentalWorkflowActions({
 
       {canExtend && schedule ? (
         <ExtendRentalDialog
-          dailyRate={schedule.dailyRate}
+          rates={schedule.rates}
           expectedReturnAt={schedule.expectedReturnAt}
           rentalId={id}
           startAt={schedule.startAt}

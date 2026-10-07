@@ -1,3 +1,4 @@
+import { describeBilledTime, type RentRates } from "@/features/rentals/lib/rent-pricing";
 import {
   formatPhp,
   quoteDeposit,
@@ -5,7 +6,7 @@ import {
 } from "@/features/vehicles/lib/rental-pricing";
 
 type VehicleRateQuoteProps = {
-  dailyRate: number;
+  rates: RentRates;
   start?: string | null;
   end?: string | null;
   depositPercent?: number;
@@ -13,31 +14,38 @@ type VehicleRateQuoteProps = {
 };
 
 export function VehicleRateQuote({
-  dailyRate,
+  rates,
   start,
   end,
   depositPercent = 30,
   className,
 }: VehicleRateQuoteProps) {
-  const quote = quoteRentalTotal(dailyRate, start, end);
+  const quote = quoteRentalTotal(rates, start, end);
   const deposit = quote
     ? quoteDeposit(quote.total, depositPercent)
     : null;
+  const shortRates = [
+    rates.halfDay ? `${formatPhp(rates.halfDay)} / 12 hrs` : null,
+    rates.hourly ? `${formatPhp(rates.hourly)} / hr` : null,
+  ].filter(Boolean);
 
   return (
     <div className={className}>
       <p className="text-sm text-muted-foreground">
         <span className="font-semibold tabular-nums text-brand-950">
-          {formatPhp(dailyRate)}
+          {formatPhp(rates.daily)}
         </span>
         <span> / day</span>
+        {shortRates.length > 0 ? (
+          <span className="tabular-nums"> · {shortRates.join(" · ")}</span>
+        ) : null}
       </p>
       {quote ? (
         <p className="mt-1 text-sm text-brand-950">
           <span className="font-bold tabular-nums">{formatPhp(quote.total)}</span>
           <span className="text-muted-foreground">
             {" "}
-            for {quote.days} {quote.days === 1 ? "day" : "days"}
+            for {describeBilledTime(quote)}
           </span>
         </p>
       ) : null}

@@ -34,6 +34,10 @@ function num(value: unknown, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function optionalNum(value: unknown) {
+  return value == null ? null : num(value);
+}
+
 function mapPaymentDetails(
   row: Record<string, unknown>,
 ): BookingPaymentDetails {
@@ -44,7 +48,10 @@ function mapPaymentDetails(
     startAt: String(row.start_at),
     expectedReturnAt: String(row.expected_return_at),
     quotedDailyRate: num(row.quoted_daily_rate),
+    quotedHalfDayRate: optionalNum(row.quoted_half_day_rate),
+    quotedHourlyRate: optionalNum(row.quoted_hourly_rate),
     quotedDays: num(row.quoted_days, 1),
+    quotedHours: optionalNum(row.quoted_hours),
     quotedTotal: num(row.quoted_total),
     depositPercent: num(row.deposit_percent, 30),
     depositAmount: num(row.deposit_amount),
@@ -94,6 +101,8 @@ export async function getPublicVehicle(
     seating_capacity: row.seating_capacity,
     photo_url: row.photo_url,
     daily_rate: Number(row.daily_rate),
+    half_day_rate: row.half_day_rate != null ? Number(row.half_day_rate) : null,
+    hourly_rate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
     color: row.color ?? null,
     showcase_image_url: row.showcase_image_url ?? null,
     status: row.status,
@@ -158,7 +167,10 @@ export async function createPublicBooking(
       payload.expected_return_at ?? input.expectedReturnAt,
     ),
     quotedDailyRate: num(payload.quoted_daily_rate),
+    quotedHalfDayRate: optionalNum(payload.quoted_half_day_rate),
+    quotedHourlyRate: optionalNum(payload.quoted_hourly_rate),
     quotedDays: num(payload.quoted_days, 1),
+    quotedHours: optionalNum(payload.quoted_hours),
     quotedTotal: num(payload.quoted_total),
     depositPercent: num(payload.deposit_percent, 30),
     depositAmount: num(payload.deposit_amount),

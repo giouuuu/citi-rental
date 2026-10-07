@@ -1,8 +1,24 @@
+import {
+  describeBilledTime,
+  describeRent,
+  quoteRentForHours,
+  type RentRates,
+} from "@/features/rentals/lib/rent-pricing";
 import type { RentalPayment } from "@/features/rentals/types/rental-payment";
+import { formatPhpExact } from "@/features/shared/lib/money";
+
+export type RentalBillRent = {
+  rates: RentRates | null;
+  /** Whole days; inclusive calendar days when `hours` is null (older quotes). */
+  days: number | null;
+  /** Hours past the whole days; null on rentals quoted by calendar days. */
+  hours: number | null;
+  total: number;
+};
 
 export type RentalBill = {
-  rent: { dailyRate: number | null; days: number | null; total: number };
-  /** Confirmed charges (penalty rows): car wash, delivery, extension, fuel, … */
+  rent: RentalBillRent;
+  /** Confirmed charges (penalty rows): car wash, delivery, extension, fuel, bill adjustments, … */
   charges: RentalPayment[];
   total: number;
   /** Confirmed money in, less refunds. */
@@ -21,13 +37,15 @@ const round = (value: number) => Math.round(value * 100) / 100;
  * private.refresh_rental_payment_summary, which writes rentals.balance_due.
  */
 export function buildRentalBill({
-  quotedDailyRate,
+  quotedRates,
   quotedDays,
+  quotedHours = null,
   quotedTotal,
   payments,
 }: {
-  quotedDailyRate: number | null;
+  quotedRates: RentRates | null;
   quotedDays: number | null;
+  quotedHours?: number | null;
   quotedTotal: number | null;
   payments: RentalPayment[];
 }): RentalBill {
@@ -49,13 +67,23 @@ export function buildRentalBill({
   );
 
   return {
-    rent: { dailyRate: quotedDailyRate, days: quotedDays, total: rentTotal },
+    rent: { rates: quotedRates, days: quotedDays, hours: quotedHours, total: rentTotal },
     charges,
     total,
     paid,
     balance: Math.max(0, round(total - paid)),
     received,
   };
+}
+
+/** "3 days 2 hours · ₱1,350.00 × 3 days + 2 hours × ₱150.00"; null when there is no rate. */
+export function describeRentLine(rent: RentalBillRent): string | null {
+  if (!rent.rates || rent.days == null) return null;
+  if (rent.hours == null) {
+    return `${formatPhpExact(rent.rates.daily)} × ${rent.days} ${rent.days === 1 ? "day" : "days"}`;
+  }
+  const quote = quoteRentForHours(rent.days * 24 + rent.hours, rent.rates);
+  return `${describeBilledTime(quote)} · ${describeRent(quote, rent.rates)}`;
 }
 
 /**

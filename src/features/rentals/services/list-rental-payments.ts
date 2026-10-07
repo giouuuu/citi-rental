@@ -9,6 +9,8 @@ import type {
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
+type ChargeTypeRef = { name: string; code: string | null };
+
 type PaymentRow = {
   id: string;
   rental_id: string;
@@ -22,7 +24,7 @@ type PaymentRow = {
   notes: string | null;
   submitted_at: string;
   confirmed_at: string | null;
-  rental_charge_types: { name: string } | { name: string }[] | null;
+  rental_charge_types: ChargeTypeRef | ChargeTypeRef[] | null;
 };
 
 export async function listRentalPayments(
@@ -34,7 +36,7 @@ export async function listRentalPayments(
   const { data, error } = await supabase
     .from("payments")
     .select(
-      "id, rental_id, payment_type, amount, currency, method, status, external_reference, proof_path, notes, submitted_at, confirmed_at, rental_charge_types ( name )",
+      "id, rental_id, payment_type, amount, currency, method, status, external_reference, proof_path, notes, submitted_at, confirmed_at, rental_charge_types ( name, code )",
     )
     .eq("rental_id", rentalId)
     .neq("status", "cancelled")
@@ -55,6 +57,9 @@ export async function listRentalPayments(
           .createSignedUrl(row.proof_path, 60 * 30);
         proofUrl = signed?.signedUrl ?? null;
       }
+      const chargeType = Array.isArray(row.rental_charge_types)
+        ? row.rental_charge_types[0]
+        : row.rental_charge_types;
       return {
         id: row.id,
         rentalId: row.rental_id,
@@ -69,10 +74,8 @@ export async function listRentalPayments(
         notes: row.notes,
         submittedAt: row.submitted_at,
         confirmedAt: row.confirmed_at,
-        chargeTypeName:
-          (Array.isArray(row.rental_charge_types)
-            ? row.rental_charge_types[0]?.name
-            : row.rental_charge_types?.name) ?? null,
+        chargeTypeName: chargeType?.name ?? null,
+        chargeTypeCode: chargeType?.code ?? null,
       } satisfies RentalPayment;
     }),
   );

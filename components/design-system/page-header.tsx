@@ -10,7 +10,10 @@ type BreadcrumbItem = {
 };
 
 type PageHeaderProps = {
-  title: string;
+  /** Text, or a control such as a record switcher that renders the title. */
+  title: ReactNode;
+  /** Sits beside the title, outside the heading — e.g. a status badge. */
+  titleAdornment?: ReactNode;
   description?: string;
   eyebrow?: string;
   breadcrumbs?: BreadcrumbItem[];
@@ -20,6 +23,7 @@ type PageHeaderProps = {
 
 export function PageHeader({
   title,
+  titleAdornment,
   description,
   eyebrow,
   breadcrumbs,
@@ -58,9 +62,18 @@ export function PageHeader({
           </p>
         ) : null}
         <div>
-          <h1 className="text-[1.75rem] leading-9 font-bold tracking-[-0.025em] text-foreground">
-            {title}
-          </h1>
+          {titleAdornment ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="min-w-0 text-[1.75rem] leading-9 font-bold tracking-[-0.025em] text-foreground">
+                {title}
+              </h1>
+              {titleAdornment}
+            </div>
+          ) : (
+            <h1 className="text-[1.75rem] leading-9 font-bold tracking-[-0.025em] text-foreground">
+              {title}
+            </h1>
+          )}
           {description ? (
             <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
               {description}

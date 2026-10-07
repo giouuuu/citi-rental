@@ -26,6 +26,7 @@ export default async function Page({
         <div className="space-y-6">
           {form}
           <ExpenseReceiptCard
+            expenseId={id}
             receiptPath={
               typeof row.receipt_path === "string" ? row.receipt_path : null
             }

@@ -12,7 +12,11 @@ import {
   parseAvailabilityResult,
 } from "@/features/rentals/lib/booking-gates";
 import { isPublicCustomerBooking } from "@/features/rentals/lib/is-public-customer-booking";
-import { rentalBilledDays, rentalQuote } from "@/features/rentals/lib/rental-quote";
+import {
+  quoteRentalDates,
+  requoteBookedTime,
+} from "@/features/rentals/lib/rental-quote";
+import type { RentRates } from "@/features/rentals/lib/rent-pricing";
 import { isStaffRole } from "@/features/shared/lib/app-roles";
 import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
@@ -97,12 +101,17 @@ export async function saveRentalAction(
 
     const { data: vehicle, error: vehicleError } = await supabase
       .from("vehicles")
-      .select("daily_rate")
+      .select("daily_rate, half_day_rate, hourly_rate")
       .eq("id", parsed.data.vehicle_id)
       .maybeSingle();
     if (vehicleError) throw vehicleError;
     const vehicleRate =
       vehicle?.daily_rate != null ? Number(vehicle.daily_rate) : null;
+    const optionalRate = (value: unknown) => (value != null ? Number(value) : null);
+    const vehicleRates = {
+      halfDay: optionalRate(vehicle?.half_day_rate),
+      hourly: optionalRate(vehicle?.hourly_rate),
+    };
     const enteredRate =
       typeof parsed.data.quoted_daily_rate === "number"
         ? parsed.data.quoted_daily_rate
@@ -136,7 +145,7 @@ export async function saveRentalAction(
       const { data: existing, error: existingError } = await supabase
         .from("rentals")
         .select(
-          "id, status, reference_number, start_at, expected_return_at, quoted_daily_rate, quoted_days",
+          "id, status, reference_number, start_at, expected_return_at, quoted_daily_rate, quoted_half_day_rate, quoted_hourly_rate, quoted_days, quoted_hours",
         )
         .eq("id", id)
         .maybeSingle();
@@ -175,7 +184,7 @@ export async function saveRentalAction(
       }
 
       // Re-quote on a new rate, or on new dates before pickup. Otherwise keep
-      // the booked days: an extension bills its days as a separate charge.
+      // the booked time: an extension bills its extra time as a separate charge.
       const rate =
         enteredRate ??
         (existing.quoted_daily_rate != null
@@ -189,11 +198,26 @@ export async function saveRentalAction(
         existing.status !== "cancelled" &&
         (rateChanged || datesChanged || existing.quoted_days == null)
       ) {
-        const days =
+        // Keep the 12-hour and hourly rates this rental was booked at.
+        const rates: RentRates =
+          existing.quoted_hours != null
+            ? {
+                daily: rate,
+                halfDay: optionalRate(existing.quoted_half_day_rate),
+                hourly: optionalRate(existing.quoted_hourly_rate),
+              }
+            : { daily: rate, ...vehicleRates };
+        const quote =
           datesChanged || existing.quoted_days == null
-            ? rentalBilledDays(new Date(startAt), new Date(expectedReturnAt))
-            : Number(existing.quoted_days);
-        Object.assign(payload, rentalQuote(rate, days));
+            ? quoteRentalDates(new Date(startAt), new Date(expectedReturnAt), rates)
+            : requoteBookedTime(
+                {
+                  days: Number(existing.quoted_days),
+                  hours: existing.quoted_hours != null ? Number(existing.quoted_hours) : null,
+                },
+                rates,
+              );
+        if (quote) Object.assign(payload, quote);
       }
 
       const { data, error } = await supabase
@@ -214,10 +238,10 @@ export async function saveRentalAction(
     const rate = enteredRate ?? vehicleRate;
     const quote =
       rate != null
-        ? rentalQuote(
-            rate,
-            rentalBilledDays(new Date(startAt), new Date(expectedReturnAt)),
-          )
+        ? quoteRentalDates(new Date(startAt), new Date(expectedReturnAt), {
+            daily: rate,
+            ...vehicleRates,
+          })
         : null;
     if (quote) Object.assign(payload, quote);
 

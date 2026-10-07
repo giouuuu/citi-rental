@@ -5,7 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { vehicleDefinition } from "@/features/vehicles/schemas/vehicle-definition";
-import { uploadVehiclePhoto } from "@/features/vehicles/lib/upload-vehicle-photo";
+import {
+  removeVehicleCover,
+  removeVehicleShowcase,
+  uploadVehiclePhoto,
+} from "@/features/vehicles/lib/upload-vehicle-photo";
 import { isVehicleRateLockedByBookings } from "@/features/vehicles/lib/vehicle-rate-lock";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
@@ -31,6 +35,8 @@ export async function saveVehicleAction(
     fuel_type: formData.get("fuel_type") || undefined,
     seating_capacity: formData.get("seating_capacity") || undefined,
     daily_rate: formData.get("daily_rate") ?? undefined,
+    half_day_rate: formData.get("half_day_rate") || undefined,
+    hourly_rate: formData.get("hourly_rate") || undefined,
     current_odometer: formData.get("current_odometer") || undefined,
     status: formData.get("status") ?? undefined,
     notes: formData.get("notes") || undefined,
@@ -54,6 +60,10 @@ export async function saveVehicleAction(
   const showcase = formData.get("showcase_image");
   const showcaseFile =
     showcase instanceof File && showcase.size > 0 ? showcase : null;
+  // "Remove" on a saved image; a newly chosen file replaces it instead.
+  const removePhoto = !photoFile && formData.get("photo__remove") === "on";
+  const removeShowcase =
+    !showcaseFile && formData.get("showcase_image__remove") === "on";
   if (showcaseFile && !["image/png", "image/webp"].includes(showcaseFile.type)) {
     return {
       success: false,
@@ -63,9 +73,12 @@ export async function saveVehicleAction(
       },
     };
   }
-  const payload = Object.fromEntries(
+  const payload: Record<string, unknown> = Object.fromEntries(
     Object.entries(parsed.data).filter(([, value]) => value !== undefined),
   );
+  // A cleared optional rate is saved as "none", not left as it was.
+  payload.half_day_rate = parsed.data.half_day_rate ?? null;
+  payload.hourly_rate = parsed.data.hourly_rate ?? null;
 
   try {
     const supabase = await createClient();
@@ -187,6 +200,13 @@ export async function saveVehicleAction(
         .update({ showcase_image_url: uploaded.publicUrl })
         .eq("id", savedId);
       if (showcaseError) throw showcaseError;
+    }
+
+    if (removePhoto && savedId) {
+      await removeVehicleCover({ supabase, vehicleId: savedId });
+    }
+    if (removeShowcase && savedId) {
+      await removeVehicleShowcase({ supabase, vehicleId: savedId });
     }
 
     revalidateResource("/vehicles");

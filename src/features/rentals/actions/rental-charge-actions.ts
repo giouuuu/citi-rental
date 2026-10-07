@@ -79,6 +79,48 @@ export async function addRentalChargeAction(
   }
 }
 
+const adjustBillSchema = z.object({
+  rentalId: z.uuid("Select a rental."),
+  direction: z.enum(["add", "subtract"]),
+  amount: z.coerce.number().positive("Enter the amount to add or take off."),
+  reason: z
+    .string()
+    .trim()
+    .min(3, "Say why the bill is changing.")
+    .max(500, "Keep the reason under 500 characters."),
+});
+
+export type AdjustRentalBillInput = z.input<typeof adjustBillSchema>;
+
+export async function adjustRentalBillAction(
+  input: AdjustRentalBillInput,
+): Promise<ActionResult<{ paymentId: string }>> {
+  if (!isSupabaseConfigured())
+    return { success: false, message: "Connect Supabase to adjust bills." };
+
+  const parsed = adjustBillSchema.safeParse(input);
+  if (!parsed.success) return firstFieldError(parsed.error);
+
+  try {
+    const { supabase, role } = await signedInRole();
+    if (!isAdminRole(role))
+      throw new Error("Only owners and admins can adjust a bill.");
+
+    const { amount, direction } = parsed.data;
+    const { data, error } = await supabase.rpc("add_bill_adjustment", {
+      p_rental_id: parsed.data.rentalId,
+      p_amount: direction === "subtract" ? -amount : amount,
+      p_reason: parsed.data.reason,
+    });
+    if (error) throw error;
+
+    revalidateResource("/rentals");
+    return { success: true, data: { paymentId: String(data) } };
+  } catch (error) {
+    return { success: false, message: dbMessage(error, "The bill could not be adjusted.") };
+  }
+}
+
 export async function voidRentalChargeAction(
   paymentId: string,
 ): Promise<ActionResult> {

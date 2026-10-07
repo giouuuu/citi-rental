@@ -209,7 +209,7 @@ export const rentalDefinition: ResourceDefinition = {
       type: "number",
       step: "0.01",
       description:
-        "Leave blank to use the car's rate. Rent is this rate × the booked days. Add car wash, delivery, and other fees on the Bill & payments tab.",
+        "Leave blank to use the car's rate. Rent is this rate per 24 hours, plus the car's 12-hour or hourly rate for leftover hours. Add car wash, delivery, and other fees on the Bill & payments tab.",
     },
     {
       name: "actual_return_at",

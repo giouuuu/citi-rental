@@ -30,7 +30,11 @@ export function BookingVehicleSummary({
           </p>
           <VehicleRateQuote
             className="mt-3"
-            dailyRate={vehicle.daily_rate}
+            rates={{
+              daily: vehicle.daily_rate,
+              halfDay: vehicle.half_day_rate,
+              hourly: vehicle.hourly_rate,
+            }}
             end={expectedReturnAt}
             start={startAt}
           />

@@ -7,7 +7,9 @@ import { Info, Upload } from "lucide-react";
 import { submitPaymentProofAction } from "@/features/booking/actions/submit-payment-proof-action";
 import { compressPaymentProof } from "@/features/booking/lib/compress-payment-proof";
 import type { BookingPaymentDetails } from "@/features/booking/types/booking-payment";
+import { ImageDropzone } from "@/features/shared/components/image-dropzone";
 import { formatManila } from "@/features/shared/lib/manila-time";
+import { describeRentLine } from "@/features/rentals/lib/rental-bill";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -33,7 +35,7 @@ export function BookingPaymentForm({
   const [paymentReference, setPaymentReference] = useState(
     booking.paymentReference ?? "",
   );
-  const [proofName, setProofName] = useState<string | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
@@ -47,6 +49,8 @@ export function BookingPaymentForm({
     setError(null);
     setFieldErrors({});
     startTransition(async () => {
+      // The dropped file, even if the browser could not write it onto the input.
+      if (proofFile) formData.set("proof", proofFile);
       const proof = formData.get("proof");
       if (proof instanceof File && proof.size > 0) {
         try {
@@ -100,8 +104,16 @@ export function BookingPaymentForm({
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">
-              {booking.quotedDays} day{booking.quotedDays === 1 ? "" : "s"} ×{" "}
-              {formatPhp(booking.quotedDailyRate)}
+              {describeRentLine({
+                rates: {
+                  daily: booking.quotedDailyRate,
+                  halfDay: booking.quotedHalfDayRate,
+                  hourly: booking.quotedHourlyRate,
+                },
+                days: booking.quotedDays,
+                hours: booking.quotedHours,
+                total: booking.quotedTotal,
+              })}
             </dt>
             <dd className="font-medium text-brand-950">
               {formatPhp(booking.quotedTotal)}
@@ -204,20 +216,14 @@ export function BookingPaymentForm({
           </Field>
           <Field data-invalid={Boolean(fieldErrors.proof)}>
             <FieldLabel htmlFor="proof">Payment screenshot</FieldLabel>
-            <Input
-              accept="image/jpeg,image/png,image/webp,image/gif"
+            <ImageDropzone
+              hint="JPEG, PNG, WebP, or GIF up to 5MB. Large images are compressed before upload."
               id="proof"
+              invalid={Boolean(fieldErrors.proof)}
               name="proof"
-              onChange={(event) =>
-                setProofName(event.target.files?.[0]?.name ?? null)
-              }
-              type="file"
+              onFiles={(files) => setProofFile(files[0] ?? null)}
+              value={proofFile}
             />
-            <p className="text-xs text-muted-foreground">
-              JPEG, PNG, WebP, or GIF up to 5MB. Large images are compressed
-              before upload.
-              {proofName ? ` Selected: ${proofName}` : null}
-            </p>
             {fieldErrors.proof ? (
               <FieldError>{fieldErrors.proof[0]}</FieldError>
             ) : null}

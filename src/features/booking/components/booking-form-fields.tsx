@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageDropzone } from "@/features/shared/components/image-dropzone";
 
 /** Red asterisk after a required field's label; the input carries aria-required. */
 export function RequiredMark() {
@@ -168,18 +169,21 @@ export function BookingPhotoField<T extends FieldValues, TOut extends FieldValue
                 : null
             }
           />
-          <Input
+          <ImageDropzone
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-            aria-invalid={fieldState.invalid}
-            aria-required={required || undefined}
-            className="h-11 py-2"
             disabled={disabled}
             id={String(name)}
+            invalid={fieldState.invalid}
             name={field.name}
             onBlur={field.onBlur}
-            onChange={(event) => field.onChange(event.target.files?.[0])}
+            onFiles={(files) => field.onChange(files[0])}
             ref={field.ref}
-            type="file"
+            required={required}
+            value={
+              (field.value as unknown) instanceof File
+                ? (field.value as File)
+                : null
+            }
           />
           {fieldState.invalid ? (
             <FieldError errors={[fieldState.error]} />

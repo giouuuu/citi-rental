@@ -12,7 +12,12 @@ export type BookingPaymentDetails = {
   startAt: string;
   expectedReturnAt: string;
   quotedDailyRate: number;
+  quotedHalfDayRate: number | null;
+  quotedHourlyRate: number | null;
+  /** Whole days; inclusive calendar days when `quotedHours` is null (older quotes). */
   quotedDays: number;
+  /** Hours past the whole days; null on bookings quoted by calendar days. */
+  quotedHours: number | null;
   quotedTotal: number;
   depositPercent: number;
   depositAmount: number;
@@ -37,7 +42,12 @@ export type PublicBookingResult = {
   startAt: string;
   expectedReturnAt: string;
   quotedDailyRate: number;
+  quotedHalfDayRate: number | null;
+  quotedHourlyRate: number | null;
+  /** Whole days; inclusive calendar days when `quotedHours` is null (older quotes). */
   quotedDays: number;
+  /** Hours past the whole days; null on bookings quoted by calendar days. */
+  quotedHours: number | null;
   quotedTotal: number;
   depositPercent: number;
   depositAmount: number;

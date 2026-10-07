@@ -1,48 +1,70 @@
 import { describe, expect, it } from "vitest";
 
-import { extensionDays, rentalBilledDays, rentalQuote } from "./rental-quote";
+import {
+  extensionCharge,
+  quoteRentalDates,
+  requoteBookedTime,
+} from "./rental-quote";
 
-describe("rentalBilledDays", () => {
-  it("counts Manila calendar days inclusively", () => {
-    // Oct 10 09:00 → Oct 12 09:00 Manila is 3 billed days.
-    expect(
-      rentalBilledDays(
-        new Date("2026-10-10T01:00:00.000Z"),
-        new Date("2026-10-12T01:00:00.000Z"),
-      ),
-    ).toBe(3);
+const rates = { daily: 1350, halfDay: 900, hourly: 150 };
+const at = (value: string) => new Date(`${value}:00+08:00`);
+
+describe("quoteRentalDates", () => {
+  it("writes the snapshot rates and billed time", () => {
+    expect(quoteRentalDates(at("2026-10-01T09:00"), at("2026-10-04T11:00"), rates)).toEqual({
+      quoted_daily_rate: 1350,
+      quoted_half_day_rate: 900,
+      quoted_hourly_rate: 150,
+      quoted_days: 3,
+      quoted_hours: 2,
+      quoted_total: 4350,
+    });
   });
 
-  it("uses the Manila date, not UTC", () => {
-    // 23:30 UTC on Oct 9 is already Oct 10 in Manila.
-    expect(
-      rentalBilledDays(
-        new Date("2026-10-09T23:30:00.000Z"),
-        new Date("2026-10-10T10:00:00.000Z"),
-      ),
-    ).toBe(1);
+  it("leaves the optional rates empty when the car has none", () => {
+    expect(quoteRentalDates(at("2026-10-01T09:00"), at("2026-10-03T09:00"), { daily: 1999.99 })).toMatchObject({
+      quoted_half_day_rate: null,
+      quoted_hourly_rate: null,
+      quoted_days: 2,
+      quoted_total: 3999.98,
+    });
+  });
+
+  it("is null when the return is not after pick-up", () => {
+    expect(quoteRentalDates(at("2026-10-01T09:00"), at("2026-10-01T09:00"), rates)).toBeNull();
   });
 });
 
-describe("rentalQuote", () => {
-  it("multiplies rate by days to the centavo", () => {
-    expect(rentalQuote(1999.99, 3)).toEqual({
-      quoted_daily_rate: 1999.99,
+describe("requoteBookedTime", () => {
+  it("re-prices the booked time at new rates", () => {
+    expect(requoteBookedTime({ days: 3, hours: 2 }, { daily: 1500, hourly: 200 })).toMatchObject({
       quoted_days: 3,
-      quoted_total: 5999.97,
+      quoted_hours: 2,
+      quoted_total: 4900,
+    });
+  });
+
+  it("keeps calendar days on rentals quoted before elapsed-time pricing", () => {
+    expect(requoteBookedTime({ days: 4, hours: null }, rates)).toEqual({
+      quoted_daily_rate: 1350,
+      quoted_total: 5400,
     });
   });
 });
 
-describe("extensionDays", () => {
-  const start = new Date("2026-10-10T01:00:00.000Z");
-  const due = new Date("2026-10-12T01:00:00.000Z");
+describe("extensionCharge", () => {
+  const start = at("2026-10-01T09:00");
+  const due = at("2026-10-03T09:00");
 
-  it("counts the extra days the new return adds", () => {
-    expect(extensionDays(start, due, new Date("2026-10-14T01:00:00.000Z"))).toBe(2);
+  it("bills a few extra hours as hours", () => {
+    expect(extensionCharge(start, due, at("2026-10-03T12:00"), rates)?.amount).toBe(450);
   });
 
-  it("is zero when the return moves later on the same day", () => {
-    expect(extensionDays(start, due, new Date("2026-10-12T08:00:00.000Z"))).toBe(0);
+  it("bills extra whole days at the daily rate", () => {
+    expect(extensionCharge(start, due, at("2026-10-05T09:00"), rates)?.amount).toBe(2700);
+  });
+
+  it("is zero when the return does not move later", () => {
+    expect(extensionCharge(start, due, due, rates)?.amount).toBe(0);
   });
 });

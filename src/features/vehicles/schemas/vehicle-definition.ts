@@ -51,6 +51,8 @@ export const vehicleDefinition: ResourceDefinition = {
     "fuel_type",
     "seating_capacity",
     "daily_rate",
+    "half_day_rate",
+    "hourly_rate",
     "current_odometer",
     "status",
     "photo_url",
@@ -71,6 +73,8 @@ export const vehicleDefinition: ResourceDefinition = {
       .optional(),
     seating_capacity: optionalNumber(1),
     daily_rate: requiredNumber("Daily rate", 1),
+    half_day_rate: optionalNumber(1),
+    hourly_rate: optionalNumber(1),
     current_odometer: optionalNumber(0),
     status: z.enum(["available", "maintenance", "inactive"]),
     notes: optionalText(),
@@ -124,7 +128,25 @@ export const vehicleDefinition: ResourceDefinition = {
       placeholder: "2000",
       step: "1",
       description:
-        "Rate changes are blocked while this car has an active or reserved booking.",
+        "Price per 24 hours. Rate changes are blocked while this car has an active or reserved booking.",
+    },
+    {
+      name: "half_day_rate",
+      label: "12-hour rate (PHP)",
+      type: "number",
+      placeholder: "1200",
+      step: "1",
+      description:
+        "Charged when the leftover hours past the whole days are 12 or fewer and it is cheaper than hourly. Leave blank to skip.",
+    },
+    {
+      name: "hourly_rate",
+      label: "Hourly rate (PHP)",
+      type: "number",
+      placeholder: "150",
+      step: "1",
+      description:
+        "Charged per leftover hour. Leftover hours never cost more than one day. Leave blank to skip.",
     },
     {
       name: "current_odometer",
@@ -150,6 +172,9 @@ export const vehicleDefinition: ResourceDefinition = {
       type: "image",
       description:
         "Optional shortcut for the front gallery slot. Prefer the Photo gallery tab — all 6 angles are needed before the car shows on the website.",
+      removable: true,
+      removeNote:
+        "This also removes the Front gallery photo, which takes the car off the website until a new one is added.",
       className: "md:col-span-2",
     },
     {
@@ -158,6 +183,8 @@ export const vehicleDefinition: ResourceDefinition = {
       type: "image",
       accept: "image/png,image/webp",
       previewColumn: "showcase_image_url",
+      removable: true,
+      removeNote: "The car leaves the homepage hero.",
       description:
         "Front view of the car with a transparent background (PNG or WebP, up to 5MB). Available cars with this image appear in the homepage hero, where customers flip through them.",
       className: "md:col-span-2",

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Banknote, Plus, Trash2 } from "lucide-react";
+import { Banknote, Plus, Scale, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,17 +18,26 @@ import { recordRentalPaymentAction } from "@/features/rentals/actions/record-ren
 import type { RecordRentalPaymentInput } from "@/features/rentals/actions/record-rental-payment-action";
 import {
   addRentalChargeAction,
+  adjustRentalBillAction,
   voidRentalChargeAction,
   type AddRentalChargeInput,
+  type AdjustRentalBillInput,
 } from "@/features/rentals/actions/rental-charge-actions";
 import { AddRentalChargeForm } from "@/features/rentals/components/add-rental-charge-form";
+import { AdjustRentalBillForm } from "@/features/rentals/components/adjust-rental-bill-form";
 import { RecordRentalPaymentForm } from "@/features/rentals/components/record-rental-payment-form";
 import { RentalPaymentHistoryList } from "@/features/rentals/components/rental-payment-history-list";
-import { buildRentalBill, rentalBillStatus } from "@/features/rentals/lib/rental-bill";
+import {
+  buildRentalBill,
+  describeRentLine,
+  rentalBillStatus,
+} from "@/features/rentals/lib/rental-bill";
+import type { RentRates } from "@/features/rentals/lib/rent-pricing";
 import { RENTAL_BILL_TOUR } from "@/features/rentals/lib/rental-tours";
-import type {
-  RentalChargeType,
-  RentalPayment,
+import {
+  BILL_ADJUSTMENT_CODE,
+  type RentalChargeType,
+  type RentalPayment,
 } from "@/features/rentals/types/rental-payment";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
 import { ConfirmActionDialog } from "@/features/shared/components/confirm-action-dialog";
@@ -39,8 +48,10 @@ type RentalPaymentPanelProps = {
   rentalId: string;
   rentalStatus: string;
   paymentStatus?: string | null;
-  quotedDailyRate?: number | null;
+  /** The rates this rental was quoted at; null before a rate is set. */
+  quotedRates?: RentRates | null;
   quotedDays?: number | null;
+  quotedHours?: number | null;
   quotedTotal?: number | null;
   depositAmount?: number | null;
   depositPercent?: number | null;
@@ -70,7 +81,7 @@ function BillLine({
           {label}
         </p>
         {detail ? (
-          <p className="truncate text-xs text-muted-foreground">{detail}</p>
+          <p className="text-xs break-words text-muted-foreground">{detail}</p>
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1">
@@ -89,8 +100,9 @@ export function RentalPaymentPanel({
   rentalId,
   rentalStatus,
   paymentStatus,
-  quotedDailyRate = null,
+  quotedRates = null,
   quotedDays = null,
+  quotedHours = null,
   quotedTotal = null,
   depositAmount,
   depositPercent,
@@ -100,13 +112,14 @@ export function RentalPaymentPanel({
 }: RentalPaymentPanelProps) {
   const [error, setError] = useState("");
   const [removeError, setRemoveError] = useState("");
-  const [open, setOpen] = useState<"charge" | "payment" | null>(null);
+  const [open, setOpen] = useState<"charge" | "adjust" | "payment" | null>(null);
   const { isPending, runMutation } = useMutationCoordinator();
   const router = useRouter();
 
   const bill = buildRentalBill({
-    quotedDailyRate,
+    quotedRates,
     quotedDays,
+    quotedHours,
     quotedTotal,
     payments,
   });
@@ -140,23 +153,28 @@ export function RentalPaymentPanel({
     });
   }
 
+  function adjustBill(input: AdjustRentalBillInput) {
+    runMutation(async () => {
+      settle(await adjustRentalBillAction(input), "Bill adjusted.");
+    });
+  }
+
   function removeCharge(paymentId: string) {
     runMutation(async () => {
       settle(await voidRentalChargeAction(paymentId), "Charge removed.", setRemoveError);
     });
   }
 
-  function toggle(panel: "charge" | "payment") {
+  function toggle(panel: "charge" | "adjust" | "payment") {
     setError("");
     setOpen((current) => (current === panel ? null : panel));
   }
 
   const rentDetail =
-    bill.rent.dailyRate != null && bill.rent.days != null
-      ? `${formatPhpExact(bill.rent.dailyRate)} × ${bill.rent.days} ${bill.rent.days === 1 ? "day" : "days"}`
-      : quotedTotal == null
-        ? "No rate yet. Set a daily rate on the Info tab."
-        : null;
+    describeRentLine(bill.rent) ??
+    (quotedTotal == null
+      ? "No rate yet. Set a daily rate on the Info tab."
+      : null);
 
   return (
     <div className="space-y-5">
@@ -203,6 +221,18 @@ export function RentalPaymentPanel({
                 Add charge
               </Button>
             ) : null}
+            {canAddCharges ? (
+              <Button
+                data-tour="adjust-bill"
+                onClick={() => toggle("adjust")}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <Scale />
+                Adjust bill
+              </Button>
+            ) : null}
           </div>
         </div>
 
@@ -212,42 +242,70 @@ export function RentalPaymentPanel({
             detail={rentDetail}
             label="Rent"
           />
-          {bill.charges.map((charge) => (
-            <BillLine
-              action={
-                <ConfirmActionDialog
-                  confirmLabel="Remove charge"
-                  description="It comes off the bill and the balance. The record is kept for history."
-                  error={removeError}
-                  icon={Trash2}
-                  onConfirm={() => removeCharge(charge.id)}
-                  title={`Remove ${charge.chargeTypeName ?? "this charge"}?`}
-                  trigger={
-                    <Button
-                      aria-label={`Remove ${charge.chargeTypeName ?? "charge"}`}
-                      disabled={isPending}
-                      size="icon-xs"
-                      type="button"
-                      variant="ghost"
-                    >
-                      <Trash2 />
-                    </Button>
-                  }
-                />
-              }
-              amount={formatPhpExact(charge.amount)}
-              detail={charge.notes}
-              key={charge.id}
-              label={charge.chargeTypeName ?? "Charge"}
-            />
-          ))}
+          {bill.charges.map((charge) => {
+            const isAdjustment = charge.chargeTypeCode === BILL_ADJUSTMENT_CODE;
+            const name =
+              charge.chargeTypeName ??
+              (isAdjustment ? "Bill adjustment" : "Charge");
+            return (
+              <BillLine
+                action={
+                  <ConfirmActionDialog
+                    confirmLabel={
+                      isAdjustment ? "Remove adjustment" : "Remove charge"
+                    }
+                    description={
+                      isAdjustment
+                        ? "The bill goes back to what it was before this adjustment. The record is kept for history."
+                        : "It comes off the bill and the balance. The record is kept for history."
+                    }
+                    error={removeError}
+                    icon={Trash2}
+                    onConfirm={() => removeCharge(charge.id)}
+                    title={`Remove ${name}?`}
+                    trigger={
+                      <Button
+                        aria-label={`Remove ${name}`}
+                        disabled={isPending}
+                        size="icon-xs"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Trash2 />
+                      </Button>
+                    }
+                  />
+                }
+                amount={
+                  charge.amount < 0
+                    ? `− ${formatPhpExact(Math.abs(charge.amount))}`
+                    : formatPhpExact(charge.amount)
+                }
+                detail={charge.notes}
+                key={charge.id}
+                label={name}
+              />
+            );
+          })}
           <Separator className="my-2" />
-          <BillLine amount={formatPhpExact(bill.total)} label="Total bill" strong />
           <BillLine
-            amount={bill.paid > 0 ? `− ${formatPhpExact(bill.paid)}` : formatPhpExact(0)}
+            amount={formatPhpExact(bill.total)}
+            label="Total bill"
+            strong
+          />
+          <BillLine
+            amount={
+              bill.paid > 0
+                ? `− ${formatPhpExact(bill.paid)}`
+                : formatPhpExact(0)
+            }
             label="Paid"
           />
-          <BillLine amount={formatPhpExact(bill.balance)} label="Balance" strong />
+          <BillLine
+            amount={formatPhpExact(bill.balance)}
+            label="Balance"
+            strong
+          />
           {depositAmount != null ? (
             <p className="pt-1 text-xs text-muted-foreground">
               Deposit asked online
@@ -277,7 +335,14 @@ export function RentalPaymentPanel({
             </Empty>
           )
         ) : null}
-        {open === "charge" && error ? (
+        {open === "adjust" ? (
+          <AdjustRentalBillForm
+            onSubmit={adjustBill}
+            pending={isPending}
+            rentalId={rentalId}
+          />
+        ) : null}
+        {(open === "charge" || open === "adjust") && error ? (
           <Alert className="py-2" variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>

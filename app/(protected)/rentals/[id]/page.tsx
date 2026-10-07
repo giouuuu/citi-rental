@@ -16,6 +16,7 @@ import { BOOKING_IDS_BUCKET } from "@/features/booking/lib/upload-booking-id-pho
 import type { RentalWorkflowStatus } from "@/features/rentals/lib/booking-gates";
 import { isPublicCustomerBooking } from "@/features/rentals/lib/is-public-customer-booking";
 import { needsDepositConfirmation } from "@/features/rentals/lib/needs-deposit-confirmation";
+import type { RentRates } from "@/features/rentals/lib/rent-pricing";
 import { listRentalPayments } from "@/features/rentals/services/list-rental-payments";
 import { listRentalChargeTypes } from "@/features/rentals/services/list-rental-charge-types";
 import { RENTAL_QUICK_CREATE } from "@/features/rentals/lib/rental-quick-create";
@@ -40,12 +41,13 @@ export default async function Page({
   let status: RentalWorkflowStatus = "draft";
   let paymentStatus: string | null = null;
   let quotedTotal: number | null = null;
-  let quotedDailyRate: number | null = null;
+  let quotedRates: RentRates | null = null;
   let quotedDays: number | null = null;
+  let quotedHours: number | null = null;
   let schedule: {
     startAt: string;
     expectedReturnAt: string;
-    dailyRate: number | null;
+    rates: RentRates | null;
   } | null = null;
   let chargeTypes: Awaited<ReturnType<typeof listRentalChargeTypes>> = [];
   let depositAmount: number | null = null;
@@ -73,7 +75,10 @@ export default async function Page({
           payment_status,
           quoted_total,
           quoted_daily_rate,
+          quoted_half_day_rate,
+          quoted_hourly_rate,
           quoted_days,
+          quoted_hours,
           start_at,
           expected_return_at,
           deposit_amount,
@@ -84,7 +89,7 @@ export default async function Page({
           renter_license_selfie_path,
           renter_government_id_path,
           customers ( full_name, phone_number ),
-          vehicles ( daily_rate )
+          vehicles ( daily_rate, half_day_rate, hourly_rate )
         `,
           )
           .eq("id", id)
@@ -102,17 +107,36 @@ export default async function Page({
     paymentStatus = data?.payment_status ?? null;
     quotedTotal =
       data?.quoted_total != null ? Number(data.quoted_total) : null;
-    quotedDailyRate =
-      data?.quoted_daily_rate != null ? Number(data.quoted_daily_rate) : null;
-    quotedDays = data?.quoted_days != null ? Number(data.quoted_days) : null;
+    const rate = (value: unknown) => (value != null ? Number(value) : null);
+    quotedDays = rate(data?.quoted_days);
+    quotedHours = rate(data?.quoted_hours);
+    const quotedDailyRate = rate(data?.quoted_daily_rate);
+    if (quotedDailyRate != null) {
+      quotedRates = {
+        daily: quotedDailyRate,
+        halfDay: rate(data?.quoted_half_day_rate),
+        hourly: rate(data?.quoted_hourly_rate),
+      };
+    }
     const vehicle = Array.isArray(data?.vehicles) ? data.vehicles[0] : data?.vehicles;
+    // Extensions price at the rates this rental was booked at; rentals quoted
+    // by calendar days had no 12-hour or hourly rate, so use the car's.
+    const vehicleDaily = rate(vehicle?.daily_rate);
+    const extendRates: RentRates | null =
+      quotedRates && quotedHours != null
+        ? quotedRates
+        : (quotedDailyRate ?? vehicleDaily) != null
+          ? {
+              daily: (quotedDailyRate ?? vehicleDaily)!,
+              halfDay: rate(vehicle?.half_day_rate),
+              hourly: rate(vehicle?.hourly_rate),
+            }
+          : null;
     if (data?.start_at && data.expected_return_at) {
       schedule = {
         startAt: String(data.start_at),
         expectedReturnAt: String(data.expected_return_at),
-        dailyRate:
-          quotedDailyRate ??
-          (vehicle?.daily_rate != null ? Number(vehicle.daily_rate) : null),
+        rates: extendRates,
       };
     }
     depositAmount =
@@ -227,8 +251,9 @@ export default async function Page({
               depositPercent={depositPercent}
               paymentStatus={paymentStatus}
               payments={payments}
-              quotedDailyRate={quotedDailyRate}
               quotedDays={quotedDays}
+              quotedHours={quotedHours}
+              quotedRates={quotedRates}
               bookingPaymentFailed={query.payment === "failed"}
               quotedTotal={quotedTotal}
               rentalId={id}

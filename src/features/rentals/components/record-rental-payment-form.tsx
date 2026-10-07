@@ -13,7 +13,6 @@ const PAYMENT_TYPE_OPTIONS = [
   { value: "deposit", label: "Deposit" },
   { value: "balance", label: "Balance" },
   { value: "refund", label: "Refund" },
-  { value: "adjustment", label: "Discount / adjustment" },
 ];
 
 const PAYMENT_METHOD_OPTIONS = [

@@ -20,7 +20,8 @@ import {
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { extendRentalAction } from "@/features/rentals/actions/rental-charge-actions";
-import { extensionDays } from "@/features/rentals/lib/rental-quote";
+import { describeBilledTime, type RentRates } from "@/features/rentals/lib/rent-pricing";
+import { extensionCharge } from "@/features/rentals/lib/rental-quote";
 import { useMutationCoordinator } from "@/features/shared/components/mutation-provider";
 import {
   manilaDateTimeInput,
@@ -28,8 +29,8 @@ import {
 } from "@/features/shared/lib/manila-time";
 import { formatPhpExact } from "@/features/shared/lib/money";
 
-function suggestedCharge(days: number, dailyRate: number | null) {
-  return dailyRate != null && days > 0 ? String(Math.round(days * dailyRate * 100) / 100) : "";
+function suggestedCharge(amount: number | undefined) {
+  return amount ? String(amount) : "";
 }
 
 /** Starts from the current return, so the dialog remounts it on each open. */
@@ -37,13 +38,13 @@ function ExtendRentalForm({
   rentalId,
   startAt,
   expectedReturnAt,
-  dailyRate,
+  rates,
   onDone,
 }: {
   rentalId: string;
   startAt: string;
   expectedReturnAt: string;
-  dailyRate: number | null;
+  rates: RentRates | null;
   onDone: () => void;
 }) {
   const [newReturn, setNewReturn] = useState(() =>
@@ -56,21 +57,16 @@ function ExtendRentalForm({
   const { isPending, runMutation } = useMutationCoordinator();
 
   const parsedReturn = parseManilaDateTimeInput(newReturn);
-  const extraDays = parsedReturn
-    ? extensionDays(new Date(startAt), new Date(expectedReturnAt), parsedReturn)
-    : 0;
+  const priceFor = (newReturnAt: Date) =>
+    rates ? extensionCharge(new Date(startAt), new Date(expectedReturnAt), newReturnAt, rates) : null;
+  const extension = parsedReturn ? priceFor(parsedReturn) : null;
 
   function changeReturn(value: string) {
     setNewReturn(value);
     const parsed = parseManilaDateTimeInput(value);
     // Keep the suggested charge in step with the date until staff type their own.
     if (!amountEdited && parsed) {
-      setAmount(
-        suggestedCharge(
-          extensionDays(new Date(startAt), new Date(expectedReturnAt), parsed),
-          dailyRate,
-        ),
-      );
+      setAmount(suggestedCharge(priceFor(parsed)?.amount));
     }
   }
 
@@ -131,8 +127,8 @@ function ExtendRentalForm({
           value={amount}
         />
         <FieldDescription>
-          {extraDays > 0 && dailyRate != null
-            ? `${extraDays} extra ${extraDays === 1 ? "day" : "days"} × ${formatPhpExact(dailyRate)}. Change it if you agreed another amount.`
+          {extension && extension.amount > 0
+            ? `${describeBilledTime(extension.next)} instead of ${describeBilledTime(extension.current)}: ${formatPhpExact(extension.amount)} more rent. Change it if you agreed another amount.`
             : "Leave blank to move the date without a charge."}
         </FieldDescription>
       </Field>
@@ -160,12 +156,12 @@ export function ExtendRentalDialog({
   rentalId,
   startAt,
   expectedReturnAt,
-  dailyRate,
+  rates,
 }: {
   rentalId: string;
   startAt: string;
   expectedReturnAt: string;
-  dailyRate: number | null;
+  rates: RentRates | null;
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -187,7 +183,7 @@ export function ExtendRentalDialog({
         </DialogHeader>
         {open ? (
           <ExtendRentalForm
-            dailyRate={dailyRate}
+            rates={rates}
             expectedReturnAt={expectedReturnAt}
             onDone={() => {
               setOpen(false);

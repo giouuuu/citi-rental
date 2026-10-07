@@ -4,11 +4,13 @@ import type { ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/design-system/page-header";
+import type { ComboboxOption } from "@/components/ui/combobox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { ArchiveButton } from "@/features/shared/components/archive-button";
 import { ResourceForm } from "@/features/shared/components/resource-form";
+import { ResourceSwitcher } from "@/features/shared/components/resource-switcher";
 import type { ResourceFormProps } from "@/features/shared/types/resource-form";
 import { loadResourceBlockedRanges } from "@/features/shared/services/load-resource-blocked-ranges";
 import { loadResourceReferences } from "@/features/shared/services/load-resource-references";
@@ -36,6 +38,8 @@ export async function ResourceDetailScreen({
   formReadOnly,
   quickCreate,
   hiddenFields,
+  switcher,
+  titleAdornment,
   children,
 }: {
   definition: ResourceDefinition;
@@ -50,6 +54,14 @@ export async function ResourceDetailScreen({
   quickCreate?: ResourceFormProps["quickCreate"];
   /** Create-only fields to leave off the edit form. */
   hiddenFields?: string[];
+  /** Sibling records the title can jump to, so staff skip the list. */
+  switcher?: {
+    options: ComboboxOption[];
+    label: string;
+    searchPlaceholder?: string;
+  };
+  /** Beside the title, e.g. a status badge. */
+  titleAdornment?: ReactNode;
   children?: (parts: {
     form: ReactNode;
     row: ResourceRow;
@@ -146,7 +158,20 @@ export async function ResourceDetailScreen({
             ? String(row[definition.subtitleField] ?? definition.description)
             : definition.description
         }
-        title={title}
+        title={
+          switcher && switcher.options.length > 1 ? (
+            <ResourceSwitcher
+              currentId={id}
+              label={switcher.label}
+              options={switcher.options}
+              route={definition.route}
+              searchPlaceholder={switcher.searchPlaceholder}
+            />
+          ) : (
+            title
+          )
+        }
+        titleAdornment={titleAdornment}
       />
       {saved ? (
         <Alert className="border-success/20 bg-success-surface">

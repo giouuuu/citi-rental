@@ -17,6 +17,8 @@ type PublicFleetVehicleRow = {
   seating_capacity: number | null;
   photo_url: string | null;
   daily_rate: number | string;
+  half_day_rate?: number | string | null;
+  hourly_rate?: number | string | null;
   // Optional until the showcase-image migration reaches the database.
   color?: string | null;
   showcase_image_url?: string | null;
@@ -72,6 +74,8 @@ export async function listPublicAvailableVehicles(
     seating_capacity: row.seating_capacity,
     photo_url: row.photo_url,
     daily_rate: Number(row.daily_rate),
+    half_day_rate: row.half_day_rate != null ? Number(row.half_day_rate) : null,
+    hourly_rate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
     color: row.color ?? null,
     showcase_image_url: row.showcase_image_url ?? null,
   }));

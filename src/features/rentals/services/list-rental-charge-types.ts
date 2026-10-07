@@ -1,10 +1,13 @@
 import "server-only";
 
-import type { RentalChargeType } from "@/features/rentals/types/rental-payment";
+import {
+  BILL_ADJUSTMENT_CODE,
+  type RentalChargeType,
+} from "@/features/rentals/types/rental-payment";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
-/** Active charge types, in the order owners set in Settings. */
+/** Active charge types, in the order owners set in Settings. Bill adjustments have their own form. */
 export async function listRentalChargeTypes(): Promise<RentalChargeType[]> {
   if (!isSupabaseConfigured()) return [];
 
@@ -13,6 +16,7 @@ export async function listRentalChargeTypes(): Promise<RentalChargeType[]> {
     .from("rental_charge_types")
     .select("id, name, default_amount")
     .eq("is_active", true)
+    .or(`code.is.null,code.neq.${BILL_ADJUSTMENT_CODE}`)
     .order("sort_order")
     .order("name");
 
