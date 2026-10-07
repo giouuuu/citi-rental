@@ -11,6 +11,7 @@ import {
   type ColumnDef,
   type ColumnFiltersState,
   type OnChangeFn,
+  type RowSelectionState,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
@@ -55,6 +56,10 @@ type DataTableProps<TData, TValue> = {
   manual?: boolean;
   pagination?: React.ReactNode | false;
   isPending?: boolean;
+  /** Controlled row selection; pair with `getRowId` so keys survive refetches. */
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+  getRowId?: (row: TData) => string;
 };
 
 export function DataTable<TData, TValue>({
@@ -70,19 +75,23 @@ export function DataTable<TData, TValue>({
   manual = false,
   pagination,
   isPending = false,
+  rowSelection: controlledRowSelection,
+  onRowSelectionChange,
+  getRowId,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   // TanStack Table intentionally exposes stateful functions that React Compiler skips.
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
+    getRowId,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: manual ? undefined : getPaginationRowModel(),
     getSortedRowModel: manual ? undefined : getSortedRowModel(),
@@ -93,12 +102,12 @@ export function DataTable<TData, TValue>({
     onSortingChange: onSortingChange ?? setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: onRowSelectionChange ?? setRowSelection,
     state: {
       sorting: controlledSorting ?? sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
+      rowSelection: controlledRowSelection ?? rowSelection,
     },
   });
 

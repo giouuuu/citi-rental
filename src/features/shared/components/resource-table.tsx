@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
-import type { SortingState } from "@tanstack/react-table";
+import { useMemo, useState, type ReactNode } from "react";
+import type { RowSelectionState, SortingState } from "@tanstack/react-table";
+import { X } from "lucide-react";
 
 import { DataTable } from "@/components/data-table/data-table";
+import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
+import { ResourceSelectionContext } from "@/features/shared/components/resource-selection";
 import { useDebouncedNavigation } from "@/features/shared/hooks/use-debounced-navigation";
 import {
   resolveFallbackSort,
@@ -18,9 +22,13 @@ import type { DateRangePreset } from "@/features/shared/lib/date-range-presets";
 import { parseDateKey } from "@/features/shared/lib/manila-time";
 import type {
   ResourceColumn,
+  ResourceOption,
   ResourceQuery,
   ResourceRow,
 } from "@/features/shared/types/resource";
+
+/** Option value standing for "no filter"; never sent in the URL. */
+const ALL = "__all";
 
 type Props = {
   canWrite: boolean;
@@ -36,7 +44,16 @@ type Props = {
   hasNextPage: boolean;
   /** The list's date filter pair, shown as a range picker beside search. */
   dateRange?: { fromParam: string; toParam: string; presets: DateRangePreset[] };
+  /** `eq` filters shown as dropdowns beside search. */
+  pickers?: { param: string; label: string; options: ResourceOption[] }[];
+  /**
+   * Controls for the checked rows. Passing it adds a checkbox column; the
+   * controls read the selection through `useResourceSelection`.
+   */
+  bulkActions?: ReactNode;
 };
+
+const getRowId = (row: ResourceRow) => row.id;
 
 /**
  * Owns the one transition for the whole list. Search, sort, and paging are all
@@ -52,9 +69,28 @@ export function ResourceTable(props: Props) {
         route: props.route,
         singular: props.singular,
         titleField: props.titleField,
+        selectable: Boolean(props.bulkActions),
       }),
-    [props.columns, props.route, props.singular, props.titleField],
+    [props.columns, props.route, props.singular, props.titleField, props.bulkActions],
   );
+
+  // A selection belongs to the rows it was made on: a new page, search or
+  // filter starts from nothing checked rather than acting on unseen rows.
+  const rowsKey = props.rows.map((row) => row.id).join(",");
+  const [selection, setSelection] = useState<RowSelectionState>({});
+  const [selectionRowsKey, setSelectionRowsKey] = useState(rowsKey);
+  if (selectionRowsKey !== rowsKey) {
+    setSelectionRowsKey(rowsKey);
+    setSelection({});
+  }
+  const selectionContext = useMemo(
+    () => ({
+      ids: Object.keys(selection).filter((id) => selection[id]),
+      clear: () => setSelection({}),
+    }),
+    [selection],
+  );
+  const selectedIds = selectionContext.ids;
   const fallbackSort = useMemo(
     () => resolveFallbackSort(props.columns),
     [props.columns],
@@ -77,11 +113,19 @@ export function ResourceTable(props: Props) {
     navigateNow(urlFor({ filters }));
   };
 
+  const setFilter = (param: string, value: string) => {
+    const filters = { ...props.query.filters };
+    if (value === ALL) delete filters[param];
+    else filters[param] = value;
+    navigateNow(urlFor({ filters }));
+  };
+
   return (
     <DataTable
       columns={columns}
       controlledSorting={sorting}
       data={props.rows}
+      getRowId={getRowId}
       emptyMessage={
         <ResourceEmptyState
           canWrite={props.canWrite}
@@ -95,6 +139,8 @@ export function ResourceTable(props: Props) {
       }
       isPending={isPending}
       manual
+      onRowSelectionChange={setSelection}
+      rowSelection={selection}
       onSortingChange={(updater) => {
         const next = typeof updater === "function" ? updater(sorting) : updater;
         const sort = next[0];
@@ -123,6 +169,19 @@ export function ResourceTable(props: Props) {
             onSearch={(value) => navigate(urlFor({ q: value }))}
             plural={props.plural}
           />
+          {props.pickers?.map((picker) => (
+            <Combobox
+              aria-label={picker.label}
+              className="w-40"
+              key={picker.param}
+              onValueChange={(value) => setFilter(picker.param, value)}
+              options={[
+                { value: ALL, label: `Any ${picker.label.toLowerCase()}` },
+                ...picker.options,
+              ]}
+              value={props.query.filters?.[picker.param] ?? ALL}
+            />
+          ))}
           {dateRange ? (
             <DateRangePicker
               onClear={() => setDates(null, null)}
@@ -133,6 +192,24 @@ export function ResourceTable(props: Props) {
                 to: parseDateKey(props.query.filters?.[dateRange.toParam]) ?? undefined,
               }}
             />
+          ) : null}
+          {props.bulkActions && selectedIds.length ? (
+            <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+              <span aria-live="polite" className="text-sm text-muted-foreground">
+                {selectedIds.length} selected
+              </span>
+              <ResourceSelectionContext.Provider value={selectionContext}>
+                {props.bulkActions}
+              </ResourceSelectionContext.Provider>
+              <Button
+                aria-label="Clear selection"
+                onClick={() => setSelection({})}
+                size="icon-sm"
+                variant="ghost"
+              >
+                <X />
+              </Button>
+            </div>
           ) : null}
         </div>
       }

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Filter, Plus, X } from "lucide-react";
 
@@ -29,17 +30,24 @@ export function ResourceList({
   result,
   query,
   canWrite,
+  bulkActions,
 }: {
   definition: ResourceDefinition;
   result: ResourcePage;
   query: ResourceQuery;
   canWrite: boolean;
+  /** Controls for checked rows; offered only to roles that can write. */
+  bulkActions?: ReactNode;
 }) {
   const dateRange = resolveDateRangeFilter(definition.filters);
-  // The date pair shows in the picker, so it gets no chip of its own.
+  const pickers = (definition.filters ?? []).filter(
+    (filter) => filter.picker && filter.op === "eq" && filter.valueLabels,
+  );
+  // The date pair and the pickers show their own value, so they get no chip.
   const activeFilters = (definition.filters ?? []).filter(
     (filter) =>
       query.filters?.[filter.param] &&
+      !pickers.includes(filter) &&
       filter.param !== dateRange?.fromParam &&
       filter.param !== dateRange?.toParam,
   );
@@ -90,6 +98,7 @@ export function ResourceList({
             </div>
           ) : null}
           <ResourceTable
+            bulkActions={canWrite ? bulkActions : undefined}
             canWrite={canWrite}
             columns={definition.columns}
             dateRange={
@@ -100,6 +109,13 @@ export function ResourceList({
             hasNextPage={result.hasNextPage}
             page={result.page}
             pageSize={result.pageSize}
+            pickers={pickers.map((filter) => ({
+              param: filter.param,
+              label: filter.label,
+              options: Object.entries(filter.valueLabels ?? {}).map(
+                ([value, label]) => ({ value, label }),
+              ),
+            }))}
             plural={definition.plural}
             query={query}
             route={definition.route}

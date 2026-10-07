@@ -100,6 +100,11 @@ export type ResourceFilter = {
   showValue?: boolean;
   /** Words for enum values in the chip, e.g. `due_soon` → "Due soon". */
   valueLabels?: Record<string, string>;
+  /**
+   * Show an `eq` filter as a dropdown beside search, offering `valueLabels`
+   * as its choices, instead of a chip that only links can set.
+   */
+  picker?: boolean;
 };
 
 export type ResourceDefinition = {

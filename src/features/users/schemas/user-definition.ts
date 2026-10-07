@@ -15,6 +15,31 @@ export const userDefinition: ResourceDefinition = {
     "Assign staff roles and disable application access. Authentication identities remain managed by Supabase Auth.",
   writeRoles: ["owner", "admin"],
   archive: { field: "is_active", value: false, label: "Disable access" },
+  filters: [
+    {
+      param: "role",
+      column: "role",
+      op: "eq",
+      label: "Role",
+      showValue: true,
+      picker: true,
+      valueLabels: {
+        owner: "Owner",
+        admin: "Admin",
+        staff: "Staff",
+        customer: "Customer",
+      },
+    },
+    {
+      param: "status",
+      column: "is_active",
+      op: "eq",
+      label: "Status",
+      showValue: true,
+      picker: true,
+      valueLabels: { true: "Active", false: "Disabled" },
+    },
+  ],
   schema: z.object({
     id: z.uuid("Enter the Supabase Auth user ID."),
     full_name: requiredText("Full name", 120),
@@ -50,6 +75,7 @@ export const userDefinition: ResourceDefinition = {
   ],
   columns: [
     { key: "full_name", label: "Name" },
+    { key: "email", label: "Email" },
     { key: "role", label: "Role", format: "status" },
     { key: "is_active", label: "Active", format: "boolean" },
     { key: "updated_at", label: "Updated", format: "datetime" },
@@ -58,6 +84,7 @@ export const userDefinition: ResourceDefinition = {
     {
       id: "00000000-0000-0000-0000-000000000001",
       full_name: "Alex Rivera",
+      email: "alex@example.com",
       role: "admin",
       is_active: true,
       updated_at: "2026-07-15T00:00:00Z",

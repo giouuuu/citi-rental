@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { ReactNode } from "react";
+
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { ResourceList } from "@/features/shared/components/resource-list";
@@ -13,9 +15,12 @@ import type {
 export async function ResourceIndexScreen({
   definition,
   searchParams,
+  bulkActions,
 }: {
   definition: ResourceDefinition;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  /** Controls for checked rows (adds a checkbox column for writers). */
+  bulkActions?: ReactNode;
 }) {
   const resourceQuery = parseResourceQuery(
     searchParams ? await searchParams : {},
@@ -94,6 +99,7 @@ export async function ResourceIndexScreen({
 
   return (
     <ResourceList
+      bulkActions={bulkActions}
       canWrite={
         definition.writeRoles.includes(profile.role as AppRole) &&
         definition.allowCreate !== false

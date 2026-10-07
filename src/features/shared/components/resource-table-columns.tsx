@@ -5,6 +5,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   formatDateKey,
   formatManila,
@@ -38,13 +39,43 @@ export function buildResourceColumns({
   route,
   singular,
   titleField,
+  selectable = false,
 }: {
   columns: ResourceColumn[];
   route: string;
   singular: string;
   titleField: string;
+  /** Lead with a checkbox column for bulk actions. */
+  selectable?: boolean;
 }) {
   return [
+    ...(selectable
+      ? [
+          columnHelper.display({
+            id: "select",
+            size: 40,
+            enableHiding: false,
+            enableSorting: false,
+            header: ({ table }) => (
+              <Checkbox
+                aria-label="Select all rows on this page"
+                checked={
+                  table.getIsAllPageRowsSelected() ||
+                  (table.getIsSomePageRowsSelected() && "indeterminate")
+                }
+                onCheckedChange={(value) => table.toggleAllPageRowsSelected(value === true)}
+              />
+            ),
+            cell: ({ row }) => (
+              <Checkbox
+                aria-label={`Select ${String(row.original[titleField] ?? singular)}`}
+                checked={row.getIsSelected()}
+                onCheckedChange={(value) => row.toggleSelected(value === true)}
+              />
+            ),
+          }),
+        ]
+      : []),
     ...columns.map((column) =>
       columnHelper.accessor((row) => row[column.key], {
         id: column.key,
