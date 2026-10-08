@@ -92,7 +92,7 @@ const SOURCE_COLUMNS = [
 export function WebsiteAnalytics({ window }: { window: AnalyticsWindow }) {
   return (
     <section aria-labelledby="analytics-website" className="space-y-4">
-      <h2 className="text-lg font-semibold" id="analytics-website">
+      <h2 className="sr-only" id="analytics-website">
         Website & Facebook
       </h2>
       <Suspense fallback={<PanelSkeleton className="h-[640px]" label="website visitors" />}>

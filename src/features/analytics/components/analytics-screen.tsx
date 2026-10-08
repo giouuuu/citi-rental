@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/design-system/page-header";
 import { Button } from "@/components/ui/button";
 import {
   analyticsRangePresets,
+  resolveAnalyticsTab,
   resolveAnalyticsWindow,
 } from "@/features/analytics/lib/analytics-window";
 import { AnalyticsFrame } from "@/features/analytics/components/analytics-frame";
@@ -16,6 +17,7 @@ import { ForwardOccupancy } from "@/features/analytics/components/forward-occupa
 import { KpiSkeleton, PanelSkeleton } from "@/features/analytics/components/panel-skeleton";
 import { VehiclePerformancePanel } from "@/features/analytics/components/vehicle-performance";
 import { WebsiteAnalytics } from "@/features/analytics/components/website-analytics";
+import type { AnalyticsTab, AnalyticsWindow } from "@/features/analytics/types/analytics";
 import { formatDateKey, manilaDateKey } from "@/features/shared/lib/manila-time";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -32,6 +34,7 @@ export async function AnalyticsScreen({ searchParams }: { searchParams: Promise<
     to: read("to"),
     bucket: read("bucket"),
   });
+  const tab = resolveAnalyticsTab(read("tab"));
   const summary = `Showing ${formatDateKey(window.from)} – ${formatDateKey(window.to)} (${window.days} days, Manila time), compared with ${formatDateKey(window.previous.from)} – ${formatDateKey(window.previous.to)}.`;
 
   return (
@@ -55,30 +58,50 @@ export async function AnalyticsScreen({ searchParams }: { searchParams: Promise<
         preset={window.preset}
         presets={analyticsRangePresets()}
         summary={summary}
+        tab={tab}
         to={window.to}
         today={manilaDateKey(new Date())}
       >
-        <Suspense fallback={<KpiSkeleton />}>
-          <AnalyticsKpis window={window} />
-        </Suspense>
-        <WebsiteAnalytics window={window} />
-        <Suspense fallback={<PanelSkeleton className="h-[560px]" label="trends" />}>
-          <AnalyticsTrends
-            aside={
-              <Suspense fallback={<PanelSkeleton className="h-[440px]" label="forward bookings" />}>
-                <ForwardOccupancy />
-              </Suspense>
-            }
-            window={window}
-          />
-        </Suspense>
-        <Suspense fallback={<PanelSkeleton className="h-[520px]" label="car performance" />}>
-          <VehiclePerformancePanel window={window} />
-        </Suspense>
-        <Suspense fallback={<PanelSkeleton className="h-[520px]" label="customer insights" />}>
-          <CustomerInsights window={window} />
-        </Suspense>
+        <AnalyticsTabPanels tab={tab} window={window} />
       </AnalyticsFrame>
     </div>
   );
+}
+
+/** Only the open tab renders, so switching tabs fetches just that tab's data. */
+function AnalyticsTabPanels({ tab, window }: { tab: AnalyticsTab; window: AnalyticsWindow }) {
+  switch (tab) {
+    case "website":
+      return <WebsiteAnalytics window={window} />;
+    case "cars":
+      return (
+        <Suspense fallback={<PanelSkeleton className="h-[520px]" label="car performance" />}>
+          <VehiclePerformancePanel window={window} />
+        </Suspense>
+      );
+    case "customers":
+      return (
+        <Suspense fallback={<PanelSkeleton className="h-[520px]" label="customer insights" />}>
+          <CustomerInsights window={window} />
+        </Suspense>
+      );
+    default:
+      return (
+        <>
+          <Suspense fallback={<KpiSkeleton />}>
+            <AnalyticsKpis window={window} />
+          </Suspense>
+          <Suspense fallback={<PanelSkeleton className="h-[560px]" label="trends" />}>
+            <AnalyticsTrends
+              aside={
+                <Suspense fallback={<PanelSkeleton className="h-[440px]" label="forward bookings" />}>
+                  <ForwardOccupancy />
+                </Suspense>
+              }
+              window={window}
+            />
+          </Suspense>
+        </>
+      );
+  }
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   analyticsUrl,
   defaultBucketFor,
+  resolveAnalyticsTab,
   resolveAnalyticsWindow,
 } from "./analytics-window";
 
@@ -79,5 +80,25 @@ describe("analyticsUrl", () => {
 
   it("removes the bucket for auto", () => {
     expect(analyticsUrl(new URLSearchParams("bucket=day"), { bucket: "auto" })).toBe("/analytics");
+  });
+});
+
+describe("analytics tabs", () => {
+  it("keeps the period when switching tabs and drops the default tab", () => {
+    const current = new URLSearchParams("range=90d&bucket=week");
+    expect(analyticsUrl(current, { tab: "website" })).toBe("/analytics?range=90d&bucket=week&tab=website");
+    expect(analyticsUrl(new URLSearchParams("tab=cars"), { tab: "overview" })).toBe("/analytics");
+  });
+
+  it("keeps the tab when the period changes", () => {
+    expect(analyticsUrl(new URLSearchParams("tab=website"), { range: "7d" })).toBe(
+      "/analytics?tab=website&range=7d",
+    );
+  });
+
+  it("falls back to Overview for unknown tabs", () => {
+    expect(resolveAnalyticsTab("website")).toBe("website");
+    expect(resolveAnalyticsTab("nope")).toBe("overview");
+    expect(resolveAnalyticsTab(null)).toBe("overview");
   });
 });

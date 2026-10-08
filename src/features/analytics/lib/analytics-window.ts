@@ -12,6 +12,7 @@ import {
 import type {
   AnalyticsBucket,
   AnalyticsPreset,
+  AnalyticsTab,
   AnalyticsWindow,
 } from "@/features/analytics/types/analytics";
 
@@ -36,6 +37,27 @@ export const ANALYTICS_PRESETS: { value: AnalyticsPreset; label: string }[] = [
 ];
 
 const BUCKETS: AnalyticsBucket[] = ["day", "week", "month"];
+
+export const DEFAULT_ANALYTICS_TAB: AnalyticsTab = "overview";
+
+export const ANALYTICS_TABS: { value: AnalyticsTab; label: string }[] = [
+  { value: "overview", label: "Overview" },
+  { value: "website", label: "Website & Facebook" },
+  { value: "cars", label: "Cars" },
+  { value: "customers", label: "Customers" },
+];
+
+/** `?tab=`, falling back to Overview for anything unknown. */
+export function resolveAnalyticsTab(value: string | null | undefined): AnalyticsTab {
+  return ANALYTICS_TABS.some((tab) => tab.value === value)
+    ? (value as AnalyticsTab)
+    : DEFAULT_ANALYTICS_TAB;
+}
+
+/** Tabs whose panels chart over time, so "Group by" means something there. */
+export function tabUsesBucket(tab: AnalyticsTab): boolean {
+  return tab === "overview" || tab === "website";
+}
 
 /** The bucket that keeps a chart readable: ≤ ~31 days → day, ≤ ~5 months → week. */
 export function defaultBucketFor(days: number): AnalyticsBucket {
@@ -134,14 +156,16 @@ export function resolveAnalyticsWindow(
 /**
  * Builds the analytics URL for a changed filter, dropping params that equal
  * their defaults so shared links stay short. Picking a preset clears custom
- * dates; editing either date pins both ends as a custom range.
+ * dates; editing either date pins both ends as a custom range. Switching tabs
+ * keeps the period.
  */
 export function analyticsUrl(
   current: URLSearchParams,
   change:
     | { range: AnalyticsPreset }
     | { custom: { from: string; to: string } }
-    | { bucket: AnalyticsBucket | "auto" },
+    | { bucket: AnalyticsBucket | "auto" }
+    | { tab: AnalyticsTab },
   pathname = "/analytics",
 ): string {
   const next = new URLSearchParams(current.toString());
@@ -162,6 +186,10 @@ export function analyticsUrl(
       if (value) next.set(key, value);
       else next.delete(key);
     }
+  } else if ("tab" in change) {
+    // The period carries over, so tabs compare the same window.
+    if (change.tab === DEFAULT_ANALYTICS_TAB) next.delete("tab");
+    else next.set("tab", change.tab);
   } else if (change.bucket === "auto") {
     next.delete("bucket");
   } else {

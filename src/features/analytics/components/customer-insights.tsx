@@ -53,7 +53,7 @@ export async function CustomerInsights({ window }: { window: AnalyticsWindow }) 
 
   return (
     <section aria-labelledby="analytics-customers" className="space-y-4">
-      <h2 className="text-lg font-semibold" id="analytics-customers">
+      <h2 className="sr-only" id="analytics-customers">
         Customers
       </h2>
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">

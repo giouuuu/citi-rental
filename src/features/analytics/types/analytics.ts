@@ -15,6 +15,9 @@ export type AnalyticsWindow = {
 
 export type AnalyticsPreset = "7d" | "30d" | "90d" | "12m" | "custom";
 
+/** Which slice of analytics is on screen (`?tab=`). */
+export type AnalyticsTab = "overview" | "website" | "cars" | "customers";
+
 export type AnalyticsOverview = {
   bookingsCreated: number;
   bookingsPublic: number;

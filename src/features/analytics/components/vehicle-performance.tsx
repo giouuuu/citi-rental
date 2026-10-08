@@ -46,7 +46,7 @@ export async function VehiclePerformancePanel({ window }: { window: AnalyticsWin
 
   return (
     <section aria-labelledby="analytics-cars" className="space-y-4">
-      <h2 className="text-lg font-semibold" id="analytics-cars">
+      <h2 className="sr-only" id="analytics-cars">
         Cars
       </h2>
       <div className="grid gap-4 xl:grid-cols-12">

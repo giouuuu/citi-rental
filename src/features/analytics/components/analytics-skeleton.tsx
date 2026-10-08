@@ -8,8 +8,9 @@ export function AnalyticsSkeleton() {
         <Skeleton className="h-8 w-40" />
         <Skeleton className="h-4 w-full max-w-md" />
       </div>
+      <Skeleton className="h-9 w-full max-w-lg" />
       <div className="flex flex-wrap gap-3">
-        {Array.from({ length: 4 }).map((_, index) => (
+        {Array.from({ length: 2 }).map((_, index) => (
           <Skeleton className="h-14 w-40" key={index} />
         ))}
       </div>
