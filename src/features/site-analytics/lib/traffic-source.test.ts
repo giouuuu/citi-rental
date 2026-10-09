@@ -14,37 +14,64 @@ describe("detectTrafficSource", () => {
   });
 
   it("names the post from ?fb=<tag>", () => {
-    expect(detectTrafficSource({ search: "fb=oct-promo", ownHost })?.campaign).toBe("oct-promo");
+    expect(
+      detectTrafficSource({ search: "fb=oct-promo", ownHost })?.campaign,
+    ).toBe("oct-promo");
   });
 
   it("prefers an explicit tag over the referrer", () => {
     expect(
-      detectTrafficSource({ search: "?ig", referrer: "https://l.facebook.com/", ownHost }),
+      detectTrafficSource({
+        search: "?ig",
+        referrer: "https://l.facebook.com/",
+        ownHost,
+      }),
     ).toMatchObject({ source: "instagram", referrerHost: "l.facebook.com" });
   });
 
   it("reads utm_source and src", () => {
-    expect(detectTrafficSource({ search: "?utm_source=FB&utm_campaign=sale", ownHost })).toEqual({
+    expect(
+      detectTrafficSource({
+        search: "?utm_source=FB&utm_campaign=sale",
+        ownHost,
+      }),
+    ).toEqual({
       source: "facebook",
       campaign: "sale",
       referrerHost: null,
     });
-    expect(detectTrafficSource({ search: "?src=flyer", ownHost })?.source).toBe("flyer");
+    expect(detectTrafficSource({ search: "?src=flyer", ownHost })?.source).toBe(
+      "flyer",
+    );
   });
 
   it("credits Facebook's fbclid even without a tag", () => {
-    expect(detectTrafficSource({ search: "?fbclid=abc123", ownHost })?.source).toBe("facebook");
+    expect(
+      detectTrafficSource({ search: "?fbclid=abc123", ownHost })?.source,
+    ).toBe("facebook");
   });
 
   it("maps referrer hosts", () => {
     expect(
-      detectTrafficSource({ search: "", referrer: "https://m.facebook.com/story", ownHost })?.source,
+      detectTrafficSource({
+        search: "",
+        referrer: "https://m.facebook.com/story",
+        ownHost,
+      })?.source,
     ).toBe("facebook");
     expect(
-      detectTrafficSource({ search: "", referrer: "https://www.google.com.ph/", ownHost })?.source,
+      detectTrafficSource({
+        search: "",
+        referrer: "https://www.google.com.ph/",
+        ownHost,
+      })?.source,
     ).toBe("google");
     expect(
-      detectTrafficSource({ search: "", referrer: "https://blog.example.com/x", ownHost })?.source,
+      detectTrafficSource({
+        search: "",
+        referrer: "https://blog.example.com/x",
+        ownHost,
+      })?.source,
     ).toBe("blog.example.com");
   });
 
@@ -65,7 +92,9 @@ describe("detectTrafficSource", () => {
   });
 
   it("is direct with nothing to go on", () => {
-    expect(detectTrafficSource({ search: "", referrer: "", ownHost })).toBeNull();
+    expect(
+      detectTrafficSource({ search: "", referrer: "", ownHost }),
+    ).toBeNull();
   });
 });
 

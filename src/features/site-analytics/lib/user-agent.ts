@@ -11,9 +11,13 @@ export function isBotUserAgent(userAgent: string | null | undefined): boolean {
   return !userAgent || BOT_PATTERN.test(userAgent);
 }
 
-export function deviceFromUserAgent(userAgent: string | null | undefined): DeviceKind {
+export function deviceFromUserAgent(
+  userAgent: string | null | undefined,
+): DeviceKind {
   if (!userAgent) return "desktop";
-  if (/ipad|tablet|kindle|silk|(android(?!.*mobile))/i.test(userAgent)) return "tablet";
-  if (/mobi|iphone|ipod|android|windows phone/i.test(userAgent)) return "mobile";
+  if (/ipad|tablet|kindle|silk|(android(?!.*mobile))/i.test(userAgent))
+    return "tablet";
+  if (/mobi|iphone|ipod|android|windows phone/i.test(userAgent))
+    return "mobile";
   return "desktop";
 }

@@ -46,7 +46,11 @@ const HOST_SOURCES: [host: string, source: string][] = [
  * Hosts a visitor bounces through mid-booking: Google sign-in, Supabase auth,
  * PayMongo checkout. Coming back from them is not a new source.
  */
-const PASS_THROUGH_HOSTS = ["accounts.google.com", "supabase.co", "paymongo.com"];
+const PASS_THROUGH_HOSTS = [
+  "accounts.google.com",
+  "supabase.co",
+  "paymongo.com",
+];
 
 const SOURCE_PATTERN = /^[a-z0-9._-]{1,40}$/;
 
@@ -79,7 +83,9 @@ function cleanCampaign(value: string | null | undefined): string | null {
 function referrerHostOf(referrer: string | null | undefined): string | null {
   if (!referrer) return null;
   try {
-    return new URL(referrer).hostname.toLowerCase().replace(/^www\./, "") || null;
+    return (
+      new URL(referrer).hostname.toLowerCase().replace(/^www\./, "") || null
+    );
   } catch {
     return null;
   }
@@ -114,7 +120,9 @@ export function detectTrafficSource({
     if (params.has(param)) {
       return {
         source,
-        campaign: cleanCampaign(params.get(param)) ?? cleanCampaign(params.get("utm_campaign")),
+        campaign:
+          cleanCampaign(params.get(param)) ??
+          cleanCampaign(params.get("utm_campaign")),
         referrerHost: externalReferrer,
       };
     }
@@ -142,7 +150,8 @@ export function detectTrafficSource({
 
   if (externalReferrer) {
     const source = sourceFromHost(externalReferrer);
-    if (source) return { source, campaign: null, referrerHost: externalReferrer };
+    if (source)
+      return { source, campaign: null, referrerHost: externalReferrer };
   }
 
   return null;
