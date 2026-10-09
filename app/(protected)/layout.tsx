@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
+
 import { AppShell } from "@/components/app-shell/app-shell";
+import { NOINDEX } from "@/features/seo/lib/business";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +12,8 @@ type Profile = {
   role: string;
   is_active: boolean;
 };
+
+export const metadata: Metadata = { robots: NOINDEX };
 
 export default async function ProtectedLayout({ children }: LayoutProps<"/">) {
   const configured = isSupabaseConfigured();

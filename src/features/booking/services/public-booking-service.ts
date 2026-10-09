@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -106,7 +108,8 @@ export async function getPublicFreeCancellationHours(): Promise<number | null> {
   return data != null && Number.isInteger(hours) && hours >= 0 ? hours : null;
 }
 
-export async function getPublicVehicle(
+/** Cached per request: page metadata and the page body both read it. */
+export const getPublicVehicle = cache(async function getPublicVehicle(
   vehicleId: string,
 ): Promise<(PublicFleetVehicle & { status: string }) | null> {
   if (!isSupabaseConfigured()) return null;
@@ -136,7 +139,7 @@ export async function getPublicVehicle(
     showcase_image_url: row.showcase_image_url ?? null,
     status: row.status,
   };
-}
+});
 
 export async function createPublicBooking(
   input: PublicBookingInput | ReturningBookingInput,

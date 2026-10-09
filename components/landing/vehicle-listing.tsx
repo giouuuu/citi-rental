@@ -3,6 +3,7 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import { format, parse } from "date-fns";
 import { CarFront, CalendarDays, MapPin, Search } from "lucide-react";
+import { MotionConfig, motion } from "motion/react";
 
 import { FleetVehicleCard } from "@/components/landing/fleet-vehicle-card";
 import { formatManila } from "@/features/shared/lib/manila-time";
@@ -22,6 +23,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import type { PublicListedVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
+import { cn } from "@/lib/utils";
 
 const FALLBACK_CATEGORIES = ["Economy", "Sedan", "SUV", "Van"] as const;
 
@@ -164,19 +166,37 @@ export function VehicleListing({
             className="flex gap-2 overflow-x-auto pb-1 lg:pb-0"
             role="group"
           >
-            {categories.map((item) => (
-              <Button
-                aria-pressed={category === item}
-                className="min-w-fit"
-                key={item}
-                onClick={() => startTransition(() => setCategory(item))}
-                size="sm"
-                type="button"
-                variant={category === item ? "default" : "outline"}
-              >
-                {item}
-              </Button>
-            ))}
+            <MotionConfig reducedMotion="user">
+              {categories.map((item) => {
+                const active = category === item;
+                return (
+                  <Button
+                    aria-pressed={active}
+                    className={cn(
+                      "relative min-w-fit",
+                      active &&
+                        "border-transparent text-primary-foreground hover:bg-transparent hover:text-primary-foreground",
+                    )}
+                    key={item}
+                    onClick={() => startTransition(() => setCategory(item))}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    {/* One pill slides between types instead of each button repainting. */}
+                    {active ? (
+                      <motion.span
+                        aria-hidden="true"
+                        className="absolute -inset-px rounded-[inherit] bg-primary"
+                        layoutId="fleet-type-pill"
+                        transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+                      />
+                    ) : null}
+                    <span className="relative">{item}</span>
+                  </Button>
+                );
+              })}
+            </MotionConfig>
           </div>
 
           <Field className="w-full lg:max-w-xs">

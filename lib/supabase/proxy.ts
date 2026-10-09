@@ -27,6 +27,10 @@ const publicRoutes = [
   "/api/webhooks",
   // The public site's analytics beacon.
   "/api/events",
+  // Crawlers and link previews fetch these signed out.
+  "/robots.txt",
+  "/sitemap.xml",
+  "/opengraph-image",
 ];
 
 function isPublicRoute(pathname: string) {

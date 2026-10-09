@@ -8,7 +8,7 @@ import type { DropdownProps } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import { Input, inputSurfaceClassName } from "@/components/ui/input"
+import { inputSurfaceClassName } from "@/components/ui/input"
 import {
   Popover,
   PopoverContent,
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { TimePicker } from "@/components/ui/time-picker"
 
 /** Date keys (`YYYY-MM-DD`) are calendar days, so they map to local midnight. */
 function keyToDate(key: string | null | undefined) {
@@ -295,7 +296,7 @@ function DateTimePicker({
 
   return (
     <div
-      className={cn("grid grid-cols-[minmax(0,1fr)_7.5rem] items-start gap-2", className)}
+      className={cn("grid grid-cols-[minmax(0,1fr)_8.5rem] items-start gap-2", className)}
       data-slot="date-time-picker"
     >
       {name ? (
@@ -318,15 +319,14 @@ function DateTimePicker({
         required={required}
         value={draft.date}
       />
-      <Input
+      <TimePicker
         aria-invalid={ariaInvalid}
         aria-label="Time"
-        className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
         disabled={disabled}
         id={id ? `${id}-time` : undefined}
-        onChange={(event) => update({ ...draft, time: event.target.value })}
-        step={60}
-        type="time"
+        onValueChange={(time) => update({ ...draft, time })}
+        placeholder="Time"
+        required={required}
         value={draft.time}
       />
     </div>

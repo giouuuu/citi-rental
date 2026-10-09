@@ -108,7 +108,10 @@ export const heroCars: HeroCar[] = [
   },
 ];
 
+/** The stock photo behind the landing page's "With driver" banner. */
+export const driverCar = heroCars.find((car) => car.key === "innova") ?? heroCars[0]!;
+
 /** Every photo the landing page shows, for the footer credits. */
 export const landingPhotoCredits: Array<{ key: string; label: string; credit: PhotoCredit }> = [
-  ...heroCars.map(({ key, model, credit }) => ({ key, label: model, credit })),
+  { key: driverCar.key, label: driverCar.model, credit: driverCar.credit },
 ];

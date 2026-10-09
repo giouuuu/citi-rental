@@ -11,7 +11,7 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { TimePicker } from "@/components/ui/time-picker";
 import {
   bookedDays,
   firstBookedDayBetween,
@@ -305,14 +305,14 @@ export function BookingRangeCalendar({
                 {side.dateKey ? formatKey(side.dateKey) : "Pick a day"}
               </p>
             </div>
-            <Input
+            <TimePicker
               aria-label={`${side.name} time`}
-              className="w-28 shrink-0 appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+              className="w-34 shrink-0"
               disabled={disabled || !side.dateKey}
               id={`${id}-${side.key}-time`}
-              onChange={(event) => side.onTime(event.target.value)}
-              step={60}
-              type="time"
+              onValueChange={side.onTime}
+              placeholder="Time"
+              required
               value={side.time}
             />
           </div>

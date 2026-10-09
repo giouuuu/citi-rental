@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Fragment, type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 import {
   ArrowRight,
   CalendarCheck,
@@ -21,7 +21,7 @@ import { BookingSearch } from "@/components/landing/booking-search";
 import { ContactFab } from "@/components/landing/contact-fab";
 import { todayDateValue } from "@/components/landing/booking-search-schema";
 import {
-  heroCars,
+  driverCar,
   landingPhotoCredits,
 } from "@/components/landing/hero-cars/hero-cars";
 import {
@@ -30,7 +30,10 @@ import {
 } from "@/components/landing/hero-fleet";
 import { HeroScene, HeroSceneControls } from "@/components/landing/hero-scene";
 import { HERO_SCENE_INTRO_MS } from "@/components/landing/hero-scene-timing";
-import { landingFontClassName } from "@/components/landing/landing-fonts";
+import {
+  landingFontClassName,
+  zekeWordmark,
+} from "@/components/landing/landing-fonts";
 import { LandingIntro } from "@/components/landing/landing-intro";
 import { landingPolicies } from "@/components/landing/landing-policies";
 import { landingSteps } from "@/components/landing/landing-steps";
@@ -42,7 +45,17 @@ import {
   bookingContinuePath,
   bookingFormPath,
 } from "@/features/booking/lib/booking-continue";
-import { getPublicReservationFee } from "@/features/booking/services/public-booking-service";
+import {
+  getPublicFreeCancellationHours,
+  getPublicReservationFee,
+} from "@/features/booking/services/public-booking-service";
+import {
+  businessJsonLd,
+  jsonLdHtml,
+  OPEN_GRAPH_BASE,
+  SEO_DESCRIPTION,
+} from "@/features/seo/lib/business";
+import { faqJsonLd, landingFaq } from "@/features/seo/lib/landing-faq";
 import { ReviewWall } from "@/features/reviews/components/review-wall";
 import { listPublicReviews } from "@/features/reviews/services/list-public-reviews";
 import { buildContactChannels } from "@/features/settings/lib/contact-channels";
@@ -57,7 +70,7 @@ import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-p
 const HERO_SCENE_FRAME =
   "inset-x-0 top-0 -bottom-16 [mask-image:linear-gradient(to_bottom,black_calc(100%-7rem),transparent)] md:bottom-0 md:[mask-image:none]";
 
-const HEADLINE_WORDS = "Find your ride in Cebu & rent in minutes".split(" ");
+const HERO_SUBTITLE = "Clear daily rates. Airport, hotel, or city pickup.";
 
 /**
  * The search card comes in as the car starts up the road, not after it: on
@@ -71,9 +84,19 @@ function focusDelay(ms: number) {
 }
 
 export const metadata: Metadata = {
-  title: "Zeke Car Rentals | Car Rental in Cebu",
-  description:
-    "DTI-registered, Cebu-based car rentals with clear daily rates, live availability, and pickup at the airport, hotel, or city.",
+  title: {
+    absolute:
+      "Car Rental in Cebu – Self-Drive & With Driver | Zeke Car Rentals",
+  },
+  description: SEO_DESCRIPTION,
+  // Trip searches (?start=…&pickup=…) are the same page; rank only one URL.
+  alternates: { canonical: "/" },
+  openGraph: {
+    ...OPEN_GRAPH_BASE,
+    url: "/",
+    title: "Car Rental in Cebu – Self-Drive & With Driver",
+    description: SEO_DESCRIPTION,
+  },
 };
 
 export default async function HomePage({
@@ -102,16 +125,22 @@ export default async function HomePage({
     start,
     end,
   };
-  const [availableVehicles, contactValues, reservationFee, reviews] =
-    await Promise.all([
-      listPublicAvailableVehicles({
-        startDate: trip.start,
-        endDate: trip.end,
-      }),
-      getPublicContactChannels(),
-      getPublicReservationFee(),
-      listPublicReviews(),
-    ]);
+  const [
+    availableVehicles,
+    contactValues,
+    reservationFee,
+    reviews,
+    freeCancellationHours,
+  ] = await Promise.all([
+    listPublicAvailableVehicles({
+      startDate: trip.start,
+      endDate: trip.end,
+    }),
+    getPublicContactChannels(),
+    getPublicReservationFee(),
+    listPublicReviews(),
+    getPublicFreeCancellationHours(),
+  ]);
   // The Messenger setting is the Facebook page username (m.me/<page>).
   const facebookPage = contactValues.messenger?.trim().replace(/^@/, "");
   const facebookReviewsUrl =
@@ -133,6 +162,8 @@ export default async function HomePage({
   if (query.mode) bookingParams.set("mode", query.mode);
   const bookingQuery = bookingParams.toString() || undefined;
   const readyCount = availableVehicles.length;
+  const dailyRates = availableVehicles.map((vehicle) => vehicle.daily_rate);
+  const faq = landingFaq({ dailyRates, reservationFee, freeCancellationHours });
   // Hero lineup: available cars the owner gave a landing-page image.
   const heroFleet: HeroFleetCar[] = availableVehicles.flatMap((vehicle) =>
     vehicle.showcase_image_url
@@ -155,68 +186,77 @@ export default async function HomePage({
       : [],
   );
 
-  // "Browse by type" cards filter the fleet by the matching free-text category.
-  const carTypes = heroCars.map((car) => {
-    const matching = availableVehicles.filter((vehicle) =>
-      car.matches.some((word) =>
-        (vehicle.category ?? "").toLowerCase().includes(word),
-      ),
-    );
-    const category = matching[0]?.category?.trim();
-    const params = new URLSearchParams(bookingParams);
-    if (category) params.set("type", category);
-    const search = params.toString();
-    return {
-      ...car,
-      count: matching.length,
-      href: category ? `/?${search}#fleet` : "#fleet",
-    };
-  });
-  const driverCar =
-    heroCars.find((car) => car.key === "innova") ?? heroCars[0]!;
-
   return (
     <LandingIntro
       className={`${landingFontClassName} overflow-hidden bg-background font-landing`}
       data-surface="landing"
       id="main-content"
     >
+      <script
+        dangerouslySetInnerHTML={jsonLdHtml(
+          businessJsonLd({ contact: contactValues, dailyRates }),
+        )}
+        type="application/ld+json"
+      />
+      <script
+        dangerouslySetInnerHTML={jsonLdHtml(faqJsonLd(faq))}
+        type="application/ld+json"
+      />
       <HeroFleetProvider cars={heroFleet}>
         <section className="relative flex min-h-[100svh] flex-col overflow-hidden bg-[#DCE9F5]">
           {/* Scene host on phones, so the road ends where the card begins. */}
           <div className="relative flex flex-1 flex-col md:static">
-            <HeroScene className={HERO_SCENE_FRAME} />
-            {/* Keeps the header and headline legible over the brightest sky. */}
+            <HeroScene
+              caption={
+                <p
+                  className="focus-in mx-auto w-fit max-w-[calc(100%-2rem)] rounded-full bg-white/75 px-4 py-1.5 text-center text-sm font-medium text-balance text-brand-950 shadow-[0_10px_30px_-14px_rgb(7_17_31/0.45)] ring-1 ring-white/70 backdrop-blur-md sm:px-5 sm:text-base"
+                  style={focusDelay(1300)}
+                >
+                  {HERO_SUBTITLE}
+                </p>
+              }
+              className={HERO_SCENE_FRAME}
+              title={
+                // Poster lockup in the ZEKE'S wordmark lettering, sized from
+                // `--title-size` (globals.css `.hero-ridge-anchor`). It stands
+                // in the far distance, so it takes the haze like the
+                // mountains do: deep slate fading to their blue at the ridge.
+                <p
+                  className={`${zekeWordmark.className} flex flex-col items-center text-center uppercase drop-shadow-[0_2px_18px_rgb(241_246_251/0.55)]`}
+                >
+                  <span
+                    className="focus-in pl-[0.24em] text-[calc(var(--title-size)*0.26)] leading-none tracking-[0.24em] text-teal-600"
+                    style={focusDelay(800)}
+                  >
+                    Your Cebu
+                  </span>
+                  <span
+                    className="focus-in mt-[calc(var(--title-size)*0.08)] bg-linear-to-b from-brand-800 from-25% to-[color-mix(in_oklab,var(--brand-500)_75%,#8fb2d4)] bg-clip-text text-(length:--title-size) leading-[0.86] tracking-[0.01em] text-transparent"
+                    style={focusDelay(900)}
+                  >
+                    Journey
+                  </span>
+                </p>
+              }
+            />
+            {/* Keeps the header legible over the treetops. Stops above the
+                title, which sits in the scene under this. */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-[38%] bg-[linear-gradient(to_bottom,rgb(241_246_251/0.85),rgb(241_246_251/0.45)_55%,transparent)]"
+              className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[linear-gradient(to_bottom,rgb(241_246_251/0.85),rgb(241_246_251/0.4)_55%,transparent)]"
             />
             <HeroSceneControls className={HERO_SCENE_FRAME} />
             <SiteHeader intro tone="light" />
 
-            <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pt-8 sm:px-6 sm:pt-10 lg:px-8">
-              <h1 className="text-center font-display text-[2rem] leading-[1.08] font-semibold tracking-[-0.025em] text-balance text-brand-950 sm:text-5xl lg:text-[3.5rem]">
-                {HEADLINE_WORDS.map((word, index) => (
-                  <Fragment key={`${word}-${index}`}>
-                    {index > 0 ? " " : null}
-                    <span
-                      className="focus-in inline-block"
-                      style={focusDelay(800 + index * 60)}
-                    >
-                      {word}
-                    </span>
-                  </Fragment>
-                ))}
+            {/* The visible lockup lives in the scene, behind the mountains. */}
+            <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 sm:px-6 lg:px-8">
+              <h1 className="sr-only">
+                Car rental in Cebu: your Cebu journey with Zeke Car Rentals
               </h1>
-              <p
-                className="focus-in mt-3 text-center text-base text-brand-700 sm:text-lg"
-                style={focusDelay(1300)}
-              >
-                Clear daily rates. Airport, hotel, or city pickup.
-              </p>
+              <p className="sr-only">{HERO_SUBTITLE}</p>
 
               {/* The road and car fill the space between headline and search. */}
-              <div className="min-h-[38svh] flex-1 md:min-h-[34svh]" />
+              <div className="min-h-[calc(38svh+11rem)] flex-1 md:min-h-[calc(34svh+11rem)]" />
             </div>
           </div>
 
@@ -265,61 +305,6 @@ export default async function HomePage({
             description="Airport, hotel, or city"
           />
         </ul>
-      </section>
-
-      <section
-        aria-labelledby="types-title"
-        className="pt-20 sm:pt-24"
-        id="types"
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="reveal flex items-end justify-between gap-4">
-            <h2
-              className="font-display text-3xl font-semibold tracking-[-0.025em] text-brand-950 sm:text-4xl"
-              id="types-title"
-            >
-              Browse by type
-            </h2>
-            <Button
-              asChild
-              className="rounded-full"
-              size="sm"
-              variant="outline"
-            >
-              <a href="#fleet">View all cars</a>
-            </Button>
-          </div>
-
-          <ul className="reveal mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {carTypes.map((type) => (
-              <li key={type.key}>
-                <Link
-                  className="group flex h-full flex-col rounded-2xl bg-card p-3 ring-1 ring-border transition-[box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-22px_rgb(7_17_31/0.4)] hover:ring-teal-500/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  href={type.href}
-                >
-                  <span className="flex aspect-[16/10] items-end justify-center rounded-xl bg-brand-50 px-3 pb-3">
-                    <Image
-                      alt=""
-                      className="h-auto w-full transition-transform duration-300 ease-out group-hover:-translate-x-1"
-                      sizes="(min-width: 1024px) 220px, 45vw"
-                      src={type.image}
-                    />
-                  </span>
-                  <span className="mt-3 px-1 text-center">
-                    <span className="block font-semibold text-brand-950">
-                      {type.category}
-                    </span>
-                    <span className="block text-xs text-muted-foreground tabular-nums">
-                      {type.count
-                        ? `${type.count} available`
-                        : "None free right now"}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
       </section>
 
       <VehicleListing
@@ -500,6 +485,31 @@ export default async function HomePage({
         </div>
       </section>
 
+      <section
+        aria-labelledby="faq-title"
+        className="border-t border-border py-20 sm:py-24"
+        id="faq"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            id="faq-title"
+            subtitle="What renters ask before booking a car in Cebu."
+            title="Car rental in Cebu, answered"
+          />
+          {/* Always open: answers stay in the page for search engines. */}
+          <dl className="reveal mx-auto mt-10 grid max-w-5xl gap-x-10 gap-y-8 md:grid-cols-2">
+            {faq.map(({ question, answer }) => (
+              <div key={question}>
+                <dt className="font-semibold text-brand-950">{question}</dt>
+                <dd className="mt-2 text-sm leading-6 text-pretty text-muted-foreground">
+                  {answer}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
       <footer className="border-t border-border bg-background pt-14 pb-10 text-sm text-muted-foreground">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))]">
@@ -526,14 +536,6 @@ export default async function HomePage({
                 <li>
                   <a
                     className="transition-colors hover:text-brand-950"
-                    href="#types"
-                  >
-                    Car types
-                  </a>
-                </li>
-                <li>
-                  <a
-                    className="transition-colors hover:text-brand-950"
                     href="#how-it-works"
                   >
                     How it works
@@ -555,6 +557,14 @@ export default async function HomePage({
                     href="#why"
                   >
                     Why Zeke
+                  </a>
+                </li>
+                <li>
+                  <a
+                    className="transition-colors hover:text-brand-950"
+                    href="#faq"
+                  >
+                    FAQ
                   </a>
                 </li>
               </ul>

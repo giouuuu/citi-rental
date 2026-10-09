@@ -7,6 +7,7 @@ import { BookingContinueChoice } from "@/features/booking/components/booking-con
 import { bookingFormPath } from "@/features/booking/lib/booking-continue";
 import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
 import { getPublicVehicle } from "@/features/booking/services/public-booking-service";
+import { NOINDEX } from "@/features/seo/lib/business";
 
 type ContinuePageProps = {
   params: Promise<{ vehicleId: string }>;
@@ -20,6 +21,7 @@ type ContinuePageProps = {
 export const metadata: Metadata = {
   title: "Continue booking",
   description: "Sign in or continue as a guest to reserve your car.",
+  robots: NOINDEX,
 };
 
 export default async function BookContinuePage({

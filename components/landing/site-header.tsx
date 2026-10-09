@@ -60,7 +60,6 @@ async function getHeaderAccountUser() {
 
 const NAV_LINKS = [
   { href: "/#fleet", label: "Cars" },
-  { href: "/#types", label: "Car types" },
   { href: "/#how-it-works", label: "How it works" },
   { href: "/#why", label: "Why Zeke" },
 ];

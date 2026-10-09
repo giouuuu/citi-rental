@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { describeBilledTime, type RentRates } from "@/features/rentals/lib/rent-pricing";
 import {
   formatPhp,
@@ -12,6 +13,8 @@ type VehicleRateQuoteProps = {
   /** Flat fee to hold the booking; omit to hide the line. */
   reservationFee?: number | null;
   className?: string;
+  /** Extra classes for the daily price figure, e.g. a larger display size. */
+  priceClassName?: string;
 };
 
 export function VehicleRateQuote({
@@ -20,6 +23,7 @@ export function VehicleRateQuote({
   end,
   reservationFee,
   className,
+  priceClassName,
 }: VehicleRateQuoteProps) {
   const quote = quoteRentalTotal(rates, start, end);
   const deposit =
@@ -34,7 +38,7 @@ export function VehicleRateQuote({
   return (
     <div className={className}>
       <p className="text-sm text-muted-foreground">
-        <span className="font-semibold tabular-nums text-brand-950">
+        <span className={cn("font-semibold tabular-nums text-brand-950", priceClassName)}>
           {formatPhp(rates.daily)}
         </span>
         <span> / day</span>

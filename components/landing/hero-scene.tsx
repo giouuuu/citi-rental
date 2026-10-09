@@ -1,7 +1,7 @@
 "use client";
 
 import Image, { type StaticImageData } from "next/image";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { HeroCarControls, HeroCarGallery, useHeroFleet } from "@/components/landing/hero-fleet";
 import { useReportSceneProgress } from "@/components/landing/landing-intro";
@@ -48,6 +48,15 @@ const LAYERS: Layer[] = [
 /** Max drift, in px, for a layer at depth 1. */
 const POINTER_PX = 28;
 /**
+ * The title hangs in the sky between the sky and mountain layers, and sinks
+ * faster than the mountains on scroll, so it sets behind the ridge as the
+ * page moves on.
+ */
+const TITLE_DEPTH = 0.04;
+const TITLE_SCROLL_RATE = 0.62;
+/** The caption rides with the title and is gone by the time it has set. */
+const CAPTION_FADE_PX = 180;
+/**
  * Where the car stands: the near lane, just above the search card. On phones
  * the frame runs 4rem under the card, so the wheels clear its top edge.
  */
@@ -63,8 +72,20 @@ const FRAME = "object-cover object-[50%_58%]";
  * Layered hero scene: the road is there from the first frame, the car drives
  * up it from the horizon while the scenery settles in behind, then the layers
  * drift apart with scroll and pointer for depth.
+ *
+ * `title` stands on the mountain ridge, behind the peaks; `caption` sits just
+ * under it, in front of the scenery. Both are decorative here (the scene is
+ * `aria-hidden`), so the page keeps its own screen-reader heading.
  */
-export function HeroScene({ className }: { className?: string }) {
+export function HeroScene({
+  className,
+  title,
+  caption,
+}: {
+  className?: string;
+  title?: ReactNode;
+  caption?: ReactNode;
+}) {
   const { cars: fleet, index: active, direction } = useHeroFleet();
   const carItemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const shownRef = useRef(active);
@@ -80,6 +101,8 @@ export function HeroScene({ className }: { className?: string }) {
   useReportSceneProgress(loadedLayers + (carLoaded ? 1 : 0), LAYERS.length + 1);
   const layerRefs = useRef<Array<HTMLDivElement | null>>([]);
   const carRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const captionRef = useRef<HTMLDivElement>(null);
 
   // Swap: the shown car pulls aside and fades as the next one drives up the
   // road from the horizon, like the intro.
@@ -162,6 +185,15 @@ export function HeroScene({ className }: { className?: string }) {
         const y = current.y * POINTER_PX * 0.5 * layer.depth + scroll * SCROLL_RATE * (1 - layer.depth);
         element.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
       });
+      const titleX = current.x * POINTER_PX * TITLE_DEPTH;
+      const titleY = current.y * POINTER_PX * 0.5 * TITLE_DEPTH + scroll * TITLE_SCROLL_RATE;
+      const titleTransform = `translate3d(${titleX.toFixed(2)}px, ${titleY.toFixed(2)}px, 0)`;
+      if (titleRef.current) titleRef.current.style.transform = titleTransform;
+      const captionElement = captionRef.current;
+      if (captionElement) {
+        captionElement.style.transform = titleTransform;
+        captionElement.style.opacity = Math.max(0, 1 - scroll / CAPTION_FADE_PX).toFixed(3);
+      }
       const carElement = carRef.current;
       if (carElement) {
         const x = current.x * POINTER_PX * 0.85;
@@ -228,35 +260,50 @@ export function HeroScene({ className }: { className?: string }) {
       </div>
 
       {LAYERS.map((layer, index) => (
-        <div
-          className="absolute -inset-[4%] will-change-transform"
-          key={layer.key}
-          ref={(element) => {
-            layerRefs.current[index] = element;
-          }}
-        >
+        <Fragment key={layer.key}>
           <div
-            className="scene-piece absolute inset-0"
-            style={
-              {
-                "--piece-from": layer.from,
-                "--piece-delay": `${layer.delay}ms`,
-              } as CSSProperties
-            }
+            className="absolute -inset-[4%] will-change-transform"
+            ref={(element) => {
+              layerRefs.current[index] = element;
+            }}
           >
-            <Image
-              alt=""
-              className={cn(FRAME, "select-none")}
-              draggable={false}
-              fill
-              onLoad={() => setLoadedLayers((count) => count + 1)}
-              priority
-              sizes="108vw"
-              src={layer.image}
-            />
+            <div
+              className="scene-piece absolute inset-0"
+              style={
+                {
+                  "--piece-from": layer.from,
+                  "--piece-delay": `${layer.delay}ms`,
+                } as CSSProperties
+              }
+            >
+              <Image
+                alt=""
+                className={cn(FRAME, "select-none")}
+                draggable={false}
+                fill
+                onLoad={() => setLoadedLayers((count) => count + 1)}
+                priority
+                sizes="108vw"
+                src={layer.image}
+              />
+            </div>
+          </div>
+          {/* Behind the mountains, so the peaks rise in front of the word. */}
+          {layer.key === "sky" && title ? (
+            <div className="hero-ridge absolute -inset-[4%] will-change-transform" ref={titleRef}>
+              <div className="hero-ridge-anchor top-[var(--lockup-top)]">{title}</div>
+            </div>
+          ) : null}
+        </Fragment>
+      ))}
+
+      {caption ? (
+        <div className="hero-ridge absolute -inset-[4%] will-change-transform" ref={captionRef}>
+          <div className="hero-ridge-anchor top-[calc(var(--lockup-top)+var(--title-size)*1.2+0.75rem)]">
+            {caption}
           </div>
         </div>
-      ))}
+      ) : null}
 
       {/* Sits in the near lane, between the road and the search card. */}
       <div className={CAR_SLOT}>

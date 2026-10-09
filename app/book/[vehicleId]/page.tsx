@@ -12,6 +12,9 @@ import {
   getPublicReservationFee,
   getPublicVehicle,
 } from "@/features/booking/services/public-booking-service";
+import { OPEN_GRAPH_BASE } from "@/features/seo/lib/business";
+import { vehicleSeoTitle } from "@/features/seo/lib/vehicle-title";
+import { formatPhp } from "@/features/shared/lib/money";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,10 +27,41 @@ type BookPageProps = {
   }>;
 };
 
-export const metadata: Metadata = {
-  title: "Book a car",
-  description: "Reserve an available fleet vehicle online.",
-};
+export async function generateMetadata({
+  params,
+}: Pick<BookPageProps, "params">): Promise<Metadata> {
+  const { vehicleId } = await params;
+  const vehicle = await getPublicVehicle(vehicleId);
+  if (!vehicle) return { title: "Car not found", robots: { index: false } };
+
+  const title = `${vehicleSeoTitle(vehicle)} for Rent in Cebu – ${formatPhp(vehicle.daily_rate)}/day`;
+  const specs = [
+    vehicle.seating_capacity ? `${vehicle.seating_capacity} seats` : null,
+    vehicle.transmission === "manual"
+      ? "manual"
+      : vehicle.transmission
+        ? "automatic"
+        : null,
+    vehicle.fuel_type === "other" ? null : vehicle.fuel_type,
+  ].filter(Boolean);
+  const description = `${vehicleSeoTitle(vehicle)} for rent in Cebu at ${formatPhp(vehicle.daily_rate)} a day${specs.length ? ` (${specs.join(", ")})` : ""}. Self-drive or with driver, pickup at Mactan-Cebu Airport, your hotel, or the city. Check dates and book online.`;
+  const listed =
+    vehicle.status !== "maintenance" && vehicle.status !== "inactive";
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/book/${vehicle.id}` },
+    // Off-fleet cars drop out of search until they are bookable again.
+    robots: listed ? undefined : { index: false },
+    openGraph: {
+      ...OPEN_GRAPH_BASE,
+      url: `/book/${vehicle.id}`,
+      title,
+      description,
+    },
+  };
+}
 
 export default async function BookVehiclePage({
   params,

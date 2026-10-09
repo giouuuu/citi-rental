@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { SiteHeader } from "@/components/landing/site-header";
 import { Button } from "@/components/ui/button";
+import { NOINDEX } from "@/features/seo/lib/business";
 
 type ConfirmationPageProps = {
   searchParams: Promise<{
@@ -18,6 +19,7 @@ type ConfirmationPageProps = {
 export const metadata: Metadata = {
   title: "Continue to payment",
   description: "Pay your reservation fee to confirm the booking.",
+  robots: NOINDEX,
 };
 
 export default async function BookingConfirmationPage({

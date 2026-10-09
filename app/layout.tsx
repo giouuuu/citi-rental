@@ -5,7 +5,13 @@ import { IBM_Plex_Mono, Inter } from "next/font/google";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  BUSINESS,
+  OPEN_GRAPH_BASE,
+  SEO_DESCRIPTION,
+} from "@/features/seo/lib/business";
 import { SiteTracker } from "@/features/site-analytics/components/site-tracker";
+import { siteUrl } from "@/lib/site-url";
 
 import "./globals.css";
 
@@ -23,12 +29,16 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  // Relative canonical/OG URLs resolve against the real domain in production.
+  metadataBase: new URL(siteUrl()),
   title: {
-    default: "Zeke Car Rentals",
+    default: "Car Rental in Cebu | Zeke Car Rentals",
     template: "%s | Zeke Car Rentals",
   },
-  description:
-    "DTI-registered car rental in Cebu — clear rates, live availability, and local pickup support.",
+  description: SEO_DESCRIPTION,
+  applicationName: BUSINESS.name,
+  openGraph: OPEN_GRAPH_BASE,
+  twitter: { card: "summary_large_image" },
   icons: {
     icon: [{ url: "/brand/zeke-car-mark-web.png", type: "image/png" }],
     apple: [{ url: "/apple-icon.png" }],
