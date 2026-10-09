@@ -1,4 +1,4 @@
-import { Bricolage_Grotesque, Geist } from "next/font/google";
+import { Archivo_Black, Bricolage_Grotesque, Geist } from "next/font/google";
 
 /** Public-site faces. Scoped to the landing `<main>` so the ops app stays on Inter. */
 export const landingSans = Geist({
@@ -11,6 +11,13 @@ export const landingDisplay = Bricolage_Grotesque({
   variable: "--font-landing-display",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
+  display: "swap",
+});
+
+/** Heavy wide lettering of the owner's ZEKE'S wordmark. Applied by class, so it renders on any page. */
+export const zekeWordmark = Archivo_Black({
+  subsets: ["latin"],
+  weight: "400",
   display: "swap",
 });
 

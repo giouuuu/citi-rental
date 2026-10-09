@@ -22,6 +22,11 @@ export const settingsSchema = z
       .number()
       .min(1, "Enter a reservation fee of at least ₱1.")
       .max(1_000_000),
+    free_cancellation_hours: z.coerce
+      .number()
+      .int("Use whole hours.")
+      .min(0)
+      .max(720, "Keep the window under 30 days (720 hours)."),
     payment_qr_url: z
       .union([z.url("Enter a valid QR image URL."), z.literal("")])
       .optional(),

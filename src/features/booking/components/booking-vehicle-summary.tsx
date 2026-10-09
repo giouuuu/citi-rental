@@ -8,6 +8,7 @@ type BookingVehicleSummaryProps = {
   startAt?: string | null;
   expectedReturnAt?: string | null;
   reservationFee?: number | null;
+  freeCancellationHours?: number | null;
 };
 
 export function BookingVehicleSummary({
@@ -15,6 +16,7 @@ export function BookingVehicleSummary({
   startAt,
   expectedReturnAt,
   reservationFee,
+  freeCancellationHours,
 }: BookingVehicleSummaryProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -41,6 +43,13 @@ export function BookingVehicleSummary({
             reservationFee={reservationFee}
             start={startAt}
           />
+          {reservationFee && freeCancellationHours != null ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {freeCancellationHours > 0
+                ? `Free cancellation up to ${freeCancellationHours} hours before pickup. Cancel later and the reservation fee is not refunded.`
+                : "The reservation fee is not refunded if you cancel."}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

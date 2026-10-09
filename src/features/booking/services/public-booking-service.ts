@@ -90,6 +90,22 @@ export async function getPublicReservationFee(): Promise<number | null> {
   return Number.isFinite(fee) && fee > 0 ? fee : null;
 }
 
+/** Hours before pickup a booking can be cancelled with the fee refunded. */
+export async function getPublicFreeCancellationHours(): Promise<number | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "get_public_free_cancellation_hours",
+  );
+  if (error) {
+    console.error("get_public_free_cancellation_hours failed", error.message);
+    return null;
+  }
+  const hours = Number(data);
+  return data != null && Number.isInteger(hours) && hours >= 0 ? hours : null;
+}
+
 export async function getPublicVehicle(
   vehicleId: string,
 ): Promise<(PublicFleetVehicle & { status: string }) | null> {

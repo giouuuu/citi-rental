@@ -1,6 +1,7 @@
 import "server-only";
 
 import { resolvePostAuthPath } from "@/features/auth/lib/post-auth-redirect";
+import { siteUrl } from "@/lib/site-url";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type { RegisterInput } from "@/features/auth/schemas/register-schema";
@@ -68,9 +69,6 @@ export async function registerWithEmail(
       throw new RegistrationError("already_authenticated");
     }
 
-    const siteUrl = (
-      process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
-    ).replace(/\/$/, "");
     const { data, error } = await supabase.auth.signUp({
       email: input.email,
       password: input.password,
@@ -79,7 +77,7 @@ export async function registerWithEmail(
           full_name: input.fullName,
           ops_registration: "true",
         },
-        emailRedirectTo: `${siteUrl}/auth/callback?next=/dashboard&provision=owner`,
+        emailRedirectTo: `${siteUrl()}/auth/callback?next=/dashboard&provision=owner`,
       },
     });
 

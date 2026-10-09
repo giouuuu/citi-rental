@@ -145,6 +145,7 @@ export function ResourceList({
             plural={definition.plural}
             query={query}
             route={definition.route}
+            rowLinks={definition.rowLinks}
             rows={result.rows}
             singular={definition.singular}
             titleField={definition.titleField}

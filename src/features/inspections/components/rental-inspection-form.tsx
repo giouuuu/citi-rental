@@ -5,12 +5,13 @@ import { ArrowLeftIcon, LoaderCircle } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import type { AgreementDraft } from "@/features/agreements/types";
 import { InspectionBodyMap } from "@/features/inspections/components/inspection-body-map";
 import { InspectionChecklistPanel } from "@/features/inspections/components/inspection-checklist-panel";
 import {
-  InspectionPhotosStep,
-  missingInspectionPhotos,
-} from "@/features/inspections/components/inspection-photos-step";
+  InspectionMediaStep,
+  missingInspectionMedia,
+} from "@/features/inspections/components/inspection-media-step";
 import { InspectionReadingsStep } from "@/features/inspections/components/inspection-readings-step";
 import { InspectionSignoffStep } from "@/features/inspections/components/inspection-signoff-step";
 import {
@@ -33,6 +34,7 @@ export function RentalInspectionForm({
   knownDamages,
   startingOdometer,
   referenceInspection = null,
+  agreementDraft = null,
   onDone,
 }: {
   rentalId: string;
@@ -41,9 +43,11 @@ export function RentalInspectionForm({
   knownDamages: VehicleKnownDamage[];
   startingOdometer?: number | null;
   referenceInspection?: RentalInspection | null;
+  agreementDraft?: AgreementDraft | null;
   onDone: () => void;
 }) {
   const form = useInspectionFormState({
+    agreementDraft,
     rentalId,
     inspectionType,
     checklist,
@@ -58,12 +62,13 @@ export function RentalInspectionForm({
   const flaggedCount = form.items.filter((item) =>
     isDamageStatus(item.status),
   ).length;
-  const { missingRequired, missingDamage } = missingInspectionPhotos({
+  const { readyCount, compressingCount, missingDamage } = missingInspectionMedia({
     items: form.items,
-    overviewFiles: form.overviewFiles,
+    media: form.gallery.media,
     damageFiles: form.damageFiles,
   });
-  const missingPhotoCount = missingRequired.length + missingDamage.length;
+  const mediaBlocked =
+    readyCount === 0 || compressingCount > 0 || missingDamage.length > 0;
 
   // Every step starts at the top of the single scroll region.
   useEffect(() => {
@@ -136,23 +141,36 @@ export function RentalInspectionForm({
         ) : null}
 
         {form.step === "photos" ? (
-          <InspectionPhotosStep
+          <InspectionMediaStep
             damageFiles={form.damageFiles}
             items={form.items}
-            overviewFiles={form.overviewFiles}
+            limitNotice={form.gallery.limitNotice}
+            media={form.gallery.media}
             referenceInspection={referenceInspection}
+            onAddMedia={form.gallery.addFiles}
             onDamage={(areaCode, file) =>
               form.setDamageFiles((prev) => ({ ...prev, [areaCode]: file }))
             }
-            onOverview={(kind, file) =>
-              form.setOverviewFiles((prev) => ({ ...prev, [kind]: file }))
-            }
+            onRemoveMedia={form.gallery.remove}
           />
         ) : null}
 
         {form.step === "signoff" ? (
           <InspectionSignoffStep
             acknowledged={form.acknowledged}
+            agreement={
+              inspectionType === "pickup" && agreementDraft
+                ? {
+                    draft: agreementDraft,
+                    renterAddress: form.renterAddress,
+                    accepted: form.agreementAccepted,
+                    companySignature: form.companySignature,
+                    onRenterAddress: form.setRenterAddress,
+                    onAccepted: form.setAgreementAccepted,
+                    onCompanySignature: form.setCompanySignature,
+                  }
+                : null
+            }
             damageChargeAmount={form.damageChargeAmount}
             damageChargeNote={form.damageChargeNote}
             fuelChargeAmount={form.fuelChargeAmount}
@@ -189,20 +207,27 @@ export function RentalInspectionForm({
                 : "No damage flagged yet"
               : null}
             {form.step === "photos"
-              ? missingPhotoCount > 0
-                ? `Still needed: ${[
-                    ...missingRequired.map((kind) => kind.label),
-                    ...missingDamage.map((item) => item.label),
-                  ]
-                    .slice(0, 2)
-                    .join(", ")}${missingPhotoCount > 2 ? ` +${missingPhotoCount - 2} more` : ""}`
-                : "All required photos captured"
+              ? compressingCount > 0
+                ? `Compressing ${compressingCount} file${compressingCount === 1 ? "" : "s"}…`
+                : readyCount === 0
+                  ? "Add at least one photo or video"
+                  : missingDamage.length > 0
+                    ? `Still needed: ${missingDamage
+                        .slice(0, 2)
+                        .map((item) => `${item.label} close-up`)
+                        .join(", ")}${missingDamage.length > 2 ? ` +${missingDamage.length - 2} more` : ""}`
+                    : `${readyCount} photo${readyCount === 1 ? "" : "s"} & video${readyCount === 1 ? "" : "s"} ready`
               : null}
+            {form.step === "signoff" && form.uploadStatus ? form.uploadStatus : null}
           </p>
         </div>
 
         {form.step === "signoff" ? (
-          <Button disabled={form.pending} type="button" onClick={form.submit}>
+          <Button
+            disabled={form.pending}
+            type="button"
+            onClick={() => void form.submit()}
+          >
             {form.pending ? <LoaderCircle className="animate-spin" /> : null}
             {inspectionType === "pickup"
               ? "Submit & start rental"
@@ -210,7 +235,7 @@ export function RentalInspectionForm({
           </Button>
         ) : (
           <Button
-            disabled={form.step === "photos" && missingPhotoCount > 0}
+            disabled={form.step === "photos" && mediaBlocked}
             type="button"
             onClick={() => goToStep(INSPECTION_STEPS[stepIndex + 1].id)}
           >

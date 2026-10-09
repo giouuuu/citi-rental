@@ -10,7 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 
-import { ZekeMark } from "@/components/brand/zeke-mark";
+import { ZekeLogo } from "@/components/brand/zeke-logo";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
@@ -99,10 +99,7 @@ function LandingSplash({ done }: { done: boolean }) {
       {/* Content fades in late, so a fast (cached) load is just a quick wash. */}
       <div className="flex flex-col items-center gap-5 motion-safe:animate-[page-enter_400ms_ease-out_250ms_both]">
         <div className="flex items-center gap-3">
-          <ZekeMark className="size-11" variant="navy" />
-          <span className="font-display text-xl font-semibold tracking-[-0.01em] text-brand-950">
-            Zeke Car Rentals
-          </span>
+          <ZekeLogo />
         </div>
         {/* The scene's layers load in parallel and land together, so a
             counted bar would sit at zero, then jump. */}

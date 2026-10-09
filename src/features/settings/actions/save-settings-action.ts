@@ -70,6 +70,7 @@ export async function saveSettingsAction(
       .from("company_profile")
       .update({
         reservation_fee: parsed.data.reservation_fee,
+        free_cancellation_hours: parsed.data.free_cancellation_hours,
         payment_qr_url: parsed.data.payment_qr_url || null,
         payment_instructions: parsed.data.payment_instructions?.trim() || null,
         ...Object.fromEntries(

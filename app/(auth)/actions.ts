@@ -8,6 +8,7 @@ import {
   resetPasswordSchema,
 } from "@/features/auth/schemas/login-schema";
 import { resolvePostAuthPath } from "@/features/auth/lib/post-auth-redirect";
+import { siteUrl } from "@/lib/site-url";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -76,11 +77,10 @@ export async function forgotPasswordAction(
   }
 
   const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const { error } = await supabase.auth.resetPasswordForEmail(
     validated.data.email,
     {
-      redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+      redirectTo: `${siteUrl()}/auth/callback?next=/reset-password`,
     },
   );
 

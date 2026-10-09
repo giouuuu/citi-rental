@@ -1,14 +1,20 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  AGREEMENT_TEMPLATE_VERSION,
+  buildAgreementTerms,
+} from "@/features/agreements/lib/agreement-template";
+import { getAgreementCompany } from "@/features/agreements/services/get-agreement-draft";
 import { isStaffRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { mapRentalDbError } from "@/features/rentals/lib/booking-gates";
 import { submitInspectionSchema } from "@/features/inspections/schemas/submit-inspection-schema";
 import {
-  uploadInspectionPhoto,
-  uploadInspectionPhotoFromDataUrl,
-} from "@/features/inspections/services/upload-inspection-photo";
+  MAX_GALLERY_ITEMS,
+  isInspectionMediaPath,
+} from "@/features/inspections/lib/inspection-media";
+import { uploadInspectionPhotoFromDataUrl } from "@/features/inspections/services/upload-inspection-photo";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
 
 function parseJsonField<T>(value: FormDataEntryValue | null, fallback: T): T {
@@ -24,14 +30,9 @@ export async function submitRentalInspectionAction(
   formData: FormData,
 ): Promise<ActionResult<{ inspectionId: string }>> {
   const items = parseJsonField(formData.get("items"), []);
-  const photosMeta = parseJsonField<
-    Array<{
-      kind: string;
-      area_code?: string | null;
-      caption?: string | null;
-      field?: string;
-    }>
-  >(formData.get("photos_meta"), []);
+  // Photos and videos are compressed and uploaded by the browser; only their
+  // storage paths arrive here.
+  const photos = parseJsonField(formData.get("photos"), []);
 
   const parsed = submitInspectionSchema.safeParse({
     rental_id: formData.get("rental_id"),
@@ -48,7 +49,7 @@ export async function submitRentalInspectionAction(
     damage_charge_amount: formData.get("damage_charge_amount") || undefined,
     damage_charge_note: formData.get("damage_charge_note") || undefined,
     items,
-    photos: [],
+    photos,
   });
 
   if (!parsed.success) {
@@ -77,29 +78,39 @@ export async function submitRentalInspectionAction(
       throw new Error("Your role cannot submit inspections.");
     }
 
+    const rentalId = parsed.data.rental_id;
+    if (
+      parsed.data.photos.some(
+        (photo) =>
+          photo.kind === "signature" ||
+          !isInspectionMediaPath(photo.storage_path, rentalId),
+      )
+    ) {
+      return { success: false, message: "A photo or video path is invalid." };
+    }
+
     const uploadedPhotos: Array<{
       storage_path: string;
       kind: string;
       area_code?: string | null;
       caption?: string | null;
-    }> = [];
+    }> = [...parsed.data.photos];
 
-    for (const meta of photosMeta) {
-      const field = meta.field ?? meta.kind;
-      const file = formData.get(field);
-      if (!(file instanceof File) || file.size === 0) continue;
-      const path = await uploadInspectionPhoto({
-        supabase,
-        rentalId: parsed.data.rental_id,
-        file,
-        kind: meta.kind,
-      });
-      uploadedPhotos.push({
-        storage_path: path,
-        kind: meta.kind,
-        area_code: meta.area_code,
-        caption: meta.caption,
-      });
+    // Release: the renter signs the rental agreement with the condition report.
+    const releasing = parsed.data.inspection_type === "pickup";
+    const renterAddress = String(formData.get("renter_address") ?? "").trim();
+    if (releasing) {
+      const agreementError =
+        formData.get("agreement") !== "1"
+          ? "Have the renter sign the rental agreement before releasing the car."
+          : !renterAddress
+            ? "Enter the renter's address for the rental agreement."
+            : renterAddress.length > 300
+              ? "Keep the renter's address under 300 characters."
+              : formData.get("agreement_accepted") !== "true"
+                ? "Confirm the renter agrees to the rental agreement."
+                : null;
+      if (agreementError) return { success: false, message: agreementError };
     }
 
     const signatureDataUrl = formData.get("signature_data_url");
@@ -117,6 +128,48 @@ export async function submitRentalInspectionAction(
       });
     }
 
+    let agreement: Record<string, unknown> | null = null;
+    if (releasing) {
+      if (!signaturePath) {
+        return {
+          success: false,
+          message: "The renter must sign the rental agreement.",
+        };
+      }
+      const company = await getAgreementCompany();
+      let companySignaturePath = company.signaturePath;
+      const companySignatureDataUrl = formData.get("company_signature_data_url");
+      if (
+        !companySignaturePath &&
+        typeof companySignatureDataUrl === "string" &&
+        companySignatureDataUrl.startsWith("data:")
+      ) {
+        companySignaturePath = await uploadInspectionPhotoFromDataUrl({
+          supabase,
+          rentalId,
+          dataUrl: companySignatureDataUrl,
+          kind: "company-signature",
+        });
+      }
+      if (!companySignaturePath) {
+        return {
+          success: false,
+          message: "Add the company signature to the rental agreement.",
+        };
+      }
+      // Terms are built here, not taken from the browser, so what is signed
+      // is always the current template.
+      agreement = {
+        template_version: AGREEMENT_TEMPLATE_VERSION,
+        terms: buildAgreementTerms({
+          freeCancellationHours: company.freeCancellationHours,
+        }),
+        renter_address: renterAddress,
+        accepted: true,
+        company_signature_path: companySignaturePath,
+      };
+    }
+
     const damagedWithoutPhoto = parsed.data.items.some((item) => {
       if (item.status === "ok") return false;
       return !uploadedPhotos.some(
@@ -131,22 +184,19 @@ export async function submitRentalInspectionAction(
       };
     }
 
-    const overviewKinds = [
-      "overview_front",
-      "overview_rear",
-      "overview_left",
-      "overview_right",
-      "overview_interior",
-      "overview_dashboard",
-    ];
-    const missingOverview = overviewKinds.some(
-      (kind) => !uploadedPhotos.some((photo) => photo.kind === kind),
-    );
-    if (missingOverview) {
+    const galleryCount = uploadedPhotos.filter(
+      (photo) => photo.kind !== "signature" && photo.kind !== "damage_closeup",
+    ).length;
+    if (galleryCount === 0) {
       return {
         success: false,
-        message:
-          "Upload front, rear, left, right, interior, and dashboard photos.",
+        message: "Add at least one photo or video of the car.",
+      };
+    }
+    if (galleryCount > MAX_GALLERY_ITEMS) {
+      return {
+        success: false,
+        message: `An inspection holds up to ${MAX_GALLERY_ITEMS} photos and videos.`,
       };
     }
 
@@ -167,6 +217,7 @@ export async function submitRentalInspectionAction(
       p_damage_charge_amount: parsed.data.damage_charge_amount ?? null,
       p_damage_charge_note: parsed.data.damage_charge_note ?? null,
       p_template_id: parsed.data.template_id ?? null,
+      p_agreement: agreement,
     });
     if (error) throw error;
 

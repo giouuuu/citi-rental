@@ -12,7 +12,7 @@ export const INSPECTION_STEPS: {
 }[] = [
   { id: "readings", label: "Readings", hint: "Odometer, fuel, cleanliness" },
   { id: "condition", label: "Condition", hint: "Panels and damage" },
-  { id: "photos", label: "Photos", hint: "6 required angles" },
+  { id: "photos", label: "Photos & videos", hint: "Free gallery, compressed" },
   { id: "signoff", label: "Sign-off", hint: "Signature and charges" },
 ];
 

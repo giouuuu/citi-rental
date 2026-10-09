@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 export function InspectionSignaturePad({
   value,
   onChange,
+  label = "Customer signature",
 }: {
   value: string | null;
   onChange: (dataUrl: string | null) => void;
+  label?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
@@ -28,8 +30,9 @@ export function InspectionSignaturePad({
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
     ctx.strokeStyle = "#0f172a";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
+    // Ink on a clear background: the white comes from CSS, so the saved PNG
+    // sits cleanly on the printed agreement instead of as a white box.
+    ctx.clearRect(0, 0, width, height);
 
     if (value) {
       const image = new Image();
@@ -78,8 +81,7 @@ export function InspectionSignaturePad({
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+    ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
     setHasInk(false);
     onChange(null);
   }
@@ -88,7 +90,7 @@ export function InspectionSignaturePad({
     <div className="space-y-2">
       <canvas
         ref={canvasRef}
-        aria-label="Customer signature"
+        aria-label={label}
         className="h-36 w-full touch-none rounded-md border border-border bg-white"
         onPointerDown={start}
         onPointerLeave={end}

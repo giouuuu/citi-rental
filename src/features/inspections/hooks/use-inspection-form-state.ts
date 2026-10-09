@@ -1,13 +1,16 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import type { AgreementDraft } from "@/features/agreements/types";
 import type { ChecklistDraftItem } from "@/features/inspections/components/inspection-checklist-panel";
+import { useInspectionMedia } from "@/features/inspections/hooks/use-inspection-media";
+import { isDamageStatus } from "@/features/inspections/lib/checklist-areas";
 import {
-  REQUIRED_OVERVIEW_PHOTO_KINDS,
-  isDamageStatus,
-} from "@/features/inspections/lib/checklist-areas";
+  mapWithConcurrency,
+  uploadInspectionMedia,
+} from "@/features/inspections/lib/upload-inspection-media";
 import {
   compareInspections,
   summarizeInspectionDelta,
@@ -29,10 +32,14 @@ export function useInspectionFormState(options: {
   knownDamages: VehicleKnownDamage[];
   startingOdometer?: number | null;
   referenceInspection?: RentalInspection | null;
+  agreementDraft?: AgreementDraft | null;
   onDone: () => void;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [submitting, startTransition] = useTransition();
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  // A retry after a failed submit reuses what already reached storage.
+  const uploadedPaths = useRef(new Map<File, string>());
   const [step, setStep] = useState<InspectionFormStep>("readings");
   const [error, setError] = useState("");
   const [odometer, setOdometer] = useState(
@@ -49,9 +56,14 @@ export function useInspectionFormState(options: {
   const [fuelChargeNote, setFuelChargeNote] = useState("");
   const [damageChargeAmount, setDamageChargeAmount] = useState("");
   const [damageChargeNote, setDamageChargeNote] = useState("");
-  const [overviewFiles, setOverviewFiles] = useState<Record<string, File | null>>(
-    {},
+  const gallery = useInspectionMedia();
+  const agreementDraft =
+    options.inspectionType === "pickup" ? (options.agreementDraft ?? null) : null;
+  const [renterAddress, setRenterAddress] = useState(
+    agreementDraft?.parties.renterAddress ?? "",
   );
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [companySignature, setCompanySignature] = useState<string | null>(null);
   const [damageFiles, setDamageFiles] = useState<Record<string, File | null>>({});
   const [items, setItems] = useState<ChecklistDraftItem[]>(() =>
     options.checklist.items.map((item) => {
@@ -136,7 +148,32 @@ export function useInspectionFormState(options: {
     );
   }
 
-  function submit() {
+  async function uploadAll(
+    entries: Array<{ file: File; kind: string; area_code?: string }>,
+  ) {
+    let done = 0;
+    setUploadStatus(`Uploading 0 of ${entries.length}…`);
+    try {
+      return await mapWithConcurrency(entries, 3, async (entry) => {
+        let path = uploadedPaths.current.get(entry.file);
+        if (!path) {
+          path = await uploadInspectionMedia({
+            rentalId: options.rentalId,
+            file: entry.file,
+            kind: entry.kind,
+          });
+          uploadedPaths.current.set(entry.file, path);
+        }
+        done += 1;
+        setUploadStatus(`Uploading ${done} of ${entries.length}…`);
+        return { storage_path: path, kind: entry.kind, area_code: entry.area_code };
+      });
+    } finally {
+      setUploadStatus(null);
+    }
+  }
+
+  async function submit() {
     setError("");
     for (const item of items.filter((entry) => isDamageStatus(entry.status))) {
       if (!damageFiles[item.areaCode]) {
@@ -145,10 +182,29 @@ export function useInspectionFormState(options: {
         return;
       }
     }
-    for (const kind of REQUIRED_OVERVIEW_PHOTO_KINDS) {
-      if (!overviewFiles[kind.value]) {
-        setError(`Upload the ${kind.label.toLowerCase()} photo.`);
-        setStep("photos");
+    if (gallery.compressingCount > 0) {
+      setError("Wait for the photos and videos to finish compressing.");
+      setStep("photos");
+      return;
+    }
+    if (gallery.ready.length === 0) {
+      setError("Add at least one photo or video of the car.");
+      setStep("photos");
+      return;
+    }
+    if (agreementDraft) {
+      const agreementError = !signature
+        ? "The renter must sign the rental agreement."
+        : !renterAddress.trim()
+          ? "Enter the renter's address for the rental agreement."
+          : !agreementDraft.companySignatureUrl && !companySignature
+            ? "Add the company signature to the rental agreement."
+            : !agreementAccepted
+              ? "Confirm the renter agrees to the rental agreement."
+              : null;
+      if (agreementError) {
+        setError(agreementError);
+        setStep("signoff");
         return;
       }
     }
@@ -183,6 +239,14 @@ export function useInspectionFormState(options: {
       if (damageChargeNote) formData.set("damage_charge_note", damageChargeNote);
     }
     if (signature) formData.set("signature_data_url", signature);
+    if (agreementDraft) {
+      formData.set("agreement", "1");
+      formData.set("agreement_accepted", agreementAccepted ? "true" : "false");
+      formData.set("renter_address", renterAddress.trim());
+      if (!agreementDraft.companySignatureUrl && companySignature) {
+        formData.set("company_signature_data_url", companySignature);
+      }
+    }
     formData.set(
       "items",
       JSON.stringify(
@@ -198,21 +262,32 @@ export function useInspectionFormState(options: {
       ),
     );
 
-    const photosMeta: Array<{ kind: string; field: string; area_code?: string }> =
-      [];
-    for (const [kind, file] of Object.entries(overviewFiles)) {
-      if (!file) continue;
-      const field = `file_${kind}`;
-      formData.set(field, file);
-      photosMeta.push({ kind, field });
+    const flagged = new Set(
+      items.filter((item) => isDamageStatus(item.status)).map((item) => item.areaCode),
+    );
+    const toUpload = [
+      ...gallery.ready.map((entry) => ({ file: entry.file!, kind: "other" })),
+      ...Object.entries(damageFiles)
+        .filter(([areaCode, file]) => file && flagged.has(areaCode))
+        .map(([areaCode, file]) => ({
+          file: file!,
+          kind: "damage_closeup",
+          area_code: areaCode,
+        })),
+    ];
+
+    let photos;
+    try {
+      photos = await uploadAll(toUpload);
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Could not upload the photos and videos.",
+      );
+      return;
     }
-    for (const [areaCode, file] of Object.entries(damageFiles)) {
-      if (!file) continue;
-      const field = `damage_${areaCode}`;
-      formData.set(field, file);
-      photosMeta.push({ kind: "damage_closeup", field, area_code: areaCode });
-    }
-    formData.set("photos_meta", JSON.stringify(photosMeta));
+    formData.set("photos", JSON.stringify(photos));
 
     startTransition(async () => {
       const result = await submitRentalInspectionAction(formData);
@@ -226,7 +301,8 @@ export function useInspectionFormState(options: {
   }
 
   return {
-    pending,
+    pending: submitting || uploadStatus !== null,
+    uploadStatus,
     step,
     setStep,
     error,
@@ -254,8 +330,13 @@ export function useInspectionFormState(options: {
     setDamageChargeAmount,
     damageChargeNote,
     setDamageChargeNote,
-    overviewFiles,
-    setOverviewFiles,
+    gallery,
+    renterAddress,
+    setRenterAddress,
+    agreementAccepted,
+    setAgreementAccepted,
+    companySignature,
+    setCompanySignature,
     damageFiles,
     setDamageFiles,
     items,

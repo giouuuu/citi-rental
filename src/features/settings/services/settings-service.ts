@@ -26,6 +26,7 @@ export type OrganizationSettings = {
   location_retention_days: number;
   gps_provider: string;
   reservation_fee: number;
+  free_cancellation_hours: number;
   payment_qr_url: string;
   payment_instructions: string;
 } & ContactChannelFields;
@@ -40,6 +41,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       location_retention_days: 90,
       gps_provider: "simulator",
       reservation_fee: 500,
+      free_cancellation_hours: 24,
       payment_qr_url: "",
       payment_instructions: "",
       ...emptyContactChannels,
@@ -51,7 +53,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     .from("company_profile")
     .select(
       [
-        "name, timezone, reservation_fee, payment_qr_url, payment_instructions",
+        "name, timezone, reservation_fee, free_cancellation_hours, payment_qr_url, payment_instructions",
         ...CONTACT_COLUMNS,
       ].join(", "),
     )
@@ -70,6 +72,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     name: string;
     timezone: string;
     reservation_fee: number | null;
+    free_cancellation_hours: number | null;
     payment_qr_url: string | null;
     payment_instructions: string | null;
   } & Record<(typeof CONTACT_COLUMNS)[number], string | null>;
@@ -95,6 +98,9 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       values.get("gps.provider") ?? process.env.GPS_PROVIDER ?? "simulator",
     ),
     reservation_fee: Number(organization.reservation_fee ?? 500),
+    free_cancellation_hours: Number(
+      organization.free_cancellation_hours ?? 24,
+    ),
     payment_qr_url: organization.payment_qr_url ?? "",
     payment_instructions: organization.payment_instructions ?? "",
     ...(Object.fromEntries(

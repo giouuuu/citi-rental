@@ -12,6 +12,7 @@ export function RentalDetailTabs({
   payments,
   inspections,
   renterIds,
+  timeline,
   customerBookingLocked = false,
 }: {
   alert?: ReactNode;
@@ -19,6 +20,8 @@ export function RentalDetailTabs({
   payments: ReactNode;
   inspections?: ReactNode;
   renterIds?: ReactNode;
+  /** Everything that happened on the rental, oldest first. */
+  timeline?: ReactNode;
   customerBookingLocked?: boolean;
 }) {
   return (
@@ -50,6 +53,9 @@ export function RentalDetailTabs({
                   content: inspections,
                 },
               ]
+            : []),
+          ...(timeline
+            ? [{ value: "timeline", label: "Timeline", content: timeline }]
             : []),
         ]}
       />

@@ -30,8 +30,8 @@ export const metadata: Metadata = {
   description:
     "DTI-registered car rental in Cebu — clear rates, live availability, and local pickup support.",
   icons: {
-    icon: [{ url: "/brand/zeke-mark.svg", type: "image/svg+xml" }, { url: "/icon" }],
-    apple: [{ url: "/apple-icon" }],
+    icon: [{ url: "/brand/zeke-car-mark-web.png", type: "image/png" }],
+    apple: [{ url: "/apple-icon.png" }],
   },
 };
 

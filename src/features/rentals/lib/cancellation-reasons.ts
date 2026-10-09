@@ -9,8 +9,11 @@ export const CANCELLATION_REASONS = [
   { value: "payment_not_received", label: "Deposit or payment not received" },
   { value: "vehicle_unavailable", label: "Vehicle became unavailable" },
   { value: "duplicate", label: "Duplicate booking" },
-  { value: "other", label: "Other" },
+  { value: "other", label: "Other (specify)" },
 ] as const;
+
+/** Longest specific reason staff can type; matches `rentals.cancellation_note`. */
+export const CANCELLATION_NOTE_MAX = 500;
 
 export type CancellationReason = (typeof CANCELLATION_REASONS)[number]["value"];
 

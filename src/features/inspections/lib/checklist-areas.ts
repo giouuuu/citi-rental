@@ -37,7 +37,10 @@ export const INSPECTION_ODORS: { value: InspectionOdor; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-/** Required overview angles for every pickup and return inspection. */
+/**
+ * The fixed angles inspections used before the free photo/video gallery.
+ * Kept so older inspections' photos still show their label.
+ */
 export const REQUIRED_OVERVIEW_PHOTO_KINDS: {
   value: InspectionPhotoKind;
   label: string;
@@ -50,7 +53,7 @@ export const REQUIRED_OVERVIEW_PHOTO_KINDS: {
   { value: "overview_dashboard", label: "Dashboard" },
 ];
 
-/** Extra optional slots shown on the photos step. */
+/** Older optional reading slots, labelled the same way. */
 export const OPTIONAL_OVERVIEW_PHOTO_KINDS: {
   value: InspectionPhotoKind;
   label: string;

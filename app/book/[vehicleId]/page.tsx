@@ -8,6 +8,7 @@ import { bookingSignInPath } from "@/features/booking/lib/booking-continue";
 import { turnstileSiteKey } from "@/features/booking/lib/turnstile";
 import { listPublicVehicleBookedRanges } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import {
+  getPublicFreeCancellationHours,
   getPublicReservationFee,
   getPublicVehicle,
 } from "@/features/booking/services/public-booking-service";
@@ -38,10 +39,12 @@ export default async function BookVehiclePage({
 
   if (!vehicle) notFound();
 
-  const [bookedRanges, reservationFee] = await Promise.all([
-    listPublicVehicleBookedRanges(vehicleId),
-    getPublicReservationFee(),
-  ]);
+  const [bookedRanges, reservationFee, freeCancellationHours] =
+    await Promise.all([
+      listPublicVehicleBookedRanges(vehicleId),
+      getPublicReservationFee(),
+      getPublicFreeCancellationHours(),
+    ]);
 
   let signedIn = false;
   let initialFullName: string | undefined;
@@ -92,6 +95,7 @@ export default async function BookVehiclePage({
         ) : (
           <BookingFlow
             bookedRanges={bookedRanges}
+            freeCancellationHours={freeCancellationHours}
             initialEmail={initialEmail}
             initialFullName={initialFullName}
             initialPickupLocation={query.pickup}

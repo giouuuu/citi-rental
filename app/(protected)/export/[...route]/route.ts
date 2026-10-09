@@ -11,6 +11,7 @@ import {
 } from "@/features/finance";
 import { geofenceDefinition } from "@/features/geofences";
 import { chargeTypeDefinition, rentalDefinition } from "@/features/rentals";
+import { reviewDefinition } from "@/features/reviews";
 import { parseResourceQuery } from "@/features/shared/schemas/resource-query-schema";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import { flatResourceColumns } from "@/features/shared/lib/resource-table-url";
@@ -35,6 +36,7 @@ const exportable = new Map<string, ResourceDefinition>(
     fixedAssetDefinition,
     geofenceDefinition,
     rentalDefinition,
+    reviewDefinition,
     userDefinition,
     vehicleDefinition,
     vehicleExpenseDefinition,

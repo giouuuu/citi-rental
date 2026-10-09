@@ -1,6 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
-import { Printer } from "lucide-react";
+import { FileSearch, FileSignature, Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +9,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { InspectionComparison } from "@/features/inspections/components/inspection-comparison";
+import { InspectionMediaGrid } from "@/features/inspections/components/inspection-media-grid";
 import { statusLabel } from "@/features/inspections/lib/checklist-areas";
 import { formatManila } from "@/features/shared/lib/manila-time";
 import type { RentalInspection } from "@/features/inspections/types/inspection";
@@ -44,28 +44,10 @@ function InspectionSummaryCard({ inspection }: { inspection: RentalInspection })
           ))}
         </ul>
       )}
-      {inspection.photos.filter((photo) => photo.signedUrl).length > 0 ? (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {inspection.photos
-            .filter((photo) => photo.signedUrl && photo.kind !== "signature")
-            .slice(0, 8)
-            .map((photo) => (
-              <div
-                key={photo.id}
-                className="relative aspect-square overflow-hidden rounded-md bg-muted"
-              >
-                <Image
-                  alt={photo.caption ?? photo.kind}
-                  className="object-cover"
-                  fill
-                  sizes="120px"
-                  src={photo.signedUrl!}
-                  unoptimized
-                />
-              </div>
-            ))}
-        </div>
-      ) : null}
+      <InspectionMediaGrid
+        className="sm:grid-cols-6"
+        media={inspection.photos.filter((photo) => photo.kind !== "signature")}
+      />
       {inspection.customerAcknowledgedAt ? (
         <p className="text-xs text-teal-700">Customer acknowledged</p>
       ) : null}
@@ -76,29 +58,52 @@ function InspectionSummaryCard({ inspection }: { inspection: RentalInspection })
 export function RentalInspectionsTab({
   rentalId,
   inspections,
+  hasAgreement = false,
 }: {
   rentalId: string;
   inspections: RentalInspection[];
+  /** A rental agreement was signed at release. */
+  hasAgreement?: boolean;
 }) {
   const pickup = inspections.find((row) => row.inspectionType === "pickup");
   const ret = inspections.find((row) => row.inspectionType === "return");
 
+  // Try the agreement with this rental's details, without releasing the car.
+  const previewAgreement = (
+    <Button asChild size="sm" variant="outline">
+      <Link href={`/rentals/${rentalId}/agreement/preview`} target="_blank">
+        <FileSearch /> Preview agreement
+      </Link>
+    </Button>
+  );
+
   if (inspections.length === 0) {
     return (
-      <Empty className="border border-dashed py-10">
-        <EmptyHeader>
-          <EmptyTitle>No condition inspections yet</EmptyTitle>
-          <EmptyDescription>
-            Use Start or Complete to run a pickup or return inspection.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <div className="space-y-4">
+        <div className="flex justify-end">{previewAgreement}</div>
+        <Empty className="border border-dashed py-10">
+          <EmptyHeader>
+            <EmptyTitle>No condition inspections yet</EmptyTitle>
+            <EmptyDescription>
+              Use Start or Complete to run a pickup or return inspection.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        {previewAgreement}
+        {hasAgreement ? (
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/rentals/${rentalId}/agreement`} target="_blank">
+              <FileSignature /> Rental agreement
+            </Link>
+          </Button>
+        ) : null}
         <Button asChild size="sm" variant="outline">
           <Link href={`/rentals/${rentalId}/inspection-report`} target="_blank">
             <Printer /> Printable report

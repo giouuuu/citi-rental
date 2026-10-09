@@ -2,22 +2,14 @@ import {
   compareInspections,
   summarizeInspectionDelta,
 } from "@/features/inspections/lib/compare-inspections";
-import {
-  REQUIRED_OVERVIEW_PHOTO_KINDS,
-  statusLabel,
-} from "@/features/inspections/lib/checklist-areas";
+import { statusLabel } from "@/features/inspections/lib/checklist-areas";
+import { galleryMedia } from "@/features/inspections/lib/inspection-media";
+import { InspectionMediaGrid } from "@/features/inspections/components/inspection-media-grid";
 import { InspectionPhotoPair } from "@/features/inspections/components/inspection-photo-pair";
 import type {
   InspectionPhoto,
   RentalInspection,
 } from "@/features/inspections/types/inspection";
-
-function photoByKind(
-  photos: InspectionPhoto[],
-  kind: string,
-): InspectionPhoto | undefined {
-  return photos.find((photo) => photo.kind === kind && photo.signedUrl);
-}
 
 function damagePhotoForArea(
   inspection: RentalInspection | null | undefined,
@@ -80,16 +72,22 @@ export function InspectionComparison({
 
       {pickup && ret ? (
         <div>
-          <h3 className="mb-2 text-sm font-semibold">Overview photo comparison</h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {REQUIRED_OVERVIEW_PHOTO_KINDS.map((kind) => (
-              <InspectionPhotoPair
-                key={kind.value}
-                after={photoByKind(ret.photos, kind.value)}
-                before={photoByKind(pickup.photos, kind.value)}
-                label={kind.label}
+          <h3 className="mb-2 text-sm font-semibold">Photos &amp; videos</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">Release</p>
+              <InspectionMediaGrid
+                className="sm:grid-cols-3"
+                media={galleryMedia(pickup.photos)}
               />
-            ))}
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">Return</p>
+              <InspectionMediaGrid
+                className="sm:grid-cols-3"
+                media={galleryMedia(ret.photos)}
+              />
+            </div>
           </div>
         </div>
       ) : null}

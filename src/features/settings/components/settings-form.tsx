@@ -69,6 +69,7 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
       location_retention_days: settings.location_retention_days,
       gps_provider: settings.gps_provider as SettingsInput["gps_provider"],
       reservation_fee: settings.reservation_fee,
+      free_cancellation_hours: settings.free_cancellation_hours,
       payment_qr_url: settings.payment_qr_url,
       payment_instructions: settings.payment_instructions,
       ...Object.fromEntries(
@@ -225,6 +226,42 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                   <FieldDescription>
                     Fixed amount an online booking pays to hold the car. Never
                     more than the trip total.
+                  </FieldDescription>
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="free_cancellation_hours"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="free_cancellation_hours">
+                    Free cancellation (hours before pickup)
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    disabled={isPending}
+                    id="free_cancellation_hours"
+                    min={0}
+                    max={720}
+                    step={1}
+                    onChange={(event) =>
+                      field.onChange(event.target.valueAsNumber)
+                    }
+                    type="number"
+                    value={
+                      field.value === undefined || field.value === null
+                        ? ""
+                        : String(field.value)
+                    }
+                  />
+                  <FieldDescription>
+                    Cancelling closer to pickup than this keeps the paid
+                    reservation fee. Shown to customers when they book.
                   </FieldDescription>
                   {fieldState.invalid ? (
                     <FieldError errors={[fieldState.error]} />

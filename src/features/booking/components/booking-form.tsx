@@ -53,6 +53,8 @@ type BookingFormProps = {
   initialEmail?: string;
   /** Flat fee to hold the booking, from Settings. */
   reservationFee?: number | null;
+  /** Settings → free-cancellation window; states the refund policy. */
+  freeCancellationHours?: number | null;
   /** Guest contact from the lookup step; absent for signed-in customers. */
   contact?: ResolvedBookingContact;
   onChangeContact?: () => void;
@@ -75,6 +77,7 @@ export function BookingForm({
   initialFullName,
   initialEmail,
   reservationFee,
+  freeCancellationHours,
   contact,
   onChangeContact,
 }: BookingFormProps) {
@@ -167,6 +170,7 @@ export function BookingForm({
       <input type="hidden" {...form.register("vehicleId")} />
       <BookingVehicleSummary
         expectedReturnAt={expectedReturnAt}
+        freeCancellationHours={freeCancellationHours}
         reservationFee={reservationFee}
         startAt={startAt}
         vehicle={vehicle}

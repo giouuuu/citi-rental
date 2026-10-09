@@ -142,6 +142,17 @@ export type ResourceFilter = {
   pair?: string;
 };
 
+/**
+ * An extra icon link on each list row, beside the open arrow. `path` is
+ * appended to the row's detail URL (`${route}/${id}`).
+ */
+export type ResourceRowLink = {
+  label: string;
+  path: string;
+  icon: "agreement";
+  newTab?: boolean;
+};
+
 export type ResourceDefinition = {
   key: string;
   table: string;
@@ -162,6 +173,7 @@ export type ResourceDefinition = {
   filters?: ResourceFilter[];
   /** Breadcrumb parent; defaults to the workspace dashboard. */
   parent?: { label: string; href: string };
+  rowLinks?: ResourceRowLink[];
   demoRows?: ResourceRow[];
 };
 

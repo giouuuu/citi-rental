@@ -4,8 +4,13 @@ import { PageHeader } from "@/components/design-system/page-header";
 import { Button } from "@/components/ui/button";
 import { getOrganizationSettings } from "@/features/settings/services/settings-service";
 import { SettingsForm } from "@/features/settings/components/settings-form";
+import { AgreementSettingsCard } from "@/features/agreements/components/agreement-settings-card";
+import { getAgreementSettings } from "@/features/agreements/services/get-agreement-settings";
 export async function SettingsScreen() {
-  const settings = await getOrganizationSettings();
+  const [settings, agreementSettings] = await Promise.all([
+    getOrganizationSettings(),
+    getAgreementSettings(),
+  ]);
   return (
     <div className="space-y-6">
       <PageHeader
@@ -36,6 +41,9 @@ export async function SettingsScreen() {
         title="Settings"
       />
       <SettingsForm settings={settings} />
+      {agreementSettings ? (
+        <AgreementSettingsCard settings={agreementSettings} />
+      ) : null}
     </div>
   );
 }

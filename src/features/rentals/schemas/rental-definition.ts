@@ -325,6 +325,15 @@ export const rentalDefinition: ResourceDefinition = {
     { key: "updated_at", label: "Updated", format: "datetime", exportOnly: true },
   ],
   // Built once per server start; ids are stable so dashboard links resolve.
+  // Try the rental agreement with this booking's details, without releasing.
+  rowLinks: [
+    {
+      label: "Preview agreement",
+      path: "/agreement/preview",
+      icon: "agreement",
+      newTab: true,
+    },
+  ],
   demoRows: demoRentalRows(),
 };
 

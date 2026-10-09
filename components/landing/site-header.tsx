@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
-import { ZekeMark } from "@/components/brand/zeke-mark";
+import { ZekeLogo } from "@/components/brand/zeke-logo";
 import { SiteHeaderAccountMenu } from "@/components/landing/site-header-account-menu";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -108,20 +108,7 @@ export async function SiteHeader({
           href="/"
           style={enter(250).style}
         >
-          <ZekeMark className="size-10" variant={light ? "navy" : "teal"} />
-          <span>
-            <span className="block font-display text-[1.0625rem] leading-tight font-semibold tracking-[-0.01em] whitespace-nowrap">
-              Zeke Car Rentals
-            </span>
-            <span
-              className={cn(
-                "hidden text-xs sm:block",
-                light ? "text-muted-foreground" : "text-brand-100/80",
-              )}
-            >
-              Cebu · DTI registered
-            </span>
-          </span>
+          <ZekeLogo tone={tone} />
         </Link>
 
         <nav

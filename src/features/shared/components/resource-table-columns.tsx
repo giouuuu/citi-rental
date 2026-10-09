@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, FileSearch } from "lucide-react";
 import { createColumnHelper } from "@tanstack/react-table";
 
 import { StatusBadge } from "@/components/design-system/status-badge";
@@ -15,10 +15,13 @@ import { formatPhpExact } from "@/features/shared/lib/money";
 import type {
   ResourceColumn,
   ResourceRow,
+  ResourceRowLink,
 } from "@/features/shared/types/resource";
 import { cn } from "@/lib/utils";
 
 const columnHelper = createColumnHelper<ResourceRow>();
+
+const ROW_LINK_ICONS = { agreement: FileSearch } as const;
 
 function displayValue(value: unknown, format = "text") {
   if (value === null || value === undefined || value === "") return "—";
@@ -41,6 +44,7 @@ export function buildResourceColumns({
   singular,
   titleField,
   selectable = false,
+  rowLinks = [],
 }: {
   columns: ResourceColumn[];
   route: string;
@@ -48,6 +52,7 @@ export function buildResourceColumns({
   titleField: string;
   /** Lead with a checkbox column for bulk actions. */
   selectable?: boolean;
+  rowLinks?: ResourceRowLink[];
 }) {
   return [
     ...(selectable
@@ -107,18 +112,37 @@ export function buildResourceColumns({
       ),
     columnHelper.display({
       id: "open",
-      size: 48,
+      size: 48 + rowLinks.length * 36,
       enableHiding: false,
-      cell: ({ row }) => (
-        <Button asChild size="icon-sm" variant="ghost">
-          <Link
-            aria-label={`Open ${String(row.original[titleField] ?? singular)}`}
-            href={`${route}/${row.original.id}`}
-          >
-            <ArrowRight />
-          </Link>
-        </Button>
-      ),
+      cell: ({ row }) => {
+        const title = String(row.original[titleField] ?? singular);
+        const href = `${route}/${row.original.id}`;
+        return (
+          <div className="flex items-center justify-end gap-1">
+            {rowLinks.map((link) => {
+              const Icon = ROW_LINK_ICONS[link.icon];
+              return (
+                <Button asChild key={link.path} size="icon-sm" variant="ghost">
+                  <Link
+                    aria-label={`${link.label} for ${title}`}
+                    href={`${href}${link.path}`}
+                    rel={link.newTab ? "noreferrer" : undefined}
+                    target={link.newTab ? "_blank" : undefined}
+                    title={link.label}
+                  >
+                    <Icon />
+                  </Link>
+                </Button>
+              );
+            })}
+            <Button asChild size="icon-sm" variant="ghost">
+              <Link aria-label={`Open ${title}`} href={href}>
+                <ArrowRight />
+              </Link>
+            </Button>
+          </div>
+        );
+      },
     }),
   ];
 }

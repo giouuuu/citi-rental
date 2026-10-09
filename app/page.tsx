@@ -7,6 +7,7 @@ import {
   CalendarCheck,
   CarFront,
   ClipboardCheck,
+  ExternalLink,
   Info,
   MapPin,
   PhoneCall,
@@ -15,7 +16,7 @@ import {
   Tag,
 } from "lucide-react";
 
-import { ZekeMark } from "@/components/brand/zeke-mark";
+import { ZekeLogo } from "@/components/brand/zeke-logo";
 import { BookingSearch } from "@/components/landing/booking-search";
 import { ContactFab } from "@/components/landing/contact-fab";
 import { todayDateValue } from "@/components/landing/booking-search-schema";
@@ -42,6 +43,8 @@ import {
   bookingFormPath,
 } from "@/features/booking/lib/booking-continue";
 import { getPublicReservationFee } from "@/features/booking/services/public-booking-service";
+import { ReviewWall } from "@/features/reviews/components/review-wall";
+import { listPublicReviews } from "@/features/reviews/services/list-public-reviews";
 import { buildContactChannels } from "@/features/settings/lib/contact-channels";
 import { getPublicContactChannels } from "@/features/settings/services/get-public-contact-channels";
 import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-public-available-vehicles";
@@ -99,14 +102,25 @@ export default async function HomePage({
     start,
     end,
   };
-  const [availableVehicles, contactValues, reservationFee] = await Promise.all([
-    listPublicAvailableVehicles({
-      startDate: trip.start,
-      endDate: trip.end,
-    }),
-    getPublicContactChannels(),
-    getPublicReservationFee(),
-  ]);
+  const [availableVehicles, contactValues, reservationFee, reviews] =
+    await Promise.all([
+      listPublicAvailableVehicles({
+        startDate: trip.start,
+        endDate: trip.end,
+      }),
+      getPublicContactChannels(),
+      getPublicReservationFee(),
+      listPublicReviews(),
+    ]);
+  // The Messenger setting is the Facebook page username (m.me/<page>).
+  const facebookPage = contactValues.messenger?.trim().replace(/^@/, "");
+  const facebookReviewsUrl =
+    facebookPage && /^[A-Za-z0-9.]{5,50}$/.test(facebookPage)
+      ? `https://www.facebook.com/${facebookPage}/reviews`
+      : null;
+  const recommendationCount = reviews.filter(
+    (review) => review.source === "facebook" && review.body,
+  ).length;
   const contactChannels = buildContactChannels(
     contactValues,
     "Hi Zeke Car Rentals! I'd like to ask about renting a car.",
@@ -394,6 +408,47 @@ export default async function HomePage({
         </div>
       </section>
 
+      {reviews.length ? (
+        <section
+          aria-labelledby="reviews-title"
+          className="border-t border-border py-20 sm:py-24"
+          id="reviews"
+        >
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <SectionHeading
+              id="reviews-title"
+              subtitle={
+                recommendationCount > 1
+                  ? `Recommended by ${recommendationCount} renters on Facebook.`
+                  : "What renters say after their trip."
+              }
+              title="Loved by renters in Cebu"
+            />
+          </div>
+          <ReviewWall reviews={reviews}>
+            <Button asChild className="h-11 rounded-full px-6" size="lg">
+              <a href="#find-a-car">
+                Find your car
+                <ArrowRight aria-hidden="true" />
+              </a>
+            </Button>
+            {facebookReviewsUrl ? (
+              <Button
+                asChild
+                className="h-11 rounded-full px-5"
+                size="lg"
+                variant="ghost"
+              >
+                <a href={facebookReviewsUrl} rel="noreferrer" target="_blank">
+                  See all on Facebook
+                  <ExternalLink aria-hidden="true" />
+                </a>
+              </Button>
+            ) : null}
+          </ReviewWall>
+        </section>
+      ) : null}
+
       <section
         aria-labelledby="why-title"
         className="border-t border-border bg-white py-20 sm:py-24"
@@ -450,10 +505,7 @@ export default async function HomePage({
           <div className="grid gap-10 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))]">
             <div className="max-w-xs">
               <div className="flex items-center gap-3">
-                <ZekeMark className="size-10" title="" variant="navy" />
-                <p className="font-display text-base font-semibold text-brand-950">
-                  Zeke Car Rentals
-                </p>
+                <ZekeLogo />
               </div>
               <p className="mt-4 leading-6">
                 Car rental in Cebu with clear daily rates and pickup at the
@@ -487,6 +539,16 @@ export default async function HomePage({
                     How it works
                   </a>
                 </li>
+                {reviews.length ? (
+                  <li>
+                    <a
+                      className="transition-colors hover:text-brand-950"
+                      href="#reviews"
+                    >
+                      Reviews
+                    </a>
+                  </li>
+                ) : null}
                 <li>
                   <a
                     className="transition-colors hover:text-brand-950"

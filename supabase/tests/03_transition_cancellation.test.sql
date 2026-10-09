@@ -1,4 +1,5 @@
 -- Migration 20260929102000: transition_rental(..., p_cancellation_reason),
+-- extended by 20261014090000 with a trailing p_cancellation_note,
 -- cancelled_at stamping, and backwards compatibility of the 6-arg impl call
 -- used by confirm_rental_deposit.
 begin;
@@ -7,16 +8,16 @@ select plan(17);
 
 select has_function(
   'public', 'transition_rental',
-  array['uuid', 'rental_status', 'timestamp with time zone', 'numeric', 'numeric', 'text', 'text'],
-  'transition_rental has the 7-arg signature'
+  array['uuid', 'rental_status', 'timestamp with time zone', 'numeric', 'numeric', 'text', 'text', 'text'],
+  'transition_rental has the 8-arg signature'
 );
 select hasnt_function(
   'public', 'transition_rental',
-  array['uuid', 'rental_status', 'timestamp with time zone', 'numeric', 'numeric', 'text'],
-  'old 6-arg transition_rental overload is gone (no ambiguity for PostgREST)'
+  array['uuid', 'rental_status', 'timestamp with time zone', 'numeric', 'numeric', 'text', 'text'],
+  'old 7-arg transition_rental overload is gone (no ambiguity for PostgREST)'
 );
 select ok(
-  not has_function_privilege('anon', 'public.transition_rental(uuid, public.rental_status, timestamptz, numeric, numeric, text, text)', 'execute'),
+  not has_function_privilege('anon', 'public.transition_rental(uuid, public.rental_status, timestamptz, numeric, numeric, text, text, text)', 'execute'),
   'anon cannot execute transition_rental'
 );
 

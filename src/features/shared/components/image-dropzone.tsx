@@ -49,6 +49,7 @@ export function ImageDropzone({
   prepare,
   busy,
   hint,
+  noun: nounOverride,
   ref,
   className,
 }: {
@@ -71,6 +72,8 @@ export function ImageDropzone({
   /** Label for work in progress on the chosen file (e.g. "Uploading…"). */
   busy?: string | null;
   hint?: ReactNode;
+  /** What the zone takes, e.g. "photos or videos". Defaults to images. */
+  noun?: string;
   ref?: Ref<HTMLInputElement>;
   className?: string;
 }) {
@@ -109,7 +112,7 @@ export function ImageDropzone({
         ? null
         : picked.length === 0
           ? "That file type isn't supported here."
-          : `Skipped ${skipped} file${skipped === 1 ? "" : "s"} that ${skipped === 1 ? "isn't a" : "aren't"} supported image${skipped === 1 ? "" : "s"}.`,
+          : `Skipped ${skipped} unsupported file${skipped === 1 ? "" : "s"}.`,
     );
     if (picked.length === 0) return;
 
@@ -175,7 +178,7 @@ export function ImageDropzone({
     void take(Array.from(event.dataTransfer.files));
   }
 
-  const noun = multiple ? "images" : "an image";
+  const noun = nounOverride ?? (multiple ? "images" : "an image");
   const working =
     busy ||
     (preparing > 0

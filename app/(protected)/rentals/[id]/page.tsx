@@ -1,11 +1,17 @@
+import { Suspense } from "react";
+
+import { Skeleton } from "@/components/ui/skeleton";
 import { saveRentalAction } from "@/features/rentals";
 import { rentalDefinition } from "@/features/rentals";
 import { RENTAL_BOOKING_PAYMENT_FIELDS } from "@/features/rentals/schemas/rental-definition";
 import { ResourceDetailScreen } from "@/features/shared";
 import { RentalWorkflowActions } from "@/features/rentals";
+import type { RentalCancellationContext } from "@/features/rentals/components/rental-workflow-actions";
+import { DEFAULT_FREE_CANCELLATION_HOURS } from "@/features/rentals/lib/cancellation-policy";
 import { ConfirmDepositCard } from "@/features/rentals/components/confirm-deposit-card";
 import { RentalDetailTabs } from "@/features/rentals/components/rental-detail-tabs";
 import { RentalPaymentPanel } from "@/features/rentals/components/rental-payment-panel";
+import { RentalTimeline } from "@/features/rentals/components/rental-timeline";
 import {
   RentalRenterIds,
   type RentalRenterIdPhoto,
@@ -25,6 +31,9 @@ import {
   listVehicleKnownDamages,
   RentalInspectionsTab,
 } from "@/features/inspections";
+import { getAgreementDraft } from "@/features/agreements/services/get-agreement-draft";
+import { getRentalAgreement } from "@/features/agreements/services/get-rental-agreement";
+import type { AgreementDraft } from "@/features/agreements/types";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -62,6 +71,9 @@ export default async function Page({
     null;
   let knownDamages: Awaited<ReturnType<typeof listVehicleKnownDamages>> = [];
   let renterIdPhotos: RentalRenterIdPhoto[] | null = null;
+  let cancellation: RentalCancellationContext | null = null;
+  let agreementDraft: AgreementDraft | null = null;
+  let hasAgreement = false;
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -72,6 +84,7 @@ export default async function Page({
       checklistData,
       chargeTypeRows,
       chargeCostRows,
+      { data: company },
     ] = await Promise.all([
       supabase
         .from("rentals")
@@ -94,6 +107,9 @@ export default async function Page({
           starting_odometer,
           renter_license_selfie_path,
           renter_government_id_path,
+          cancellation_reason,
+          cancellation_note,
+          reservation_fee_forfeited,
           customers ( full_name, phone_number ),
           vehicles ( daily_rate, half_day_rate, hourly_rate )
         `,
@@ -105,6 +121,10 @@ export default async function Page({
       getInspectionChecklistForRental(id),
       listRentalChargeTypes(),
       listRentalChargeCosts(id),
+      supabase
+        .from("company_profile")
+        .select("free_cancellation_hours")
+        .maybeSingle(),
     ]);
     payments = paymentRows;
     chargeTypes = chargeTypeRows;
@@ -160,6 +180,23 @@ export default async function Page({
     startingOdometer =
       data?.starting_odometer != null ? Number(data.starting_odometer) : null;
 
+    cancellation = {
+      startAt: data?.start_at ? String(data.start_at) : null,
+      depositPaid: paymentRows
+        .filter(
+          (payment) =>
+            payment.paymentType === "deposit" && payment.status === "confirmed",
+        )
+        .reduce((sum, payment) => sum + payment.amount, 0),
+      freeHours:
+        company?.free_cancellation_hours != null
+          ? Number(company.free_cancellation_hours)
+          : DEFAULT_FREE_CANCELLATION_HOURS,
+      reason: data?.cancellation_reason ?? null,
+      note: data?.cancellation_note ?? null,
+      feeForfeited: data?.reservation_fee_forfeited ?? null,
+    };
+
     const customer = Array.isArray(data?.customers)
       ? data.customers[0]
       : data?.customers;
@@ -175,9 +212,17 @@ export default async function Page({
       customerLabel = [name, phone].filter(Boolean).join(" · ") || null;
     }
 
-    if (vehicleId) {
-      knownDamages = await listVehicleKnownDamages(vehicleId);
-    }
+    const awaitingRelease =
+      (status === "draft" || status === "reserved") &&
+      !inspectionRows.some((row) => row.inspectionType === "pickup");
+    const [damages, draft, signed] = await Promise.all([
+      vehicleId ? listVehicleKnownDamages(vehicleId) : Promise.resolve([]),
+      awaitingRelease ? getAgreementDraft(id) : Promise.resolve(null),
+      awaitingRelease ? Promise.resolve(null) : getRentalAgreement(id),
+    ]);
+    knownDamages = damages;
+    agreementDraft = draft;
+    hasAgreement = signed != null;
 
     const idPaths = [
       ["Selfie with driver's license", data?.renter_license_selfie_path],
@@ -214,6 +259,8 @@ export default async function Page({
       action={saveRentalAction}
       actions={
         <RentalWorkflowActions
+          agreementDraft={agreementDraft}
+          cancellation={cancellation}
           checklist={checklist}
           id={id}
           inspections={inspections}
@@ -250,7 +297,11 @@ export default async function Page({
           customerBookingLocked={isPublicCustomerBooking(row)}
           info={form}
           inspections={
-            <RentalInspectionsTab inspections={inspections} rentalId={id} />
+            <RentalInspectionsTab
+              hasAgreement={hasAgreement}
+              inspections={inspections}
+              rentalId={id}
+            />
           }
           payments={
             <RentalPaymentPanel
@@ -271,6 +322,11 @@ export default async function Page({
           }
           renterIds={
             renterIdPhotos ? <RentalRenterIds photos={renterIdPhotos} /> : null
+          }
+          timeline={
+            <Suspense fallback={<Skeleton className="h-64 rounded-lg" />}>
+              <RentalTimeline rentalId={id} />
+            </Suspense>
           }
         />
       )}

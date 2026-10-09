@@ -46,9 +46,9 @@ import {
   listSiteVehicleInterest,
 } from "@/features/analytics/services/site-analytics";
 import type { AnalyticsWindow, SiteFunnelRow } from "@/features/analytics/types/analytics";
-import { siteUrl } from "@/features/booking/lib/notify-owner-telegram";
 import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { sourceLabel } from "@/features/site-analytics/lib/traffic-source";
+import { PUBLIC_SITE_URL } from "@/lib/site-url";
 
 const GRAIN_LABEL = { day: "Daily", week: "Weekly (from Monday)", month: "Monthly" } as const;
 
@@ -123,7 +123,7 @@ async function SiteOverview({ window }: { window: AnalyticsWindow }) {
   const bookRate = conversionPercent(total.bookers, total.visitors);
   const bookRateBefore = before ? conversionPercent(before.bookers, before.visitors) : null;
   const facebookShare = conversionPercent(facebook?.visitors ?? 0, total.visitors);
-  const facebookLink = `${siteUrl()}/?fb`;
+  const facebookLink = `${PUBLIC_SITE_URL}/?fb`;
   const grain = GRAIN_LABEL[window.bucket];
   const chartRows = series.ok
     ? series.data.map((point) => ({

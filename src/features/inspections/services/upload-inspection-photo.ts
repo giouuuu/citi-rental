@@ -2,7 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export const INSPECTION_PHOTOS_BUCKET = "rental-inspection-photos";
+import { INSPECTION_PHOTOS_BUCKET } from "@/features/inspections/lib/inspection-media";
+
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
   "image/jpeg",

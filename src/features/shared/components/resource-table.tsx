@@ -25,6 +25,7 @@ import type {
   ResourceOption,
   ResourceQuery,
   ResourceRow,
+  ResourceRowLink,
 } from "@/features/shared/types/resource";
 
 /** Option value standing for "no filter"; never sent in the URL. */
@@ -51,6 +52,7 @@ type Props = {
    * controls read the selection through `useResourceSelection`.
    */
   bulkActions?: ReactNode;
+  rowLinks?: ResourceRowLink[];
 };
 
 const getRowId = (row: ResourceRow) => row.id;
@@ -70,8 +72,16 @@ export function ResourceTable(props: Props) {
         singular: props.singular,
         titleField: props.titleField,
         selectable: Boolean(props.bulkActions),
+        rowLinks: props.rowLinks,
       }),
-    [props.columns, props.route, props.singular, props.titleField, props.bulkActions],
+    [
+      props.columns,
+      props.route,
+      props.singular,
+      props.titleField,
+      props.bulkActions,
+      props.rowLinks,
+    ],
   );
 
   // A selection belongs to the rows it was made on: a new page, search or

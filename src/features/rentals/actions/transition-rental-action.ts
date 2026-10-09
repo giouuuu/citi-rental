@@ -11,7 +11,10 @@ import {
   type RentalWorkflowStatus,
 } from "@/features/rentals/lib/booking-gates";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
-import { CANCELLATION_REASON_VALUES } from "@/features/rentals/lib/cancellation-reasons";
+import {
+  CANCELLATION_NOTE_MAX,
+  CANCELLATION_REASON_VALUES,
+} from "@/features/rentals/lib/cancellation-reasons";
 
 const transitionSchema = z.object({
   id: z.uuid(),
@@ -21,10 +24,24 @@ const transitionSchema = z.object({
   ending_fuel_level: z.coerce.number().min(0).max(100).optional(),
   notes: z.string().trim().max(2000).optional(),
   cancellation_reason: z.enum(CANCELLATION_REASON_VALUES).optional(),
+  cancellation_note: z
+    .string()
+    .trim()
+    .max(CANCELLATION_NOTE_MAX, "Keep the reason under 500 characters.")
+    .optional(),
 }).refine((value) => value.status !== "cancelled" || value.cancellation_reason, {
   path: ["cancellation_reason"],
   message: "Choose why the rental is being cancelled.",
-});
+}).refine(
+  (value) =>
+    value.status !== "cancelled" ||
+    value.cancellation_reason !== "other" ||
+    value.cancellation_note,
+  {
+    path: ["cancellation_note"],
+    message: "Describe the reason for cancelling.",
+  },
+);
 
 export async function transitionRentalAction(
   formData: FormData,
@@ -35,6 +52,7 @@ export async function transitionRentalAction(
       success: false,
       message:
         parsed.error.flatten().fieldErrors.cancellation_reason?.[0] ??
+        parsed.error.flatten().fieldErrors.cancellation_note?.[0] ??
         "The rental transition data is invalid.",
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
@@ -142,7 +160,10 @@ export async function transitionRentalAction(
       // Only cancellations send a reason, so other transitions keep working
       // against a database that predates the cancellation-reason migration.
       ...(parsed.data.status === "cancelled"
-        ? { p_cancellation_reason: parsed.data.cancellation_reason }
+        ? {
+            p_cancellation_reason: parsed.data.cancellation_reason,
+            p_cancellation_note: parsed.data.cancellation_note || null,
+          }
         : {}),
     });
     if (error) throw error;

@@ -10,6 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import type { AgreementDraft } from "@/features/agreements/types";
 import { RentalInspectionForm } from "@/features/inspections/components/rental-inspection-form";
 import type {
   InspectionChecklist,
@@ -25,6 +26,7 @@ export function RentalInspectionSheet({
   knownDamages,
   startingOdometer,
   referenceInspection = null,
+  agreementDraft = null,
   triggerLabel,
 }: {
   rentalId: string;
@@ -33,6 +35,8 @@ export function RentalInspectionSheet({
   knownDamages: VehicleKnownDamage[];
   startingOdometer?: number | null;
   referenceInspection?: RentalInspection | null;
+  /** Release only: the rental agreement the renter signs. */
+  agreementDraft?: AgreementDraft | null;
   triggerLabel: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -60,13 +64,13 @@ export function RentalInspectionSheet({
               {inspectionType === "pickup" ? "Pickup inspection" : "Return inspection"}
             </SheetTitle>
             <SheetDescription>
-              Record odometer, fuel, paint/body condition, and the 6 required
-              photos before
-              {inspectionType === "pickup" ? " starting" : " completing"} this
-              rental.
+              {inspectionType === "pickup"
+                ? "Record odometer, fuel, condition, and photos and videos, then have the renter sign the rental agreement before starting this rental."
+                : "Record odometer, fuel, condition, and photos and videos before completing this rental."}
             </SheetDescription>
           </SheetHeader>
           <RentalInspectionForm
+            agreementDraft={agreementDraft}
             checklist={checklist}
             inspectionType={inspectionType}
             knownDamages={knownDamages}

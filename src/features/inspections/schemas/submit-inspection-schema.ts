@@ -59,7 +59,7 @@ export const submitInspectionSchema = z.object({
   damage_charge_amount: z.coerce.number().min(0).optional(),
   damage_charge_note: z.string().trim().max(1000).optional(),
   items: z.array(inspectionItemInputSchema).min(1),
-  photos: z.array(inspectionPhotoInputSchema).default([]),
+  photos: z.array(inspectionPhotoInputSchema).max(80).default([]),
 });
 
 export type SubmitInspectionInput = z.infer<typeof submitInspectionSchema>;
