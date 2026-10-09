@@ -18,6 +18,7 @@ import {
 
 import { ZekeLogo } from "@/components/brand/zeke-logo";
 import { BookingSearch } from "@/components/landing/booking-search";
+import { ContactCards } from "@/components/landing/contact-cards";
 import { ContactFab } from "@/components/landing/contact-fab";
 import { todayDateValue } from "@/components/landing/booking-search-schema";
 import {
@@ -50,6 +51,7 @@ import {
   getPublicReservationFee,
 } from "@/features/booking/services/public-booking-service";
 import {
+  BUSINESS,
   businessJsonLd,
   jsonLdHtml,
   OPEN_GRAPH_BASE,
@@ -262,13 +264,16 @@ export default async function HomePage({
               </h1>
               <p className="sr-only">{HERO_SUBTITLE}</p>
 
-              {/* The road and car fill the space between headline and search. */}
-              <div className="min-h-[calc(38svh+11rem)] flex-1 md:min-h-[calc(34svh+11rem)]" />
+              {/* The road and car fill the space between headline and search.
+                  Phones: it grows to push the search card to the bottom of
+                  the first screen, so "Search cars" is in view; the floor
+                  (car height plus headline) keeps the car off the caption. */}
+              <div className="min-h-[calc(9.5rem+51vw)] flex-1 md:min-h-[calc(34svh+11rem)]" />
             </div>
           </div>
 
           <div
-            className="focus-in relative z-20 mx-auto w-full max-w-7xl px-4 pb-8 sm:px-6 lg:px-8 lg:pb-10"
+            className="focus-in relative z-20 mx-auto w-full max-w-7xl px-4 pb-4 sm:px-6 sm:pb-8 lg:px-8 lg:pb-10"
             style={focusDelay(SEARCH_CARD_DELAY_MS)}
           >
             <BookingSearch
@@ -517,6 +522,27 @@ export default async function HomePage({
         </div>
       </section>
 
+      <section
+        aria-labelledby="contact-title"
+        className="border-t border-border bg-white py-20 sm:py-24"
+        id="contact"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            id="contact-title"
+            subtitle="Questions before you book? Message the owner on the app you use."
+            title="Contact us"
+          />
+          <div className="reveal mx-auto mt-10 max-w-5xl">
+            <ContactCards
+              channels={contactChannels}
+              email={BUSINESS.email}
+              location={`${BUSINESS.locality}, ${BUSINESS.region}`}
+            />
+          </div>
+        </div>
+      </section>
+
       <footer className="border-t border-border bg-background pt-14 pb-10 text-sm text-muted-foreground">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))]">
@@ -573,6 +599,14 @@ export default async function HomePage({
                     href="#faq"
                   >
                     FAQ
+                  </a>
+                </li>
+                <li>
+                  <a
+                    className="transition-colors hover:text-brand-950"
+                    href="#contact"
+                  >
+                    Contact us
                   </a>
                 </li>
                 {SEO_PAGES.map((page) => (

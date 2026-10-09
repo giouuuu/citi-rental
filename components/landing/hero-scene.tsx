@@ -61,8 +61,8 @@ const CAPTION_FADE_PX = 180;
  * the frame runs 4rem under the card, so the wheels clear its top edge.
  */
 const CAR_SLOT =
-  "absolute bottom-[5.25rem] left-1/2 w-[72vw] max-w-[26rem] -translate-x-1/2 md:bottom-[20%] md:max-w-none md:w-[min(46vw,34rem)] lg:bottom-[19%] lg:w-[min(36vw,38rem)]";
-const CAR_SIZES = "(min-width: 1024px) 36vw, (min-width: 768px) 46vw, 72vw";
+  "absolute bottom-[5.25rem] left-1/2 w-[66vw] max-w-[24rem] -translate-x-1/2 md:bottom-[20%] md:max-w-none md:w-[min(46vw,34rem)] lg:bottom-[19%] lg:w-[min(36vw,38rem)]";
+const CAR_SIZES = "(min-width: 1024px) 36vw, (min-width: 768px) 46vw, 66vw";
 const SETTLE_EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 const SCROLL_RATE = 0.35;
 /** Shared crop so every layer stays registered to the same photo. */

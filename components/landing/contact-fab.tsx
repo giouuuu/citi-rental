@@ -1,51 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { ArrowUpRight, Check, Copy, MessageCircle, Phone } from "lucide-react";
-import {
-  siKakaotalk,
-  siLine,
-  siMessenger,
-  siTelegram,
-  siViber,
-  siWechat,
-  siWhatsapp,
-  type SimpleIcon,
-} from "simple-icons";
+import { useEffect, useState, type CSSProperties } from "react";
+import { ArrowUpRight, Check, Copy, MessageCircle } from "lucide-react";
 
 import { ZekeMark } from "@/components/brand/zeke-mark";
+import {
+  BrandTile,
+  copyHints,
+  useCopyChannel,
+} from "@/components/landing/contact-channel-brand";
 import { landingFontClassName } from "@/components/landing/landing-fonts";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import type {
-  ContactChannel,
-  ContactChannelKey,
-} from "@/features/settings/lib/contact-channels";
+import type { ContactChannel } from "@/features/settings/lib/contact-channels";
 import { cn } from "@/lib/utils";
-
-/** Brand tile per app; Kakao's yellow needs a dark glyph to stay legible. */
-const brands: Record<
-  ContactChannelKey,
-  { icon: SimpleIcon | null; background: string; foreground: string }
-> = {
-  whatsapp: { icon: siWhatsapp, background: "#25D366", foreground: "#fff" },
-  viber: { icon: siViber, background: "#7360F2", foreground: "#fff" },
-  wechat: { icon: siWechat, background: "#07C160", foreground: "#fff" },
-  kakaotalk: { icon: siKakaotalk, background: "#FFCD00", foreground: "#191919" },
-  line: { icon: siLine, background: "#06C755", foreground: "#fff" },
-  telegram: { icon: siTelegram, background: "#26A5E4", foreground: "#fff" },
-  messenger: { icon: siMessenger, background: "#0866FF", foreground: "#fff" },
-  phone: { icon: null, background: "var(--brand-950)", foreground: "#fff" },
-};
-
-/** Where to add a copied ID, for apps with no add-contact link. */
-const copyHints: Partial<Record<ContactChannelKey, string>> = {
-  wechat: "Paste in WeChat › Add contacts",
-  kakaotalk: "Paste in KakaoTalk › Add friend › ID",
-};
 
 /** Height of the bottom strip the button floats in, plus breathing room. */
 const FAB_ZONE_PX = 96;
@@ -72,8 +43,7 @@ export function ContactFab({
 }) {
   const [open, setOpen] = useState(false);
   const [blocked, setBlocked] = useState(false);
-  const [copied, setCopied] = useState<ContactChannelKey | null>(null);
-  const copiedTimer = useRef<number | undefined>(undefined);
+  const { copied, copy } = useCopyChannel();
 
   useEffect(() => {
     if (!avoidSelector) return;
@@ -99,24 +69,10 @@ export function ContactFab({
     };
   }, [avoidSelector]);
 
-  useEffect(() => () => window.clearTimeout(copiedTimer.current), []);
-
   if (!channels.length) return null;
 
   // Never yank the button out from under an open list.
   const hidden = blocked && !open;
-
-  async function copy(channel: ContactChannel) {
-    try {
-      await navigator.clipboard.writeText(channel.detail);
-    } catch {
-      // Clipboard blocked (insecure origin, old browser): the ID is on screen.
-      return;
-    }
-    setCopied(channel.key);
-    window.clearTimeout(copiedTimer.current);
-    copiedTimer.current = window.setTimeout(() => setCopied(null), 2500);
-  }
 
   return (
     <div
@@ -266,24 +222,5 @@ function ChannelRow({
         />
       )}
     </button>
-  );
-}
-
-function BrandTile({ channelKey }: { channelKey: ContactChannelKey }) {
-  const brand = brands[channelKey];
-  return (
-    <span
-      aria-hidden="true"
-      className="flex size-9 shrink-0 items-center justify-center rounded-xl"
-      style={{ background: brand.background, color: brand.foreground }}
-    >
-      {brand.icon ? (
-        <svg className="size-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d={brand.icon.path} />
-        </svg>
-      ) : (
-        <Phone className="size-4.5" />
-      )}
-    </span>
   );
 }

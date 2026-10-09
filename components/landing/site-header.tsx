@@ -62,6 +62,7 @@ const NAV_LINKS = [
   { href: "/#fleet", label: "Cars" },
   { href: "/#how-it-works", label: "How it works" },
   { href: "/#why", label: "Why Zeke" },
+  { href: "/#contact", label: "Contact" },
 ];
 
 export async function SiteHeader({
