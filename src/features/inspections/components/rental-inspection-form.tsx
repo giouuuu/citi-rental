@@ -15,10 +15,13 @@ import {
 import { InspectionReadingsStep } from "@/features/inspections/components/inspection-readings-step";
 import { InspectionSignoffStep } from "@/features/inspections/components/inspection-signoff-step";
 import {
-  INSPECTION_STEPS,
   InspectionStepNav,
+  inspectionSteps,
 } from "@/features/inspections/components/inspection-step-nav";
-import { useInspectionFormState } from "@/features/inspections/hooks/use-inspection-form-state";
+import {
+  type InspectionFormStep,
+  useInspectionFormState,
+} from "@/features/inspections/hooks/use-inspection-form-state";
 import { isDamageStatus } from "@/features/inspections/lib/checklist-areas";
 import type {
   InspectionChecklist,
@@ -58,7 +61,9 @@ export function RentalInspectionForm({
   });
 
   const bodyRef = useRef<HTMLDivElement>(null);
-  const stepIndex = INSPECTION_STEPS.findIndex((entry) => entry.id === form.step);
+  const steps = inspectionSteps(inspectionType);
+  const stepIndex = steps.findIndex((entry) => entry.id === form.step);
+  const lastStep = stepIndex === steps.length - 1;
   const flaggedCount = form.items.filter((item) =>
     isDamageStatus(item.status),
   ).length;
@@ -83,14 +88,20 @@ export function RentalInspectionForm({
       ?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [form.selectedZone, form.step]);
 
-  function goToStep(next: (typeof INSPECTION_STEPS)[number]["id"]) {
+  function goToStep(next: InspectionFormStep) {
     form.setStep(next);
+  }
+
+  function goForward() {
+    // Pickup signs first: the agreement must be complete before the walk-around.
+    if (form.step === "signoff" && !form.validateSigning()) return;
+    goToStep(steps[stepIndex + 1].id);
   }
 
   return (
     <div className="@container flex min-h-0 flex-1 flex-col">
       <div className="border-b border-border px-5 py-3">
-        <InspectionStepNav step={form.step} onSelect={goToStep} />
+        <InspectionStepNav steps={steps} step={form.step} onSelect={goToStep} />
       </div>
 
       <div
@@ -194,7 +205,7 @@ export function RentalInspectionForm({
             <Button
               type="button"
               variant="ghost"
-              onClick={() => goToStep(INSPECTION_STEPS[stepIndex - 1].id)}
+              onClick={() => goToStep(steps[stepIndex - 1].id)}
             >
               <ArrowLeftIcon />
               Back
@@ -206,7 +217,8 @@ export function RentalInspectionForm({
                 ? `${flaggedCount} panel${flaggedCount === 1 ? "" : "s"} flagged`
                 : "No damage flagged yet"
               : null}
-            {form.step === "photos"
+            {lastStep && form.uploadStatus ? form.uploadStatus : null}
+            {form.step === "photos" && !(lastStep && form.uploadStatus)
               ? compressingCount > 0
                 ? `Compressing ${compressingCount} file${compressingCount === 1 ? "" : "s"}…`
                 : readyCount === 0
@@ -218,11 +230,10 @@ export function RentalInspectionForm({
                         .join(", ")}${missingDamage.length > 2 ? ` +${missingDamage.length - 2} more` : ""}`
                     : `${readyCount} photo${readyCount === 1 ? "" : "s"} & video${readyCount === 1 ? "" : "s"} ready`
               : null}
-            {form.step === "signoff" && form.uploadStatus ? form.uploadStatus : null}
           </p>
         </div>
 
-        {form.step === "signoff" ? (
+        {lastStep ? (
           <Button
             disabled={form.pending}
             type="button"
@@ -237,9 +248,9 @@ export function RentalInspectionForm({
           <Button
             disabled={form.step === "photos" && mediaBlocked}
             type="button"
-            onClick={() => goToStep(INSPECTION_STEPS[stepIndex + 1].id)}
+            onClick={goForward}
           >
-            Continue to {INSPECTION_STEPS[stepIndex + 1].label.toLowerCase()}
+            Continue to {steps[stepIndex + 1].label.toLowerCase()}
           </Button>
         )}
       </div>

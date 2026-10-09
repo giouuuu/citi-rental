@@ -40,7 +40,10 @@ export function useInspectionFormState(options: {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   // A retry after a failed submit reuses what already reached storage.
   const uploadedPaths = useRef(new Map<File, string>());
-  const [step, setStep] = useState<InspectionFormStep>("readings");
+  // Pickup opens on signing; return opens on readings.
+  const [step, setStep] = useState<InspectionFormStep>(
+    options.inspectionType === "pickup" ? "signoff" : "readings",
+  );
   const [error, setError] = useState("");
   const [odometer, setOdometer] = useState(
     options.startingOdometer != null ? String(options.startingOdometer) : "",
@@ -148,6 +151,31 @@ export function useInspectionFormState(options: {
     );
   }
 
+  function signingError() {
+    if (!agreementDraft) return null;
+    return !signature
+      ? "The renter must sign the rental agreement."
+      : !renterAddress.trim()
+        ? "Enter the renter's address for the rental agreement."
+        : !agreementDraft.companySignatureUrl && !companySignature
+          ? "Add the company signature to the rental agreement."
+          : !agreementAccepted
+            ? "Confirm the renter agrees to the rental agreement."
+            : null;
+  }
+
+  /** Keeps the form on signing until the agreement is complete. */
+  function validateSigning() {
+    const message = signingError();
+    if (message) {
+      setError(message);
+      setStep("signoff");
+      return false;
+    }
+    setError("");
+    return true;
+  }
+
   async function uploadAll(
     entries: Array<{ file: File; kind: string; area_code?: string }>,
   ) {
@@ -192,22 +220,7 @@ export function useInspectionFormState(options: {
       setStep("photos");
       return;
     }
-    if (agreementDraft) {
-      const agreementError = !signature
-        ? "The renter must sign the rental agreement."
-        : !renterAddress.trim()
-          ? "Enter the renter's address for the rental agreement."
-          : !agreementDraft.companySignatureUrl && !companySignature
-            ? "Add the company signature to the rental agreement."
-            : !agreementAccepted
-              ? "Confirm the renter agrees to the rental agreement."
-              : null;
-      if (agreementError) {
-        setError(agreementError);
-        setStep("signoff");
-        return;
-      }
-    }
+    if (!validateSigning()) return;
     if (
       options.inspectionType === "return" &&
       newDamageCount > 0 &&
@@ -343,6 +356,7 @@ export function useInspectionFormState(options: {
     bodyZones,
     newDamageCount,
     patchItem,
+    validateSigning,
     submit,
   };
 }

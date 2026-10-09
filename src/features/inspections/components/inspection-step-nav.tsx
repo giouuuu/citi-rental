@@ -3,32 +3,52 @@
 import { CheckIcon } from "lucide-react";
 
 import type { InspectionFormStep } from "@/features/inspections/hooks/use-inspection-form-state";
+import type { InspectionType } from "@/features/inspections/types/inspection";
 import { cn } from "@/lib/utils";
 
-export const INSPECTION_STEPS: {
+export type InspectionStep = {
   id: InspectionFormStep;
   label: string;
   hint: string;
-}[] = [
+};
+
+const CHECK_STEPS: InspectionStep[] = [
   { id: "readings", label: "Readings", hint: "Odometer, fuel, cleanliness" },
   { id: "condition", label: "Condition", hint: "Panels and damage" },
   { id: "photos", label: "Photos & videos", hint: "Free gallery, compressed" },
-  { id: "signoff", label: "Sign-off", hint: "Signature and charges" },
 ];
 
+/**
+ * Pickup signs first — the renter signs the agreement before the car is
+ * walked. Return signs last, because its charges depend on what was found.
+ */
+export function inspectionSteps(inspectionType: InspectionType): InspectionStep[] {
+  return inspectionType === "pickup"
+    ? [
+        { id: "signoff", label: "Signing", hint: "Agreement and signatures" },
+        ...CHECK_STEPS,
+      ]
+    : [
+        ...CHECK_STEPS,
+        { id: "signoff", label: "Sign-off", hint: "Signature and charges" },
+      ];
+}
+
 export function InspectionStepNav({
+  steps,
   step,
   onSelect,
 }: {
+  steps: InspectionStep[];
   step: InspectionFormStep;
   onSelect: (step: InspectionFormStep) => void;
 }) {
-  const activeIndex = INSPECTION_STEPS.findIndex((entry) => entry.id === step);
+  const activeIndex = steps.findIndex((entry) => entry.id === step);
 
   return (
     <nav aria-label="Inspection steps">
       <ol className="flex items-center">
-        {INSPECTION_STEPS.map((entry, index) => {
+        {steps.map((entry, index) => {
           const current = entry.id === step;
           const done = index < activeIndex;
           return (
@@ -62,7 +82,7 @@ export function InspectionStepNav({
                   {entry.label}
                 </span>
               </button>
-              {index < INSPECTION_STEPS.length - 1 ? (
+              {index < steps.length - 1 ? (
                 <span
                   aria-hidden
                   className={cn(
