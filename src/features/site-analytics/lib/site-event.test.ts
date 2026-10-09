@@ -15,6 +15,7 @@ describe("isTrackedPath", () => {
     expect(isTrackedPath("/")).toBe(true);
     expect(isTrackedPath(`/book/${CAR}`)).toBe(true);
     expect(isTrackedPath("/account")).toBe(true);
+    expect(isTrackedPath("/car-rental-mactan-cebu-airport")).toBe(true);
     expect(isTrackedPath("/dashboard")).toBe(false);
     expect(isTrackedPath("/bookings")).toBe(false);
   });
@@ -22,8 +23,14 @@ describe("isTrackedPath", () => {
 
 describe("pageEventFor", () => {
   it("counts the booking page and its continue step as a booking start", () => {
-    expect(pageEventFor(`/book/${CAR}`)).toEqual({ type: "booking_start", vehicleId: CAR });
-    expect(pageEventFor(`/book/${CAR}/continue`)).toEqual({ type: "booking_start", vehicleId: CAR });
+    expect(pageEventFor(`/book/${CAR}`)).toEqual({
+      type: "booking_start",
+      vehicleId: CAR,
+    });
+    expect(pageEventFor(`/book/${CAR}/continue`)).toEqual({
+      type: "booking_start",
+      vehicleId: CAR,
+    });
   });
 
   it("keeps payment and other pages as page views", () => {
@@ -36,7 +43,10 @@ describe("pageEventFor", () => {
 describe("source cookie", () => {
   it("round-trips a source and campaign", () => {
     const value = encodeSourceCookie("facebook", "oct promo:1");
-    expect(decodeSourceCookie(value)).toEqual({ source: "facebook", campaign: "oct promo:1" });
+    expect(decodeSourceCookie(value)).toEqual({
+      source: "facebook",
+      campaign: "oct promo:1",
+    });
     expect(decodeSourceCookie(encodeSourceCookie("google", null))).toEqual({
       source: "google",
       campaign: null,
@@ -52,7 +62,9 @@ describe("source cookie", () => {
 describe("user agent", () => {
   it("skips crawlers and Facebook's link previews", () => {
     expect(isBotUserAgent("facebookexternalhit/1.1")).toBe(true);
-    expect(isBotUserAgent("Mozilla/5.0 (compatible; Googlebot/2.1)")).toBe(true);
+    expect(isBotUserAgent("Mozilla/5.0 (compatible; Googlebot/2.1)")).toBe(
+      true,
+    );
     expect(isBotUserAgent(null)).toBe(true);
     expect(
       isBotUserAgent(
@@ -62,11 +74,19 @@ describe("user agent", () => {
   });
 
   it("buckets devices", () => {
-    expect(deviceFromUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)")).toBe("mobile");
-    expect(deviceFromUserAgent("Mozilla/5.0 (Linux; Android 14; Pixel 8) Mobile Safari")).toBe(
-      "mobile",
+    expect(
+      deviceFromUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)"),
+    ).toBe("mobile");
+    expect(
+      deviceFromUserAgent(
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) Mobile Safari",
+      ),
+    ).toBe("mobile");
+    expect(deviceFromUserAgent("Mozilla/5.0 (iPad; CPU OS 17_0)")).toBe(
+      "tablet",
     );
-    expect(deviceFromUserAgent("Mozilla/5.0 (iPad; CPU OS 17_0)")).toBe("tablet");
-    expect(deviceFromUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)")).toBe("desktop");
+    expect(
+      deviceFromUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)"),
+    ).toBe("desktop");
   });
 });

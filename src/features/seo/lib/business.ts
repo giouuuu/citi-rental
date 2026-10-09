@@ -19,7 +19,7 @@ export const BUSINESS = {
   country: "PH",
   /** Where renters pick up and drive — the places people search for. */
   areaServed: [
-    "Cebu",
+    "Cebu Province",
     "Cebu City",
     "Mactan-Cebu International Airport",
     "Lapu-Lapu City",
@@ -30,7 +30,7 @@ export const BUSINESS = {
 } as const;
 
 export const SEO_DESCRIPTION =
-  "Car rental in Cebu, self-drive or with driver. Clear daily rates, live availability, and pickup at Mactan-Cebu Airport, your hotel, or the city. Book online.";
+  "Car rental in Cebu, self-drive or with driver, delivered anywhere in Cebu province: Mactan-Cebu Airport, your hotel, or your home. Clear daily rates. Book online.";
 
 /**
  * Shared Open Graph fields. A page that sets `openGraph` replaces the

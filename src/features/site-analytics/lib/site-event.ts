@@ -1,3 +1,5 @@
+import { SEO_PAGES } from "@/features/seo/lib/seo-pages";
+
 export const SITE_EVENT_TYPES = [
   "page_view",
   "vehicle_view",
@@ -34,7 +36,8 @@ export function isTrackedPath(pathname: string): boolean {
     pathname === "/book" ||
     pathname.startsWith("/book/") ||
     pathname === "/account" ||
-    pathname.startsWith("/account/")
+    pathname.startsWith("/account/") ||
+    SEO_PAGES.some((page) => page.path === pathname)
   );
 }
 
@@ -52,7 +55,10 @@ export function pageEventFor(pathname: string): {
     : { type: "page_view", vehicleId: null };
 }
 
-export function encodeSourceCookie(source: string, campaign: string | null): string {
+export function encodeSourceCookie(
+  source: string,
+  campaign: string | null,
+): string {
   return campaign ? `${source}:${encodeURIComponent(campaign)}` : source;
 }
 
@@ -63,7 +69,10 @@ export function decodeSourceCookie(
   const [source, campaign] = value.split(":", 2);
   if (!/^[a-z0-9._-]{1,40}$/.test(source)) return null;
   try {
-    return { source, campaign: campaign ? decodeURIComponent(campaign).slice(0, 80) : null };
+    return {
+      source,
+      campaign: campaign ? decodeURIComponent(campaign).slice(0, 80) : null,
+    };
   } catch {
     return { source, campaign: null };
   }

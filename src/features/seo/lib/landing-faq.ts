@@ -10,10 +10,13 @@ export function landingFaq({
   dailyRates,
   reservationFee,
   freeCancellationHours,
+  deliveryFee,
 }: {
   dailyRates: number[];
   reservationFee: number | null;
   freeCancellationHours: number | null;
+  /** From the rental agreement, e.g. "within Cebu City — ₱300 per way; …". */
+  deliveryFee: string | null;
 }): FaqItem[] {
   const rates = dailyRates.filter((rate) => rate > 0);
   const fromRate = rates.length ? formatPhp(Math.min(...rates)) : null;
@@ -34,9 +37,13 @@ export function landingFaq({
         .join(" "),
     },
     {
-      question: "Can I pick up my rental car at Mactan-Cebu Airport?",
-      answer:
-        "Yes. Choose airport, hotel, or city pickup when you search, and our staff confirm the handover with you before your trip.",
+      question: "Do you deliver the car?",
+      answer: [
+        "Yes, anywhere in Cebu province: Mactan-Cebu Airport, your hotel, your home, or your office. Enter the address when you book, and our staff confirm the handover with you.",
+        deliveryFee ? `Delivery is ${deliveryFee}.` : null,
+      ]
+        .filter(Boolean)
+        .join(" "),
     },
     {
       question: "Do you offer self-drive and car rental with driver?",
@@ -50,10 +57,7 @@ export function landingFaq({
     },
     {
       question: "Can I cancel my booking?",
-      answer:
-        freeCancellationHours != null && reservationFee
-          ? `Yes. Cancel at least ${freeCancellationHours} hours before pickup and the reservation fee is refunded.`
-          : "Yes. Contact us before pickup to change or cancel your booking.",
+      answer: cancellationAnswer({ freeCancellationHours, reservationFee }),
     },
     {
       question: "Do I need to call before booking?",
@@ -61,6 +65,19 @@ export function landingFaq({
         "No. See which cars are free for your dates, then reserve online as a guest or with Google. Staff confirm your pickup after you book.",
     },
   ];
+}
+
+/** The cancellation answer every page shares, from live settings. */
+export function cancellationAnswer({
+  freeCancellationHours,
+  reservationFee,
+}: {
+  freeCancellationHours: number | null;
+  reservationFee: number | null;
+}) {
+  return freeCancellationHours != null && reservationFee
+    ? `Yes. Cancel at least ${freeCancellationHours} hours before pickup and the reservation fee is refunded.`
+    : "Yes. Contact us before pickup to change or cancel your booking.";
 }
 
 export function faqJsonLd(items: FaqItem[]) {

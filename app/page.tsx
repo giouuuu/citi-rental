@@ -56,6 +56,8 @@ import {
   SEO_DESCRIPTION,
 } from "@/features/seo/lib/business";
 import { faqJsonLd, landingFaq } from "@/features/seo/lib/landing-faq";
+import { agreementDeliveryFee } from "@/features/seo/lib/delivery";
+import { SEO_PAGES } from "@/features/seo/lib/seo-pages";
 import { ReviewWall } from "@/features/reviews/components/review-wall";
 import { listPublicReviews } from "@/features/reviews/services/list-public-reviews";
 import { buildContactChannels } from "@/features/settings/lib/contact-channels";
@@ -70,7 +72,7 @@ import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-p
 const HERO_SCENE_FRAME =
   "inset-x-0 top-0 -bottom-16 [mask-image:linear-gradient(to_bottom,black_calc(100%-7rem),transparent)] md:bottom-0 md:[mask-image:none]";
 
-const HERO_SUBTITLE = "Clear daily rates. Airport, hotel, or city pickup.";
+const HERO_SUBTITLE = "Clear daily rates. Delivered anywhere in Cebu.";
 
 /**
  * The search card comes in as the car starts up the road, not after it: on
@@ -163,7 +165,12 @@ export default async function HomePage({
   const bookingQuery = bookingParams.toString() || undefined;
   const readyCount = availableVehicles.length;
   const dailyRates = availableVehicles.map((vehicle) => vehicle.daily_rate);
-  const faq = landingFaq({ dailyRates, reservationFee, freeCancellationHours });
+  const faq = landingFaq({
+    dailyRates,
+    reservationFee,
+    freeCancellationHours,
+    deliveryFee: agreementDeliveryFee(),
+  });
   // Hero lineup: available cars the owner gave a landing-page image.
   const heroFleet: HeroFleetCar[] = availableVehicles.flatMap((vehicle) =>
     vehicle.showcase_image_url
@@ -301,8 +308,8 @@ export default async function HomePage({
           />
           <FeatureItem
             icon={<MapPin aria-hidden="true" />}
-            title="Pickup your way"
-            description="Airport, hotel, or city"
+            title="Delivered to you"
+            description="Anywhere in Cebu province"
           />
         </ul>
       </section>
@@ -518,8 +525,9 @@ export default async function HomePage({
                 <ZekeLogo />
               </div>
               <p className="mt-4 leading-6">
-                Car rental in Cebu with clear daily rates and pickup at the
-                airport, your hotel, or the city. DTI registered.
+                Car rental in Cebu with clear daily rates, delivered anywhere in
+                Cebu province: the airport, your hotel, or your home. DTI
+                registered.
               </p>
             </div>
             <nav aria-label="Explore">
@@ -567,6 +575,16 @@ export default async function HomePage({
                     FAQ
                   </a>
                 </li>
+                {SEO_PAGES.map((page) => (
+                  <li key={page.path}>
+                    <Link
+                      className="transition-colors hover:text-brand-950"
+                      href={page.path}
+                    >
+                      {page.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </nav>
             <nav aria-label="Account">

@@ -65,7 +65,7 @@ export default async function Image() {
           Car rental in Cebu
         </div>
         <div style={{ marginTop: 8, fontSize: 28, color: "#3b4a5c" }}>
-          Self-drive or with driver · Airport, hotel, or city pickup
+          Self-drive or with driver · Delivered anywhere in Cebu
         </div>
       </div>
     </div>,

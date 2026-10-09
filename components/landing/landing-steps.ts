@@ -10,14 +10,16 @@ export const landingSteps: Array<{
   {
     icon: MapPin,
     number: "01",
-    title: "Choose pickup",
-    description: "Mactan–Cebu airport, your hotel, or anywhere in the city.",
+    title: "Choose delivery",
+    description:
+      "Mactan–Cebu airport, your hotel, or your home, anywhere in Cebu province.",
   },
   {
     icon: CarFront,
     number: "02",
     title: "Pick a car",
-    description: "Only cars free for your dates show up, each with its daily rate.",
+    description:
+      "Only cars free for your dates show up, each with its daily rate.",
   },
   {
     icon: CalendarCheck,
@@ -29,6 +31,7 @@ export const landingSteps: Array<{
     icon: KeyRound,
     number: "04",
     title: "Pick up and drive",
-    description: "Collect a cleaned, inspected car. We're a message away if plans change.",
+    description:
+      "Collect a cleaned, inspected car. We're a message away if plans change.",
   },
 ];

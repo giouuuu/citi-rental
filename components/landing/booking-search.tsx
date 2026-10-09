@@ -91,10 +91,16 @@ export function BookingSearch({
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 pt-1.5 pb-1 md:px-4">
           <Tabs onValueChange={setMode} value={mode}>
             <TabsList className="h-8! rounded-full bg-brand-950/[0.05] p-0.5">
-              <TabsTrigger className="h-full rounded-full px-3 text-xs" value="self-drive">
+              <TabsTrigger
+                className="h-full rounded-full px-3 text-xs"
+                value="self-drive"
+              >
                 Self-drive
               </TabsTrigger>
-              <TabsTrigger className="h-full rounded-full px-3 text-xs" value="with-driver">
+              <TabsTrigger
+                className="h-full rounded-full px-3 text-xs"
+                value="with-driver"
+              >
                 With driver
               </TabsTrigger>
             </TabsList>
@@ -116,7 +122,7 @@ export function BookingSearch({
                     aria-invalid={fieldState.invalid}
                     className="h-auto border-0 bg-transparent p-0 text-base text-brand-950 shadow-none placeholder:text-muted-foreground focus-visible:ring-0 aria-invalid:ring-0 md:text-sm"
                     id="pickup-location"
-                    placeholder="Airport, hotel, or city"
+                    placeholder="Airport, hotel, or address"
                   />
                   {fieldState.invalid ? (
                     <FieldError errors={[fieldState.error]} />
@@ -163,7 +169,9 @@ export function BookingSearch({
                     appearance="inline"
                     aria-invalid={fieldState.invalid}
                     id="return-date"
-                    minDate={pickupDate && pickupDate >= today ? pickupDate : today}
+                    minDate={
+                      pickupDate && pickupDate >= today ? pickupDate : today
+                    }
                     onChange={field.onChange}
                     placeholder="Add date"
                     value={field.value}
@@ -177,7 +185,11 @@ export function BookingSearch({
           />
 
           <div className="col-span-2 p-2 md:col-span-1 md:pl-3">
-            <Button className="h-12 w-full rounded-xl px-6 md:w-auto" size="lg" type="submit">
+            <Button
+              className="h-12 w-full rounded-xl px-6 md:w-auto"
+              size="lg"
+              type="submit"
+            >
               <Search aria-hidden="true" className="size-4" />
               Search cars
             </Button>

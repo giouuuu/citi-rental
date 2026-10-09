@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
 
+import { SEO_PAGES } from "@/features/seo/lib/seo-pages";
 import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-public-available-vehicles";
 import { siteUrl } from "@/lib/site-url";
 
-/** The homepage plus one booking page per bookable car. */
+/** The homepage, the search landing pages, and one page per bookable car. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const vehicles = await listPublicAvailableVehicles();
@@ -15,6 +16,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
       images: [`${base}/opengraph-image`],
     },
+    ...SEO_PAGES.map((page) => ({
+      url: `${base}${page.path}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    })),
     ...vehicles.map((vehicle) => {
       const images = [
         ...new Set(

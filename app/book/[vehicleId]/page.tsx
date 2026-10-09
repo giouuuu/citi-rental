@@ -44,7 +44,7 @@ export async function generateMetadata({
         : null,
     vehicle.fuel_type === "other" ? null : vehicle.fuel_type,
   ].filter(Boolean);
-  const description = `${vehicleSeoTitle(vehicle)} for rent in Cebu at ${formatPhp(vehicle.daily_rate)} a day${specs.length ? ` (${specs.join(", ")})` : ""}. Self-drive or with driver, pickup at Mactan-Cebu Airport, your hotel, or the city. Check dates and book online.`;
+  const description = `${vehicleSeoTitle(vehicle)} for rent in Cebu at ${formatPhp(vehicle.daily_rate)} a day${specs.length ? ` (${specs.join(", ")})` : ""}. Self-drive or with driver, delivered anywhere in Cebu province. Check dates and book online.`;
   const listed =
     vehicle.status !== "maintenance" && vehicle.status !== "inactive";
 

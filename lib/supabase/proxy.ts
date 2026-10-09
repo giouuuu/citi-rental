@@ -11,6 +11,7 @@ import {
   VISITOR_MAX_AGE,
   isTrackedPath,
 } from "@/features/site-analytics/lib/site-event";
+import { SEO_PAGES } from "@/features/seo/lib/seo-pages";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 
 const publicRoutes = [
@@ -31,6 +32,7 @@ const publicRoutes = [
   "/robots.txt",
   "/sitemap.xml",
   "/opengraph-image",
+  ...SEO_PAGES.map((page) => page.path),
 ];
 
 function isPublicRoute(pathname: string) {
@@ -80,9 +82,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (data?.claims && (pathname === "/login" || pathname === "/register")) {
-    const safeNext = sanitizeNextPath(
-      request.nextUrl.searchParams.get("next"),
-    );
+    const safeNext = sanitizeNextPath(request.nextUrl.searchParams.get("next"));
 
     if (isBookingNextPath(safeNext)) {
       return NextResponse.redirect(new URL(safeNext!, request.url));
