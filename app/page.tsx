@@ -257,7 +257,7 @@ export default async function HomePage({
             <HeroSceneControls className={HERO_SCENE_FRAME} />
             <SiteHeader intro tone="light" />
 
-            {/* The visible lockup lives in the scene, behind the mountains. */}
+            {/* The visible lockup lives in the scene, behind the green ridge. */}
             <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 sm:px-6 lg:px-8">
               <h1 className="sr-only">
                 Car rental in Cebu: your Cebu journey with Zeke Car Rentals

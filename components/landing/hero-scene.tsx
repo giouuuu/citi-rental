@@ -48,9 +48,9 @@ const LAYERS: Layer[] = [
 /** Max drift, in px, for a layer at depth 1. */
 const POINTER_PX = 28;
 /**
- * The title hangs in the sky between the sky and mountain layers, and sinks
- * faster than the mountains on scroll, so it sets behind the ridge as the
- * page moves on.
+ * The title stands between the far mountains and the green ridge (the hills
+ * layer), and sinks faster than either on scroll, so it sets behind the
+ * ridge as the page moves on.
  */
 const TITLE_DEPTH = 0.04;
 const TITLE_SCROLL_RATE = 0.62;
@@ -73,9 +73,10 @@ const FRAME = "object-cover object-[50%_58%]";
  * up it from the horizon while the scenery settles in behind, then the layers
  * drift apart with scroll and pointer for depth.
  *
- * `title` stands on the mountain ridge, behind the peaks; `caption` sits just
- * under it, in front of the scenery. Both are decorative here (the scene is
- * `aria-hidden`), so the page keeps its own screen-reader heading.
+ * `title` stands among the peaks, in front of the far range and behind the
+ * green ridge; `caption` sits just under it, in front of the scenery. Both
+ * are decorative here (the scene is `aria-hidden`), so the page keeps its own
+ * screen-reader heading.
  */
 export function HeroScene({
   className,
@@ -288,8 +289,8 @@ export function HeroScene({
               />
             </div>
           </div>
-          {/* Behind the mountains, so the peaks rise in front of the word. */}
-          {layer.key === "sky" && title ? (
+          {/* In front of the far mountains, behind the green ridge. */}
+          {layer.key === "mountains" && title ? (
             <div className="hero-ridge absolute -inset-[4%] will-change-transform" ref={titleRef}>
               <div className="hero-ridge-anchor top-[var(--lockup-top)]">{title}</div>
             </div>

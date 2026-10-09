@@ -327,10 +327,11 @@
   animation: scene-car 1600ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
 }
 
-/* Hero title, set into the scene photo: the lockup stands on the mountain
-   ridge so the peaks (a nearer layer) rise in front of the word on every
-   screen. `.hero-ridge` is a scene-layer box; the photo in it is
-   object-cover, 1672x941, object-position y 58% (hero-scene `FRAME`). */
+/* Hero title, set into the scene photo: the lockup stands among the peaks,
+   in front of the far blue range and behind the green ridge (hero-scene
+   layers it between the two), so it sinks behind the ridge on scroll.
+   `.hero-ridge` is a scene-layer box; the photo in it is object-cover,
+   1672x941, object-position y 58% (hero-scene `FRAME`). */
 .hero-ridge {
   container-type: size;
 }
@@ -340,18 +341,29 @@
   --title-min: 3rem;
   --title-max: clamp(3.25rem, 17vw, 4.5rem);
   --photo-h: max(100cqh, 100cqw * 941 / 1672);
-  /* Where the lockup stands, as a share of the photo's height: just under
-     the central peak's tip. Phones stand higher, so the peak bites less of
-     the smaller word. */
+  /* The ridge the lockup is sized against, as a share of the photo's
+     height: just under the central peak's tip. */
   --ridge-at: 0.256;
   --ridge: calc(var(--photo-h) * var(--ridge-at) - (var(--photo-h) - 100cqh) * 0.58);
   /* Below the 5rem header. The layer box starts 4% of the frame above it. */
   --clear: calc(100cqh * 4 / 108 + 5.25rem);
   /* Wide screens crop the photo so the ridge rides high: shrink the lockup
-     to fit between the header and the ridge rather than sink it. Past the
-     floor it sinks a little deeper instead. */
+     to fit between the header and the ridge rather than sink it. */
   --title-size: max(var(--title-min), min(var(--title-max), (var(--ridge) - var(--clear)) / 1.2));
-  --lockup-top: max(var(--clear), var(--ridge) - var(--title-size) * 1.2);
+  /* Phones: the car is pinned to the search card and the photo scales with
+     the frame, so a ridge-hung title leaves an empty band above the car on
+     tall screens. The lockup stands lower instead — JOURNEY's foot on the
+     green ridge (37% of the photo, where the tree line sits across the
+     phone crop) — but always leaves 4rem above the car for the caption.
+     `--car-top` mirrors `CAR_SLOT` (hero-scene.tsx): 5.25rem off the frame
+     bottom, 66vw wide up to 24rem, 900x692; the frame ends 4% above this
+     box's bottom. */
+  --foot: calc(var(--photo-h) * 0.37 - (var(--photo-h) - 100cqh) * 0.58);
+  --car-top: calc(100cqh * 104 / 108 - 5.25rem - min(66vw, 24rem) * 692 / 900);
+  --lockup-top: max(
+    var(--clear),
+    min(var(--foot), var(--car-top) - 4rem) - var(--title-size) * 1.2
+  );
   position: absolute;
   inset-inline: 0;
 }
@@ -360,6 +372,12 @@
   .hero-ridge-anchor {
     --title-max: 4.75rem;
     --ridge-at: 0.266;
+    /* Wide crops ride the ridge high: stand just under it, a little down
+       among the peaks rather than above them. */
+    --lockup-top: calc(
+      max(var(--clear), var(--ridge) - var(--title-size) * 1.2) +
+        var(--photo-h) * 0.035
+    );
   }
 }
 
