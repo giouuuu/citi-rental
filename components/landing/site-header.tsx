@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 
 import { ZekeLogo } from "@/components/brand/zeke-logo";
 import { SiteHeaderAccountMenu } from "@/components/landing/site-header-account-menu";
+import { SiteHeaderMobileNav } from "@/components/landing/site-header-mobile-nav";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
@@ -153,6 +154,7 @@ export async function SiteHeader({
           <Button asChild className="hidden sm:inline-flex" size="default">
             <Link href="/#find-a-car">Find a car</Link>
           </Button>
+          <SiteHeaderMobileNav links={NAV_LINKS} tone={tone} />
         </div>
       </div>
     </header>

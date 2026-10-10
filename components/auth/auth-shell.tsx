@@ -3,7 +3,10 @@ import { CheckCircle2, MapPinned, RadioTower } from "lucide-react";
 
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <main className="grid min-h-dvh bg-card lg:grid-cols-[1.05fr_0.95fr]">
+    <main
+      className="grid min-h-dvh bg-card lg:grid-cols-[1.05fr_0.95fr]"
+      id="main-content"
+    >
       <section className="relative hidden overflow-hidden bg-brand-950 px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_20%,#14968b_0,transparent_28%),radial-gradient(circle_at_85%_70%,#315e7c_0,transparent_32%)]" />
         <svg

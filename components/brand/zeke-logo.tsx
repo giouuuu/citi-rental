@@ -2,6 +2,8 @@ import { ZekeMark } from "@/components/brand/zeke-mark";
 import { zekeWordmark } from "@/components/landing/landing-fonts";
 import { cn } from "@/lib/utils";
 
+const TAGLINE = [..."CAR RENTAL"];
+
 /** Live lettering keeps the service line crisp at small responsive sizes. */
 export function ZekeLogo({
   className,
@@ -12,12 +14,12 @@ export function ZekeLogo({
 }) {
   return (
     <span
-      aria-label="Zeke’s Car Rental & Tour Services"
+      aria-label="Zeke’s Car Rental"
       role="img"
       className={cn("inline-flex shrink-0 items-center gap-1.5 sm:gap-2", className)}
     >
       <ZekeMark className="size-9 sm:size-14" title="" />
-      <span aria-hidden="true" className="block">
+      <span aria-hidden="true" className="inline-block">
         <span
           className={cn(
             zekeWordmark.className,
@@ -27,13 +29,20 @@ export function ZekeLogo({
         >
           ZEKE’S
         </span>
+        {/* Spread letter by letter across the wordmark's width. */}
         <span
           className={cn(
-            "mt-1 block text-[0.375rem] leading-tight font-semibold tracking-[0.08em] whitespace-nowrap sm:mt-1.5 sm:text-[0.5rem]",
+            "mt-1 flex justify-between text-[0.5rem] leading-tight font-bold sm:mt-1.5 sm:text-[0.6875rem]",
             tone === "dark" ? "text-white/85" : "text-brand-700",
           )}
         >
-          CAR RENTAL &amp; TOUR SERVICES
+          {TAGLINE.map((letter, index) =>
+            letter === " " ? (
+              <span className="w-[0.5em]" key={index} />
+            ) : (
+              <span key={index}>{letter}</span>
+            ),
+          )}
         </span>
       </span>
     </span>

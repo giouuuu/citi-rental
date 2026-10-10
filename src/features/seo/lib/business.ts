@@ -17,6 +17,10 @@ export const BUSINESS = {
   region: "Cebu",
   postalCode: "6001",
   country: "PH",
+  /** DTI business name registration no. Shown on the site when set. */
+  dtiRegistrationNo: null as string | null,
+  /** Mayor's / business permit no. Shown on the site when set. */
+  businessPermitNo: null as string | null,
   /** Where renters pick up and drive — the places people search for. */
   areaServed: [
     "Cebu Province",

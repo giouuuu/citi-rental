@@ -30,7 +30,7 @@ const SPLASH_FADE_MS = 500;
  * (React only renders `<noscript>` contents on the server.)
  */
 const NO_SCRIPT_CSS =
-  '[data-landing-splash]{display:none}[data-intro="waiting"] :is(.focus-in,.scene-piece,.scene-car){animation-play-state:running}';
+  '[data-landing-splash]{display:none}[data-intro="waiting"] :is(.focus-in,.rise-in,.scene-piece,.scene-car){animation-play-state:running}[data-reveal-group]>*{opacity:1!important}';
 
 /**
  * The landing page's `<main>`. Every intro animation stays on its first frame

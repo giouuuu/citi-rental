@@ -73,17 +73,20 @@ const FRAME = "object-cover object-[50%_58%]";
  * up it from the horizon while the scenery settles in behind, then the layers
  * drift apart with scroll and pointer for depth.
  *
- * `title` stands among the peaks, in front of the far range and behind the
- * green ridge; `caption` sits just under it, in front of the scenery. Both
- * are decorative here (the scene is `aria-hidden`), so the page keeps its own
- * screen-reader heading.
+ * `eyebrow` stands behind the far mountain range and `title` (under it) in
+ * front of that range but behind the green ridge, so each can rise out from
+ * behind its own mountains; `caption` sits just under the title, in front of
+ * the scenery. All are decorative here (the scene is `aria-hidden`), so the
+ * page keeps its own screen-reader heading.
  */
 export function HeroScene({
   className,
+  eyebrow,
   title,
   caption,
 }: {
   className?: string;
+  eyebrow?: ReactNode;
   title?: ReactNode;
   caption?: ReactNode;
 }) {
@@ -102,6 +105,7 @@ export function HeroScene({
   useReportSceneProgress(loadedLayers + (carLoaded ? 1 : 0), LAYERS.length + 1);
   const layerRefs = useRef<Array<HTMLDivElement | null>>([]);
   const carRef = useRef<HTMLDivElement>(null);
+  const eyebrowRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const captionRef = useRef<HTMLDivElement>(null);
 
@@ -189,6 +193,7 @@ export function HeroScene({
       const titleX = current.x * POINTER_PX * TITLE_DEPTH;
       const titleY = current.y * POINTER_PX * 0.5 * TITLE_DEPTH + scroll * TITLE_SCROLL_RATE;
       const titleTransform = `translate3d(${titleX.toFixed(2)}px, ${titleY.toFixed(2)}px, 0)`;
+      if (eyebrowRef.current) eyebrowRef.current.style.transform = titleTransform;
       if (titleRef.current) titleRef.current.style.transform = titleTransform;
       const captionElement = captionRef.current;
       if (captionElement) {
@@ -289,10 +294,20 @@ export function HeroScene({
               />
             </div>
           </div>
+          {/* Behind the far mountains. */}
+          {layer.key === "sky" && eyebrow ? (
+            <div className="hero-ridge absolute -inset-[4%] will-change-transform" ref={eyebrowRef}>
+              <div className="hero-ridge-anchor" data-piece="eyebrow">
+                {eyebrow}
+              </div>
+            </div>
+          ) : null}
           {/* In front of the far mountains, behind the green ridge. */}
           {layer.key === "mountains" && title ? (
             <div className="hero-ridge absolute -inset-[4%] will-change-transform" ref={titleRef}>
-              <div className="hero-ridge-anchor top-[var(--lockup-top)]">{title}</div>
+              <div className="hero-ridge-anchor" data-piece="title">
+                {title}
+              </div>
             </div>
           ) : null}
         </Fragment>
@@ -300,7 +315,7 @@ export function HeroScene({
 
       {caption ? (
         <div className="hero-ridge absolute -inset-[4%] will-change-transform" ref={captionRef}>
-          <div className="hero-ridge-anchor top-[calc(var(--lockup-top)+var(--title-size)*1.2+0.75rem)]">
+          <div className="hero-ridge-anchor top-[var(--caption-top)]">
             {caption}
           </div>
         </div>

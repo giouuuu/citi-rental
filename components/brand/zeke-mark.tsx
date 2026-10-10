@@ -12,7 +12,7 @@ type ZekeMarkProps = {
 /** Compact car symbol, shared by customer login and contact controls. */
 export function ZekeMark({
   className,
-  title = "Zeke’s Car Rental & Tour Services",
+  title = "Zeke’s Car Rental",
 }: ZekeMarkProps) {
   return (
     <span className={cn("relative block size-10 shrink-0", className)}>

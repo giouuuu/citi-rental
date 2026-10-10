@@ -219,6 +219,11 @@
   html {
     scroll-padding-top: 5rem;
   }
+
+  /* The landing header scrolls away, so anchor jumps land flush at the top. */
+  html:has([data-surface="landing"]) {
+    scroll-padding-top: 0;
+  }
 }
 
 @layer utilities {
@@ -271,9 +276,68 @@
   }
 }
 
+/* Hero title words rise out from behind the mountains (the scene layers in
+   front hide them on the way up). `--rise-from` is set per piece on
+   `.hero-ridge-anchor`; stagger with `--focus-delay`. */
+@keyframes rise-in {
+  /* Invisible until it starts: the layers in front are still fading in. By
+     1% it is lit but still hidden behind them. */
+  from {
+    opacity: 0;
+    transform: var(--rise-from, translateY(100%));
+  }
+  1% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise-in {
+  animation: rise-in 1400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--focus-delay, 0ms);
+}
+
+/* Lists whose items rise in one after another the first time the list
+   scrolls into view (`RevealGroups` sets `data-revealed`). Items added later,
+   like cars that come back when a filter changes, rise in the same way.
+   Fill mode `backwards` holds the start only during the stagger delay, so it
+   never fights an item's own hover transform afterwards. */
+@keyframes stagger-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal-group]:not([data-revealed]) > * {
+    opacity: 0;
+  }
+
+  [data-reveal-group][data-revealed] > * {
+    animation: stagger-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--reveal-i, 0) * 80ms);
+  }
+
+  [data-reveal-group] > :nth-child(2) { --reveal-i: 1; }
+  [data-reveal-group] > :nth-child(3) { --reveal-i: 2; }
+  [data-reveal-group] > :nth-child(4) { --reveal-i: 3; }
+  [data-reveal-group] > :nth-child(5) { --reveal-i: 4; }
+  [data-reveal-group] > :nth-child(6) { --reveal-i: 5; }
+  [data-reveal-group] > :nth-child(n + 7) { --reveal-i: 6; }
+}
+
 /* The landing splash holds every intro animation on its first frame until
    the hero has loaded (`LandingIntro`); delays count from when it lifts. */
 [data-intro="waiting"] .focus-in,
+[data-intro="waiting"] .rise-in,
 [data-intro="waiting"] .scene-piece,
 [data-intro="waiting"] .scene-car {
   animation-play-state: paused;
@@ -337,55 +401,81 @@
 }
 
 .hero-ridge-anchor {
-  /* JOURNEY's font size range; the whole lockup is about 1.2x this tall. */
-  --title-min: 3rem;
-  --title-max: clamp(3.25rem, 17vw, 4.5rem);
   --photo-h: max(100cqh, 100cqw * 941 / 1672);
-  /* The ridge the lockup is sized against, as a share of the photo's
-     height: just under the central peak's tip. */
-  --ridge-at: 0.256;
-  --ridge: calc(var(--photo-h) * var(--ridge-at) - (var(--photo-h) - 100cqh) * 0.58);
   /* Below the 5rem header. The layer box starts 4% of the frame above it. */
   --clear: calc(100cqh * 4 / 108 + 5.25rem);
-  /* Wide screens crop the photo so the ridge rides high: shrink the lockup
-     to fit between the header and the ridge rather than sink it. */
-  --title-size: max(var(--title-min), min(var(--title-max), (var(--ridge) - var(--clear)) / 1.2));
-  /* Phones: the car is pinned to the search card and the photo scales with
-     the frame, so a ridge-hung title leaves an empty band above the car on
-     tall screens. The lockup stands lower instead — JOURNEY's foot on the
-     green ridge (37% of the photo, where the tree line sits across the
-     phone crop) — but always leaves 4rem above the car for the caption.
-     `--car-top` mirrors `CAR_SLOT` (hero-scene.tsx): 5.25rem off the frame
-     bottom, 66vw wide up to 24rem, 900x692; the frame ends 4% above this
-     box's bottom. */
+  /* JOURNEY's foot stands on the green ridge (37% of the photo, where the
+     tree line sits behind the word) ... */
   --foot: calc(var(--photo-h) * 0.37 - (var(--photo-h) - 100cqh) * 0.58);
+  /* ... but on phones always leaves room above the car for the caption,
+     which hangs under the title. `--car-top` mirrors `CAR_SLOT`
+     (hero-scene.tsx): 5.25rem off the frame bottom, 66vw wide up to 24rem,
+     900x692; the frame ends 4% above this box's bottom. */
   --car-top: calc(100cqh * 104 / 108 - 5.25rem - min(66vw, 24rem) * 692 / 900);
-  --lockup-top: max(
-    var(--clear),
-    min(var(--foot), var(--car-top) - 4rem) - var(--title-size) * 1.2
+  --caption-room: 4rem;
+  --band-top: var(--clear);
+  --lockup-bottom: min(var(--foot), var(--car-top) - var(--caption-room));
+  /* JOURNEY's font size: as tall as the band from `--band-top` to that foot
+     allows, but no wider than `--title-max` (League Gothic's JOURNEY is
+     2.45em wide, so 36vw keeps it inside 88vw on phones). */
+  --title-min: 3.5rem;
+  --title-max: 36vw;
+  --title-size: max(
+    var(--title-min),
+    min(var(--title-max), (var(--lockup-bottom) - var(--band-top) - 0.5rem) / var(--lockup-ratio))
   );
+  /* Lockup geometry, in ems of each word (page.tsx reads the line heights):
+     YOUR CEBU's line, a gap, then JOURNEY's line. `--lockup-ratio` is the
+     lockup's height per `--title-size`, for sizing it to the band. */
+  --eyebrow-size: max(0.8rem, var(--title-size) * 0.16);
+  --eyebrow-lh: 1;
+  --title-lh: 0.86;
+  --title-gap: 0.06;
+  --lockup-ratio: 1.08;
+  --eyebrow-h: calc(var(--eyebrow-size) * var(--eyebrow-lh));
+  --lockup-h: calc(var(--eyebrow-h) + var(--title-size) * (var(--title-gap) + var(--title-lh)));
+  --lockup-top: max(var(--band-top), var(--lockup-bottom) - var(--lockup-h));
+  --title-top: calc(var(--lockup-top) + var(--eyebrow-h) + var(--title-size) * var(--title-gap));
+  --caption-top: calc(var(--lockup-top) + var(--lockup-h) + 0.75rem);
   position: absolute;
   inset-inline: 0;
 }
 
-@media (min-width: 640px) {
+/* md+: the car is large and stands high, so a title kept clear of it would
+   be tiny. The caption moves above the lockup instead, and JOURNEY runs down
+   to just above the green ridge, the car free to stand in front of it. The
+   stack is set tight: each word's line box hugs its capitals (League
+   Gothic's caps are 0.735em; 0.76 keeps round letters' overshoot inside the
+   gradient-clipped box). */
+@media (min-width: 768px) {
   .hero-ridge-anchor {
-    --title-max: 4.75rem;
-    --ridge-at: 0.266;
-    /* Wide crops ride the ridge high: stand just under it, a little down
-       among the peaks rather than above them. */
-    --lockup-top: calc(
-      max(var(--clear), var(--ridge) - var(--title-size) * 1.2) +
-        var(--photo-h) * 0.035
-    );
+    --caption-room: 2.75rem;
+    --band-top: calc(var(--clear) + var(--caption-room));
+    --lockup-bottom: calc(var(--foot) - var(--photo-h) * 0.01);
+    --eyebrow-lh: 0.76;
+    --title-lh: 0.76;
+    --title-gap: 0.05;
+    --lockup-ratio: 0.93;
+    --title-max: 30vw;
+    --caption-top: calc(var(--lockup-top) - var(--caption-room));
   }
 }
 
-@media (min-width: 1024px) {
-  .hero-ridge-anchor {
-    --title-min: 4.5rem;
-    --title-max: min(8rem, 13svh);
-  }
+/* Each word rises into place from behind its own mountains (`.rise-in`),
+   starting below the line that hides it: YOUR CEBU from under the far
+   range (36% of the photo), JOURNEY from under the green ridge (45%). */
+.hero-ridge-anchor[data-piece="eyebrow"] {
+  top: var(--lockup-top);
+  --rise-from: translateY(
+    calc(var(--photo-h) * 0.36 - (var(--photo-h) - 100cqh) * 0.58 - var(--lockup-top))
+  );
+}
+
+.hero-ridge-anchor[data-piece="title"] {
+  top: var(--title-top);
+  --rise-from: translateY(
+    calc(var(--photo-h) * 0.45 - (var(--photo-h) - 100cqh) * 0.58 - var(--title-top))
+  );
 }
 
 @keyframes page-enter {
@@ -430,6 +520,7 @@
 
   /* Without this, staggered intro elements would sit invisible for their delay. */
   .focus-in,
+  .rise-in,
   .scene-piece,
   .scene-car {
     animation-delay: 0ms !important;

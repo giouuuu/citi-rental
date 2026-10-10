@@ -16,3 +16,16 @@ export function agreementDeliveryFee(): string | null {
   )?.detail;
   return detail ? detail.charAt(0).toLowerCase() + detail.slice(1) : null;
 }
+
+/**
+ * The lowest per-way delivery fee in the rental agreement (the Cebu City
+ * rate), as a number for headline figures. Null if the agreement ever drops
+ * the charge or stops stating it in pesos.
+ */
+export function agreementDeliveryFromAmount(): number | null {
+  const fee = agreementDeliveryFee();
+  const amounts = [...(fee?.matchAll(/₱\s?([\d,]+)/g) ?? [])]
+    .map((match) => Number(match[1].replace(/,/g, "")))
+    .filter((amount) => Number.isFinite(amount) && amount > 0);
+  return amounts.length ? Math.min(...amounts) : null;
+}

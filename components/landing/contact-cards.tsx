@@ -11,8 +11,8 @@ import {
 import type { ContactChannel } from "@/features/settings/lib/contact-channels";
 
 const CARD_CLASS =
-  "flex h-full w-full items-center gap-4 rounded-2xl bg-card p-4 text-left ring-1 ring-border transition-[box-shadow,background-color] outline-none sm:p-5";
-const LINK_CARD_CLASS = `${CARD_CLASS} hover:bg-muted/50 hover:ring-brand-950/20 focus-visible:ring-2 focus-visible:ring-ring`;
+  "flex h-full w-full items-center gap-4 rounded-2xl bg-card p-4 text-left ring-1 ring-border outline-none sm:p-5";
+const LINK_CARD_CLASS = `${CARD_CLASS} transition-[transform,box-shadow,background-color] duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-24px_rgb(7_17_31/0.35)] hover:ring-teal-500/40 focus-visible:ring-2 focus-visible:ring-ring active:translate-y-0`;
 
 /**
  * Every way to reach the owner, laid out in the page for visitors who scroll
@@ -33,7 +33,10 @@ export function ContactCards({
 
   return (
     <>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ul
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        data-reveal-group=""
+      >
         {channels.map((channel) => (
           <li key={channel.key}>
             {channel.href ? (
@@ -45,7 +48,9 @@ export function ContactCards({
               >
                 <CardBody
                   detail={channel.detail}
-                  icon={<BrandTile channelKey={channel.key} className="size-11" />}
+                  icon={
+                    <BrandTile channelKey={channel.key} className="size-11" />
+                  }
                   label={channel.label}
                   nativeLabel={channel.nativeLabel}
                 />
@@ -66,7 +71,9 @@ export function ContactCards({
                       ? (copyHints[channel.key] ?? "Copied")
                       : `${channel.detail} · Tap to copy ID`
                   }
-                  icon={<BrandTile channelKey={channel.key} className="size-11" />}
+                  icon={
+                    <BrandTile channelKey={channel.key} className="size-11" />
+                  }
                   label={channel.label}
                   nativeLabel={channel.nativeLabel}
                 />
