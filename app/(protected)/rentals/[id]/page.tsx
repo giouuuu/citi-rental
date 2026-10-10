@@ -320,6 +320,7 @@ export default async function Page({
               hasAgreement={hasAgreement}
               inspections={inspections}
               rentalId={id}
+              rentalStatus={status}
             />
           }
           payments={

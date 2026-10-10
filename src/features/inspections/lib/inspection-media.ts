@@ -6,6 +6,13 @@ export const INSPECTION_PHOTOS_BUCKET = "rental-inspection-photos";
 /** Gallery photos and videos per inspection, on top of damage close-ups. */
 export const MAX_GALLERY_ITEMS = 40;
 
+/**
+ * Photos (not videos) an inspection needs before it can be submitted. Videos
+ * and further photos are optional and can be added until the rental is
+ * completed, so a failed video upload never holds up a release.
+ */
+export const MIN_INSPECTION_PHOTOS = 2;
+
 const VIDEO_EXTENSIONS = new Set(["mp4", "webm", "mov"]);
 const MEDIA_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif", "mp4"]);
 

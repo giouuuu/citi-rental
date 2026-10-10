@@ -49,6 +49,12 @@ type InspectionRow = {
     kind: InspectionPhotoKind;
     caption: string | null;
     item_id: string | null;
+    added_late: boolean | null;
+    created_at: string;
+    added_by_profile:
+      | { full_name: string | null }
+      | Array<{ full_name: string | null }>
+      | null;
   }> | null;
 };
 
@@ -97,6 +103,12 @@ function mapInspection(
       caption: photo.caption,
       itemId: photo.item_id,
       signedUrl: signedUrls.get(photo.storage_path) ?? null,
+      addedLate: photo.added_late === true,
+      addedAt: photo.created_at,
+      addedByName:
+        (Array.isArray(photo.added_by_profile)
+          ? photo.added_by_profile[0]?.full_name
+          : photo.added_by_profile?.full_name) ?? null,
     })),
   };
 }
@@ -134,7 +146,8 @@ export async function listRentalInspections(
         id, area_code, label, item_group, body_map_zone, status, severity, notes
       ),
       rental_inspection_photos (
-        id, storage_path, kind, caption, item_id
+        id, storage_path, kind, caption, item_id, added_late, created_at,
+        added_by_profile:profiles!rental_inspection_photos_added_by_fkey ( full_name )
       )
     `,
     )

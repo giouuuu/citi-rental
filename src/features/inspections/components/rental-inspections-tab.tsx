@@ -8,14 +8,27 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { AddInspectionMediaDialog } from "@/features/inspections/components/add-inspection-media-dialog";
 import { InspectionComparison } from "@/features/inspections/components/inspection-comparison";
 import { InspectionMediaGrid } from "@/features/inspections/components/inspection-media-grid";
 import { statusLabel } from "@/features/inspections/lib/checklist-areas";
+import {
+  MAX_GALLERY_ITEMS,
+  galleryMedia,
+} from "@/features/inspections/lib/inspection-media";
 import { formatManila } from "@/features/shared/lib/manila-time";
 import type { RentalInspection } from "@/features/inspections/types/inspection";
 
-function InspectionSummaryCard({ inspection }: { inspection: RentalInspection }) {
+function InspectionSummaryCard({
+  inspection,
+  canAddMedia,
+}: {
+  inspection: RentalInspection;
+  /** Late photos and videos are accepted until the rental is completed. */
+  canAddMedia: boolean;
+}) {
   const issues = inspection.items.filter((item) => item.status !== "ok");
+  const roomLeft = MAX_GALLERY_ITEMS - galleryMedia(inspection.photos).length;
 
   return (
     <article className="space-y-3 rounded-lg border border-border p-4">
@@ -48,9 +61,20 @@ function InspectionSummaryCard({ inspection }: { inspection: RentalInspection })
         className="sm:grid-cols-6"
         media={inspection.photos.filter((photo) => photo.kind !== "signature")}
       />
-      {inspection.customerAcknowledgedAt ? (
-        <p className="text-xs text-teal-700">Customer acknowledged</p>
-      ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {inspection.customerAcknowledgedAt ? (
+          <p className="text-xs text-teal-700">Customer acknowledged</p>
+        ) : (
+          <span />
+        )}
+        {canAddMedia ? (
+          <AddInspectionMediaDialog
+            inspectionId={inspection.id}
+            rentalId={inspection.rentalId}
+            roomLeft={roomLeft}
+          />
+        ) : null}
+      </div>
     </article>
   );
 }
@@ -58,10 +82,12 @@ function InspectionSummaryCard({ inspection }: { inspection: RentalInspection })
 export function RentalInspectionsTab({
   rentalId,
   inspections,
+  rentalStatus,
   hasAgreement = false,
 }: {
   rentalId: string;
   inspections: RentalInspection[];
+  rentalStatus: string;
   /** A rental agreement was signed at release. */
   hasAgreement?: boolean;
 }) {
@@ -112,7 +138,11 @@ export function RentalInspectionsTab({
       </div>
       <InspectionComparison pickup={pickup} ret={ret} />
       {inspections.map((inspection) => (
-        <InspectionSummaryCard key={inspection.id} inspection={inspection} />
+        <InspectionSummaryCard
+          key={inspection.id}
+          canAddMedia={rentalStatus !== "completed" && rentalStatus !== "cancelled"}
+          inspection={inspection}
+        />
       ))}
     </div>
   );

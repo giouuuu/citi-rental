@@ -8,7 +8,10 @@
 export type BookingEmailKind =
   | "booking_confirmed"
   | "deposit_confirmed"
-  | "booking_reminder";
+  | "booking_reminder"
+  // Sent with a PDF attached (documents.ts).
+  | "rental_released"
+  | "rental_completed";
 
 export type BookingEmailBooking = {
   id: string;
@@ -30,6 +33,8 @@ export type BookingEmailBooking = {
 };
 
 export type BookingEmailCompany = {
+  /** Registered business name, printed on the PDFs. */
+  name?: string | null;
   phone: string | null;
   email: string | null;
   address: string | null;
@@ -141,7 +146,11 @@ function carLabel(booking: BookingEmailBooking): string {
 
 type Row = { label: string; value: string };
 
-function detailRows(booking: BookingEmailBooking, timeZone: string): Row[] {
+function detailRows(
+  booking: BookingEmailBooking,
+  timeZone: string,
+  kind: BookingEmailKind,
+): Row[] {
   const rows: Row[] = [];
   if (booking.referenceNumber) {
     rows.push({ label: "Reference", value: booking.referenceNumber });
@@ -185,7 +194,13 @@ function detailRows(booking: BookingEmailBooking, timeZone: string): Row[] {
     rows.push({ label: "Reservation fee paid", value: formatPeso(deposit) });
   }
   if (balance != null && balance > 0) {
-    rows.push({ label: "Balance due at pickup", value: formatPeso(balance) });
+    rows.push({
+      label:
+        kind === "rental_released" || kind === "rental_completed"
+          ? "Balance due"
+          : "Balance due at pickup",
+      value: formatPeso(balance),
+    });
   }
   return rows;
 }
@@ -261,13 +276,35 @@ function copyFor(input: BookingEmailInput, timeZone: string): Copy {
         showBring: true,
       };
     }
+    case "rental_released":
+      return {
+        subject: `Your rental agreement and pickup report: ${car}${ref}`,
+        preheader: `Your signed rental agreement and the pickup condition report for your ${car}.`,
+        heading: "Enjoy your trip",
+        paragraphs: [
+          `Your ${car} has been released to you. Attached is a PDF of your signed rental agreement and the condition report from pickup.`,
+          `Please return the car by ${formatWhen(booking.returnAt, timeZone)}. Keep this email for your records.`,
+        ],
+        showBring: false,
+      };
+    case "rental_completed":
+      return {
+        subject: `Your return condition report: ${car}${ref}`,
+        preheader: `The condition report comparing pickup and return for your ${car}.`,
+        heading: "Thanks for renting with us",
+        paragraphs: [
+          `Your ${car} has been returned and your rental is complete. Attached is a PDF of the condition report comparing pickup and return, with any charges.`,
+          "We hope to see you again soon.",
+        ],
+        showBring: false,
+      };
   }
 }
 
 export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
   const timeZone = input.company.timezone?.trim() || "Asia/Manila";
   const copy = copyFor(input, timeZone);
-  const rows = detailRows(input.booking, timeZone);
+  const rows = detailRows(input.booking, timeZone, input.kind);
   const bring = copy.showBring ? bringList(input.booking) : [];
   const name = firstName(input.booking.customerName);
   const greeting = name ? `Hi ${name},` : "Hi,";

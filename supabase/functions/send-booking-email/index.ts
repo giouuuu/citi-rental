@@ -1,13 +1,22 @@
-// Sends one queued customer booking email (see the booking_emails migration).
+// Sends one queued customer booking email (see the booking_emails and
+// release_return_emails migrations).
 //
 // Called by pg_net with { notification_id } and the x-booking-email-secret
 // header. Claims the outbox row, renders the email from live booking data,
-// sends it through Resend, and records the result.
+// sends it through Resend, and records the result. The release and return
+// emails carry a PDF of the signed agreement and condition report.
 //
 // Secrets: RESEND_API_KEY, BOOKING_EMAIL_SECRET; optional EMAIL_FROM, SITE_URL.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+import {
+  type DocumentEmailKind,
+  type EmailDocuments,
+  buildRentalPdf,
+  documentFilename,
+  signaturePaths,
+} from "./documents.ts";
 import {
   type BookingEmailBooking,
   type BookingEmailCompany,
@@ -18,6 +27,19 @@ import {
 /** Must be an address on a domain verified in Resend. */
 const DEFAULT_FROM = "Zeke Car Rental & Services <no-reply@zekecebucarrental.com>";
 const DEFAULT_SITE_URL = "https://www.zekecebucarrental.com";
+const SIGNATURE_BUCKET = "rental-inspection-photos";
+
+function isDocumentKind(kind: BookingEmailKind): kind is DocumentEmailKind {
+  return kind === "rental_released" || kind === "rental_completed";
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
 
 type Claim =
   | { claimed: false; reason: string }
@@ -29,6 +51,9 @@ type Claim =
       recipient: string;
       booking: BookingEmailBooking;
       company: BookingEmailCompany;
+      /** Release and return emails only. */
+      documents?: EmailDocuments | null;
+      plateNumber?: string | null;
     };
 
 function json(body: unknown, status = 200) {
@@ -112,13 +137,65 @@ Deno.serve(async (req) => {
     return json({ error: "Email sending is not configured" }, 503);
   }
 
+  const siteUrl = (Deno.env.get("SITE_URL")?.trim() || DEFAULT_SITE_URL).replace(/\/$/, "");
+  const attachments: Array<{ filename: string; content: string }> = [];
+  if (isDocumentKind(claim.kind)) {
+    if (!claim.documents) {
+      await finish({ sent: false, error: "No documents to attach.", retry: false });
+      return json({ error: "No documents" }, 500);
+    }
+    const signatures = new Map<string, Uint8Array>();
+    for (const path of signaturePaths(claim.documents)) {
+      const { data: file, error } = await supabase.storage
+        .from(SIGNATURE_BUCKET)
+        .download(path);
+      if (error || !file) {
+        await finish({
+          sent: false,
+          error: `Signature download failed: ${error?.message ?? path}`,
+        });
+        return json({ error: "Signature download failed" }, 502);
+      }
+      signatures.set(path, new Uint8Array(await file.arrayBuffer()));
+    }
+    try {
+      const pdf = await buildRentalPdf({
+        kind: claim.kind,
+        documents: claim.documents,
+        referenceNumber: claim.booking.referenceNumber,
+        customerName: claim.booking.customerName,
+        vehicleName: claim.booking.vehicleName,
+        plateNumber: claim.plateNumber ?? null,
+        startAt: claim.booking.startAt,
+        returnAt: claim.booking.returnAt,
+        company: {
+          name: claim.company.name ?? null,
+          phone: claim.company.phone,
+          email: claim.company.email,
+          address: claim.company.address,
+          timezone: claim.company.timezone,
+        },
+        signatures,
+        reportUrl: `${siteUrl}/account/bookings/${encodeURIComponent(claim.booking.id)}/condition`,
+      });
+      attachments.push({
+        filename: documentFilename(claim.kind, claim.booking.referenceNumber),
+        content: toBase64(pdf),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await finish({ sent: false, error: `PDF failed: ${message}`, retry: false });
+      return json({ error: "PDF failed" }, 500);
+    }
+  }
+
   let email;
   try {
     email = renderBookingEmail({
       kind: claim.kind,
       booking: claim.booking,
       company: claim.company,
-      siteUrl: Deno.env.get("SITE_URL")?.trim() || DEFAULT_SITE_URL,
+      siteUrl,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -144,6 +221,7 @@ Deno.serve(async (req) => {
         html: email.html,
         text: email.text,
         ...(replyTo ? { reply_to: replyTo } : {}),
+        ...(attachments.length ? { attachments } : {}),
         tags: [{ name: "kind", value: claim.kind }],
       }),
     });

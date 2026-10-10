@@ -66,6 +66,10 @@ export type InspectionPhoto = {
   caption: string | null;
   itemId: string | null;
   signedUrl?: string | null;
+  /** Attached after the inspection was submitted, not at the handover. */
+  addedLate?: boolean;
+  addedAt?: string | null;
+  addedByName?: string | null;
 };
 
 export type RentalInspection = {

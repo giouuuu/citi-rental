@@ -23,6 +23,7 @@ import {
   useInspectionFormState,
 } from "@/features/inspections/hooks/use-inspection-form-state";
 import { isDamageStatus } from "@/features/inspections/lib/checklist-areas";
+import { MIN_INSPECTION_PHOTOS } from "@/features/inspections/lib/inspection-media";
 import type {
   InspectionChecklist,
   InspectionType,
@@ -67,13 +68,22 @@ export function RentalInspectionForm({
   const flaggedCount = form.items.filter((item) =>
     isDamageStatus(item.status),
   ).length;
-  const { readyCount, compressingCount, missingDamage } = missingInspectionMedia({
-    items: form.items,
-    media: form.gallery.media,
-    damageFiles: form.damageFiles,
-  });
+  const { readyCount, readyPhotoCount, compressingCount, missingDamage } =
+    missingInspectionMedia({
+      items: form.items,
+      media: form.gallery.media,
+      damageFiles: form.damageFiles,
+    });
+  // Only the required photos and close-ups gate the step; videos still
+  // compressing or uploading are optional.
   const mediaBlocked =
-    readyCount === 0 || compressingCount > 0 || missingDamage.length > 0;
+    readyPhotoCount < MIN_INSPECTION_PHOTOS || missingDamage.length > 0;
+  const galleryTotal = form.gallery.media.filter(
+    (entry) => entry.status === "ready",
+  ).length;
+  const galleryUploaded = form.gallery.media.filter(
+    (entry) => entry.upload === "uploaded",
+  ).length;
 
   // Every step starts at the top of the single scroll region.
   useEffect(() => {
@@ -163,6 +173,7 @@ export function RentalInspectionForm({
               form.setDamageFiles((prev) => ({ ...prev, [areaCode]: file }))
             }
             onRemoveMedia={form.gallery.remove}
+            onRetryMedia={(id) => void form.gallery.retry(id)}
           />
         ) : null}
 
@@ -218,32 +229,49 @@ export function RentalInspectionForm({
                 : "No damage flagged yet"
               : null}
             {lastStep && form.uploadStatus ? form.uploadStatus : null}
-            {form.step === "photos" && !(lastStep && form.uploadStatus)
-              ? compressingCount > 0
-                ? `Compressing ${compressingCount} file${compressingCount === 1 ? "" : "s"}…`
-                : readyCount === 0
-                  ? "Add at least one photo or video"
-                  : missingDamage.length > 0
+            {form.phase === "gallery"
+              ? `Uploading photos & videos: ${galleryUploaded} of ${galleryTotal}…`
+              : null}
+            {form.phase === "saving" ? "Saving inspection…" : null}
+            {form.step === "photos" && form.phase === "idle"
+              ? readyPhotoCount < MIN_INSPECTION_PHOTOS
+                ? compressingCount > 0
+                  ? `Compressing ${compressingCount} file${compressingCount === 1 ? "" : "s"}…`
+                  : `Add at least ${MIN_INSPECTION_PHOTOS} photos`
+                : missingDamage.length > 0
                     ? `Still needed: ${missingDamage
                         .slice(0, 2)
                         .map((item) => `${item.label} close-up`)
                         .join(", ")}${missingDamage.length > 2 ? ` +${missingDamage.length - 2} more` : ""}`
+                  : compressingCount > 0
+                    ? `${readyCount} ready · compressing ${compressingCount} more`
                     : `${readyCount} photo${readyCount === 1 ? "" : "s"} & video${readyCount === 1 ? "" : "s"} ready`
               : null}
           </p>
         </div>
 
         {lastStep ? (
-          <Button
-            disabled={form.pending}
-            type="button"
-            onClick={() => void form.submit()}
-          >
-            {form.pending ? <LoaderCircle className="animate-spin" /> : null}
-            {inspectionType === "pickup"
-              ? "Submit & start rental"
-              : "Submit & complete rental"}
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            {form.canSkipUploads ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={form.skipRemainingUploads}
+              >
+                {inspectionType === "pickup" ? "Skip & add later" : "Skip the rest"}
+              </Button>
+            ) : null}
+            <Button
+              disabled={form.pending}
+              type="button"
+              onClick={() => void form.submit()}
+            >
+              {form.pending ? <LoaderCircle className="animate-spin" /> : null}
+              {inspectionType === "pickup"
+                ? "Submit & start rental"
+                : "Submit & complete rental"}
+            </Button>
+          </div>
         ) : (
           <Button
             disabled={form.step === "photos" && mediaBlocked}

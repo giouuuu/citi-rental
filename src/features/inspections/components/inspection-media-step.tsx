@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { AlertCircleIcon, CheckIcon, PlayIcon, X } from "lucide-react";
+import {
+  AlertCircleIcon,
+  CheckIcon,
+  CloudUploadIcon,
+  PlayIcon,
+  RotateCwIcon,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,6 +20,7 @@ import type { MediaDraft } from "@/features/inspections/hooks/use-inspection-med
 import { isDamageStatus } from "@/features/inspections/lib/checklist-areas";
 import {
   MAX_GALLERY_ITEMS,
+  MIN_INSPECTION_PHOTOS,
   galleryMedia,
 } from "@/features/inspections/lib/inspection-media";
 import type { RentalInspection } from "@/features/inspections/types/inspection";
@@ -32,14 +40,20 @@ export function missingInspectionMedia({
   media: MediaDraft[];
   damageFiles: Record<string, File | null>;
 }) {
-  const readyCount = media.filter((entry) => entry.status === "ready").length;
+  const ready = media.filter((entry) => entry.status === "ready");
+  const readyPhotoCount = ready.filter((entry) => entry.type === "image").length;
   const compressingCount = media.filter(
     (entry) => entry.status === "compressing",
   ).length;
   const missingDamage = items.filter(
     (item) => isDamageStatus(item.status) && !damageFiles[item.areaCode],
   );
-  return { readyCount, compressingCount, missingDamage };
+  return {
+    readyCount: ready.length,
+    readyPhotoCount,
+    compressingCount,
+    missingDamage,
+  };
 }
 
 function formatBytes(bytes: number) {
@@ -48,12 +62,57 @@ function formatBytes(bytes: number) {
     : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-function MediaDraftTile({
+/** Where a compressed file is on its way to storage. */
+function UploadBadge({
+  draft,
+  onRetry,
+}: {
+  draft: MediaDraft;
+  onRetry?: () => void;
+}) {
+  if (draft.status !== "ready") return null;
+  if (draft.upload === "failed") {
+    return (
+      <Button
+        className="absolute right-1 bottom-1 h-6 gap-1 px-1.5 text-[10px]"
+        onClick={onRetry}
+        size="sm"
+        type="button"
+        variant="destructive"
+      >
+        <RotateCwIcon className="size-3" />
+        Retry
+      </Button>
+    );
+  }
+  return (
+    <span
+      className={cn(
+        "absolute right-1 bottom-1 flex size-5 items-center justify-center rounded-full text-white",
+        draft.upload === "uploaded" ? "bg-primary" : "bg-black/60",
+      )}
+      title={draft.upload === "uploaded" ? "Uploaded" : "Uploading…"}
+    >
+      {draft.upload === "uploaded" ? (
+        <CheckIcon className="size-3" />
+      ) : (
+        <CloudUploadIcon className="size-3" />
+      )}
+      <span className="sr-only">
+        {draft.upload === "uploaded" ? "Uploaded" : "Uploading"}
+      </span>
+    </span>
+  );
+}
+
+export function MediaDraftTile({
   draft,
   onRemove,
+  onRetry,
 }: {
   draft: MediaDraft;
   onRemove: () => void;
+  onRetry?: () => void;
 }) {
   return (
     <li className="relative aspect-square overflow-hidden rounded-md border bg-muted">
@@ -114,6 +173,8 @@ function MediaDraftTile({
           {formatBytes(draft.file.size)}
         </span>
       ) : null}
+
+      <UploadBadge draft={draft} onRetry={onRetry} />
 
       <Button
         aria-label={`Remove ${draft.name}`}
@@ -199,6 +260,7 @@ export function InspectionMediaStep({
   referenceInspection = null,
   onAddMedia,
   onRemoveMedia,
+  onRetryMedia,
   onDamage,
 }: {
   items: ChecklistDraftItem[];
@@ -208,6 +270,7 @@ export function InspectionMediaStep({
   referenceInspection?: RentalInspection | null;
   onAddMedia: (files: File[]) => void;
   onRemoveMedia: (id: string) => void;
+  onRetryMedia: (id: string) => void;
   onDamage: (areaCode: string, file: File | null) => void;
 }) {
   const damaged = items.filter((item) => isDamageStatus(item.status));
@@ -243,6 +306,9 @@ export function InspectionMediaStep({
   }
 
   const readyCount = media.filter((entry) => entry.status === "ready").length;
+  const readyPhotoCount = media.filter(
+    (entry) => entry.status === "ready" && entry.type === "image",
+  ).length;
   const full = media.length >= MAX_GALLERY_ITEMS;
   // Remount the zone after each pick so the same file can be picked again.
   const [pickKey, setPickKey] = useState(0);
@@ -267,8 +333,9 @@ export function InspectionMediaStep({
               Photos &amp; videos<span className="text-destructive"> *</span>
             </h3>
             <p className="text-xs text-muted-foreground">
-              Walk around the car: outside, inside, dashboard, anything worth
-              recording. Add as many as you need.
+              At least {MIN_INSPECTION_PHOTOS} photos of the car. Videos and
+              more photos are optional — they upload in the background, and one
+              that fails won&apos;t hold up the inspection.
             </p>
           </div>
           <span
@@ -276,6 +343,9 @@ export function InspectionMediaStep({
             className="text-xs font-medium text-muted-foreground tabular-nums"
           >
             {readyCount} added
+            {readyPhotoCount < MIN_INSPECTION_PHOTOS
+              ? ` · ${MIN_INSPECTION_PHOTOS - readyPhotoCount} more photo${MIN_INSPECTION_PHOTOS - readyPhotoCount === 1 ? "" : "s"} needed`
+              : ""}
           </span>
         </header>
 
@@ -307,6 +377,7 @@ export function InspectionMediaStep({
                 key={draft.id}
                 draft={draft}
                 onRemove={() => onRemoveMedia(draft.id)}
+                onRetry={() => onRetryMedia(draft.id)}
               />
             ))}
           </ul>

@@ -2,12 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { MAX_GALLERY_ITEMS } from "@/features/inspections/lib/inspection-media";
+import {
+  INSPECTION_PHOTOS_BUCKET,
+  MAX_GALLERY_ITEMS,
+} from "@/features/inspections/lib/inspection-media";
+import { uploadInspectionMedia } from "@/features/inspections/lib/upload-inspection-media";
 import { compressImage } from "@/features/shared/lib/compress-image";
 import {
   VideoCompressionError,
   compressVideo,
 } from "@/features/shared/lib/compress-video";
+import { createClient } from "@/lib/supabase/client";
 
 export type MediaDraft = {
   id: string;
@@ -20,7 +25,12 @@ export type MediaDraft = {
   file: File | null;
   previewUrl: string | null;
   error: string | null;
+  /** Storage upload, started as soon as the file is compressed. */
+  upload: "idle" | "uploading" | "uploaded" | "failed";
 };
+
+/** A gallery file that reached storage. */
+export type UploadedMedia = { id: string; type: MediaDraft["type"]; path: string };
 
 function isVideoFile(file: File) {
   return (
@@ -32,15 +42,28 @@ function isVideoFile(file: File) {
 /**
  * The inspection's free photo/video gallery. Every file is compressed as soon
  * as it is added — photos to ~0.8MB, videos to a 720p MP4 — one at a time,
- * so a phone is not asked to encode three videos at once. Nothing reaches
- * storage until the inspection is submitted.
+ * so a phone is not asked to encode three videos at once. Each compressed
+ * file then uploads in the background, so most of the gallery is already in
+ * storage by the time the inspection is submitted, and a slow or failed
+ * video never holds up the rest.
  */
-export function useInspectionMedia() {
+export function useInspectionMedia({
+  rentalId,
+  maxItems = MAX_GALLERY_ITEMS,
+}: {
+  rentalId: string;
+  /** Room left in the inspection's gallery. */
+  maxItems?: number;
+}) {
   const [media, setMedia] = useState<MediaDraft[]>([]);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
   const queue = useRef(Promise.resolve());
   const removed = useRef(new Set<string>());
   const urls = useRef(new Set<string>());
+  // Refs, not state, so an awaiting submit reads the live upload results.
+  const files = useRef(new Map<string, { file: File; type: MediaDraft["type"] }>());
+  const uploads = useRef(new Map<string, Promise<string | null>>());
+  const paths = useRef(new Map<string, string>());
 
   useEffect(() => {
     const owned = urls.current;
@@ -56,6 +79,35 @@ export function useInspectionMedia() {
     );
   }, []);
 
+  const startUpload = useCallback(
+    (id: string): Promise<string | null> => {
+      const entry = files.current.get(id);
+      if (!entry || removed.current.has(id)) return Promise.resolve(null);
+      const existing = paths.current.get(id);
+      if (existing) return Promise.resolve(existing);
+
+      patch(id, { upload: "uploading" });
+      const run = uploadInspectionMedia({ rentalId, file: entry.file, kind: "other" })
+        .then((path) => {
+          if (removed.current.has(id)) {
+            void createClient().storage.from(INSPECTION_PHOTOS_BUCKET).remove([path]);
+            return null;
+          }
+          paths.current.set(id, path);
+          patch(id, { upload: "uploaded" });
+          return path;
+        })
+        .catch(() => {
+          patch(id, { upload: "failed" });
+          return null;
+        })
+        .finally(() => uploads.current.delete(id));
+      uploads.current.set(id, run);
+      return run;
+    },
+    [patch, rentalId],
+  );
+
   const compress = useCallback(
     async (id: string, source: File, type: MediaDraft["type"]) => {
       if (removed.current.has(id)) return;
@@ -69,7 +121,9 @@ export function useInspectionMedia() {
         if (removed.current.has(id)) return;
         const previewUrl = URL.createObjectURL(file);
         urls.current.add(previewUrl);
+        files.current.set(id, { file, type });
         patch(id, { status: "ready", progress: 1, file, previewUrl });
+        void startUpload(id);
       } catch (error) {
         patch(id, {
           status: "error",
@@ -82,16 +136,16 @@ export function useInspectionMedia() {
         });
       }
     },
-    [patch],
+    [patch, startUpload],
   );
 
   const addFiles = useCallback(
-    (files: File[]) => {
-      const room = Math.max(0, MAX_GALLERY_ITEMS - media.length);
-      const accepted = files.slice(0, room);
+    (picked: File[]) => {
+      const room = Math.max(0, maxItems - media.length);
+      const accepted = picked.slice(0, room);
       setLimitNotice(
-        accepted.length < files.length
-          ? `An inspection holds up to ${MAX_GALLERY_ITEMS} photos and videos. ${files.length - accepted.length} skipped.`
+        accepted.length < picked.length
+          ? `An inspection holds up to ${MAX_GALLERY_ITEMS} photos and videos. ${picked.length - accepted.length} skipped.`
           : null,
       );
       if (accepted.length === 0) return;
@@ -106,6 +160,7 @@ export function useInspectionMedia() {
           file: null,
           previewUrl: null,
           error: null,
+          upload: "idle",
         }),
       );
       setMedia((prev) => [...prev, ...drafts]);
@@ -115,7 +170,7 @@ export function useInspectionMedia() {
         );
       });
     },
-    [compress, media.length],
+    [compress, maxItems, media.length],
   );
 
   const remove = useCallback(
@@ -126,10 +181,53 @@ export function useInspectionMedia() {
         URL.revokeObjectURL(previewUrl);
         urls.current.delete(previewUrl);
       }
+      const path = paths.current.get(id);
+      if (path) {
+        // Best effort: it is not attached to anything yet.
+        void createClient().storage.from(INSPECTION_PHOTOS_BUCKET).remove([path]);
+        paths.current.delete(id);
+      }
+      files.current.delete(id);
       setMedia((prev) => prev.filter((item) => item.id !== id));
     },
     [media],
   );
+
+  /** Everything that reached storage, in the order it was added. */
+  const uploaded = useCallback(
+    (): UploadedMedia[] =>
+      [...files.current.entries()].flatMap(([id, entry]) => {
+        const path = paths.current.get(id);
+        return path && !removed.current.has(id)
+          ? [{ id, type: entry.type, path }]
+          : [];
+      }),
+    [],
+  );
+
+  /**
+   * Wait for every compressed file to finish uploading, retrying the ones
+   * that failed once. Files still compressing are not waited for.
+   */
+  const settle = useCallback(async (): Promise<UploadedMedia[]> => {
+    await Promise.all(
+      [...files.current.keys()].map(
+        (id) => uploads.current.get(id) ?? startUpload(id),
+      ),
+    );
+    return uploaded();
+  }, [startUpload, uploaded]);
+
+  /** Forget the files once they are saved on an inspection. */
+  const reset = useCallback(() => {
+    for (const url of urls.current) URL.revokeObjectURL(url);
+    urls.current.clear();
+    for (const id of files.current.keys()) removed.current.add(id);
+    files.current.clear();
+    paths.current.clear();
+    setMedia([]);
+    setLimitNotice(null);
+  }, []);
 
   const ready = media.filter((entry) => entry.status === "ready" && entry.file);
   const compressing = media.filter((entry) => entry.status === "compressing");
@@ -137,9 +235,17 @@ export function useInspectionMedia() {
   return {
     media,
     ready,
+    readyPhotoCount: ready.filter((entry) => entry.type === "image").length,
+    uploadedPhotoCount: media.filter(
+      (entry) => entry.type === "image" && entry.upload === "uploaded",
+    ).length,
     compressingCount: compressing.length,
     limitNotice,
     addFiles,
     remove,
+    retry: startUpload,
+    uploaded,
+    settle,
+    reset,
   };
 }

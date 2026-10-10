@@ -3,6 +3,7 @@ import { PlayIcon } from "lucide-react";
 
 import { photoKindLabel } from "@/features/inspections/lib/checklist-areas";
 import { isVideoPath } from "@/features/inspections/lib/inspection-media";
+import { formatManila } from "@/features/shared/lib/manila-time";
 import type { InspectionPhoto } from "@/features/inspections/types/inspection";
 import { cn } from "@/lib/utils";
 
@@ -31,8 +32,17 @@ export function InspectionMediaGrid({
         const video = isVideoPath(item.storagePath);
         const label =
           item.caption ?? (item.kind === "other" ? null : photoKindLabel(item.kind));
+        const lateNote = item.addedLate
+          ? [
+              "Added after the inspection",
+              item.addedAt ? formatManila(item.addedAt, "stamp") : null,
+              item.addedByName ? `by ${item.addedByName}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : null;
         return (
-          <li key={item.id}>
+          <li key={item.id} title={lateNote ?? undefined}>
             <a
               aria-label={`Open ${video ? "video" : "photo"}${label ? ` (${label})` : ""}`}
               className="group relative block aspect-square overflow-hidden rounded-md border bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -68,6 +78,12 @@ export function InspectionMediaGrid({
               {label ? (
                 <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
                   {label}
+                </span>
+              ) : null}
+              {lateNote ? (
+                <span className="absolute top-1 left-1 rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                  Added later
+                  <span className="sr-only">: {lateNote}</span>
                 </span>
               ) : null}
             </a>

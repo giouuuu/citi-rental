@@ -360,6 +360,8 @@ const EMAIL_LABELS: Record<string, string> = {
   booking_confirmed: "Confirmation email",
   deposit_confirmed: "Reservation fee receipt",
   booking_reminder: "Pickup reminder",
+  rental_released: "Agreement & pickup report email",
+  rental_completed: "Return report email",
 };
 
 /** Matches the retry cap in claim_rental_notification(). */

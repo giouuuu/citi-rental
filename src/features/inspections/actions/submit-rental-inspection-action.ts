@@ -12,7 +12,9 @@ import { mapRentalDbError } from "@/features/rentals/lib/booking-gates";
 import { submitInspectionSchema } from "@/features/inspections/schemas/submit-inspection-schema";
 import {
   MAX_GALLERY_ITEMS,
+  MIN_INSPECTION_PHOTOS,
   isInspectionMediaPath,
+  isVideoPath,
 } from "@/features/inspections/lib/inspection-media";
 import { uploadInspectionPhotoFromDataUrl } from "@/features/inspections/services/upload-inspection-photo";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
@@ -184,13 +186,17 @@ export async function submitRentalInspectionAction(
       };
     }
 
-    const galleryCount = uploadedPhotos.filter(
+    const gallery = uploadedPhotos.filter(
       (photo) => photo.kind !== "signature" && photo.kind !== "damage_closeup",
-    ).length;
-    if (galleryCount === 0) {
+    );
+    const galleryCount = gallery.length;
+    if (
+      gallery.filter((photo) => !isVideoPath(photo.storage_path)).length <
+      MIN_INSPECTION_PHOTOS
+    ) {
       return {
         success: false,
-        message: "Add at least one photo or video of the car.",
+        message: `Add at least ${MIN_INSPECTION_PHOTOS} photos of the car.`,
       };
     }
     if (galleryCount > MAX_GALLERY_ITEMS) {
