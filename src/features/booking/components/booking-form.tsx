@@ -481,6 +481,7 @@ export function BookingForm({
 
         <div
           className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          data-contact-fab-avoid=""
           ref={submitRowRef}
         >
           <Button asChild variant="ghost">

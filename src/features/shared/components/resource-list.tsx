@@ -44,6 +44,7 @@ export function ResourceList({
   query,
   canWrite,
   bulkActions,
+  beforeTable,
   filterOptions = {},
 }: {
   definition: ResourceDefinition;
@@ -54,6 +55,8 @@ export function ResourceList({
   filterOptions?: ResourceReferences;
   /** Controls for checked rows; offered only to roles that can write. */
   bulkActions?: ReactNode;
+  /** A panel between the page header and the list, e.g. a to-do table. */
+  beforeTable?: ReactNode;
 }) {
   const dateRange = resolveDateRangeFilter(definition.filters);
   const pickers = (definition.filters ?? []).filter(
@@ -93,6 +96,7 @@ export function ResourceList({
         description={definition.description}
         title={definition.plural}
       />
+      {beforeTable}
       <Card>
         <CardContent className="space-y-4 pt-5">
           {activeFilters.length ? (

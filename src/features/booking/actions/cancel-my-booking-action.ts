@@ -36,6 +36,7 @@ export async function cancelMyBookingAction(
     // The landing reminder, the account page, this pay page and ops lists.
     revalidatePath("/");
     revalidatePath("/account");
+    revalidatePath(`/account/bookings/${result.rentalId}`);
     revalidatePath(`/book/pay/${result.rentalId}`);
     revalidateResource("/rentals");
     return { success: true, data: result };

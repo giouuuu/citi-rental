@@ -4,6 +4,7 @@ import {
   buildRentalTimeline,
   type RentalTimelineAuditEntry,
   type RentalTimelineEvent,
+  type RentalTimelineNotification,
   type RentalTimelinePayment,
 } from "@/features/rentals/lib/rental-timeline";
 import type {
@@ -30,7 +31,8 @@ export async function getRentalTimeline(
   if (!isSupabaseConfigured()) return [];
 
   const supabase = await createClient();
-  const [rentalResult, auditResult, paymentResult] = await Promise.all([
+  const [rentalResult, auditResult, paymentResult, notificationResult] =
+    await Promise.all([
     supabase
       .from("rentals")
       .select(
@@ -51,6 +53,13 @@ export async function getRentalTimeline(
       )
       .eq("rental_id", rentalId)
       .order("submitted_at", { ascending: true }),
+    supabase
+      .from("rental_notifications")
+      .select(
+        "id, kind, status, recipient, attempts, last_error, created_at, last_attempt_at, sent_at",
+      )
+      .eq("rental_id", rentalId)
+      .order("created_at", { ascending: true }),
   ]);
 
   const rental = rentalResult.data;
@@ -65,6 +74,12 @@ export async function getRentalTimeline(
   }
   if (paymentResult.error) {
     console.error("getRentalTimeline payments failed", paymentResult.error.message);
+  }
+  if (notificationResult.error) {
+    console.error(
+      "getRentalTimeline notifications failed",
+      notificationResult.error.message,
+    );
   }
   const auditRows = auditResult.data ?? [];
   const paymentRows = paymentResult.data ?? [];
@@ -124,6 +139,20 @@ export async function getRentalTimeline(
     };
   });
 
+  const notifications: RentalTimelineNotification[] = (
+    notificationResult.data ?? []
+  ).map((row) => ({
+    id: row.id,
+    kind: row.kind,
+    status: row.status,
+    recipient: row.recipient,
+    attempts: Number(row.attempts),
+    lastError: row.last_error,
+    createdAt: row.created_at,
+    lastAttemptAt: row.last_attempt_at,
+    sentAt: row.sent_at,
+  }));
+
   return buildRentalTimeline({
     rental: {
       status: String(rental.status),
@@ -136,5 +165,6 @@ export async function getRentalTimeline(
     },
     audit,
     payments,
+    notifications,
   });
 }

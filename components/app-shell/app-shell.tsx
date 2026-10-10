@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { TopHeader } from "@/components/app-shell/top-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import type { RentalNavCounts } from "@/features/rentals/lib/rental-nav-counts";
 import { MutationProvider } from "@/features/shared/components/mutation-provider";
 
 type AppShellProps = {
@@ -11,6 +12,7 @@ type AppShellProps = {
   userName: string;
   userRole: string;
   demoMode: boolean;
+  rentalCounts: RentalNavCounts | null;
 };
 
 export function AppShell({
@@ -19,6 +21,7 @@ export function AppShell({
   userName,
   userRole,
   demoMode,
+  rentalCounts,
 }: AppShellProps) {
   return (
     <SidebarProvider
@@ -31,6 +34,7 @@ export function AppShell({
     >
       <AppSidebar
         companyName={companyName}
+        rentalCounts={rentalCounts}
         userName={userName}
         userRole={userRole}
       />

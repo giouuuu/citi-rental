@@ -38,8 +38,10 @@ const SAME_DAY_END_TIME = "18:00";
 /** How many upcoming bookings to spell out under the calendar. */
 const LISTED_BOOKINGS = 6;
 
+// Taken days read as unavailable, not as an alert: a quiet grey hatch, so the
+// free days and the teal selection carry the calendar.
 const HATCH =
-  "[background-image:repeating-linear-gradient(135deg,transparent_0_5px,color-mix(in_oklab,var(--warning)_18%,transparent)_5px_10px)]";
+  "[background-image:repeating-linear-gradient(135deg,transparent_0_5px,color-mix(in_oklab,var(--muted-foreground)_14%,transparent)_5px_10px)]";
 
 function keyToDate(key: string | null | undefined) {
   if (!key) return undefined;
@@ -75,7 +77,7 @@ function BookedDayButton({ children, className, day, modifiers, ...props }: DayB
       className={cn(
         modifiers.booked &&
           cn(
-            "cursor-not-allowed bg-warning-surface text-warning disabled:pointer-events-auto disabled:opacity-100",
+            "cursor-not-allowed bg-muted text-muted-foreground hover:bg-muted hover:text-muted-foreground disabled:pointer-events-auto disabled:opacity-100",
             HATCH,
           ),
         className,
@@ -93,7 +95,7 @@ function BookedDayButton({ children, className, day, modifiers, ...props }: DayB
     >
       {children}
       {modifiers.booked && !modifiers.outside ? (
-        <span className="text-[0.6rem]! leading-none font-semibold opacity-100!">
+        <span className="text-[0.6rem]! leading-none font-medium opacity-100!">
           Booked
         </span>
       ) : null}
@@ -239,6 +241,11 @@ export function BookingRangeCalendar({
         <BookedDaysContext.Provider value={booked}>
           <Calendar
             className="mx-auto [--cell-size:--spacing(10)] sm:[--cell-size:--spacing(11)]"
+            classNames={{
+              // An outline, so today never looks like a taken (grey) day.
+              today:
+                "rounded-(--cell-radius) font-semibold text-primary ring-1 ring-primary/45 ring-inset data-[selected=true]:rounded-none data-[selected=true]:ring-0",
+            }}
             components={{ DayButton: BookedDayButton }}
             disabled={
               disabled
@@ -268,19 +275,16 @@ export function BookingRangeCalendar({
         <li className="flex items-center gap-1.5">
           <span
             aria-hidden="true"
-            className={cn("size-3.5 rounded-sm bg-warning-surface ring-1 ring-warning/40", HATCH)}
+            className={cn("size-3.5 rounded-sm bg-muted ring-1 ring-border", HATCH)}
           />
-          <span>
-            <span className="font-medium text-warning">Booked</span>
-            {" — not available"}
-          </span>
+          Booked — not available
         </li>
         <li className="flex items-center gap-1.5">
           <span aria-hidden="true" className="size-3.5 rounded-sm bg-primary" />
           Your dates
         </li>
         <li className="flex items-center gap-1.5">
-          <span aria-hidden="true" className="size-3.5 rounded-sm bg-muted ring-1 ring-border" />
+          <span aria-hidden="true" className="size-3.5 rounded-sm ring-1 ring-primary/45 ring-inset" />
           Today
         </li>
       </ul>
@@ -359,8 +363,8 @@ export function BookingRangeCalendar({
       {emptyHint ? (
         <p className="text-xs text-muted-foreground">{emptyHint}</p>
       ) : upcoming.length > 0 ? (
-        <div className="rounded-lg border border-warning/30 bg-warning-surface/60 px-3 py-2">
-          <p className="text-xs font-semibold text-warning">Already booked</p>
+        <div className="rounded-lg border bg-muted/40 px-3 py-2">
+          <p className="text-xs font-semibold text-foreground">Already booked</p>
           <ul className="mt-1 space-y-0.5 text-xs text-foreground">
             {upcoming.slice(0, LISTED_BOOKINGS).map((range) => {
               const from = wallClockDateKey(range.startAt);

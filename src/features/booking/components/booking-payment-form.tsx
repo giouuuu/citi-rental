@@ -245,7 +245,13 @@ export function BookingPaymentForm({
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
-          <Button className="w-full" disabled={pending} size="lg" type="submit">
+          <Button
+            className="w-full"
+            data-contact-fab-avoid=""
+            disabled={pending}
+            size="lg"
+            type="submit"
+          >
             {pending ? <Spinner /> : <Upload />}
             {pending ? "Uploading..." : "Submit payment proof"}
           </Button>

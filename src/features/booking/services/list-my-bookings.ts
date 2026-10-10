@@ -27,6 +27,7 @@ type ListMyBookingsRow = {
   deposit_amount: number | string | null;
   balance_due: number | string | null;
   created_at: string;
+  has_review: boolean | null;
 };
 
 function mapRow(row: ListMyBookingsRow): CustomerBooking {
@@ -51,6 +52,7 @@ function mapRow(row: ListMyBookingsRow): CustomerBooking {
       row.deposit_amount == null ? null : Number(row.deposit_amount),
     balanceDue: row.balance_due == null ? null : Number(row.balance_due),
     createdAt: row.created_at,
+    hasReview: row.has_review === true,
   };
 }
 

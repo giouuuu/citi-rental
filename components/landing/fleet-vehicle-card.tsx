@@ -16,13 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { bookingFormPath } from "@/features/booking/lib/booking-continue";
 import { VehicleRateQuote } from "@/features/vehicles/components/vehicle-rate-quote";
+import { vehicleModelLine } from "@/features/vehicles/lib/vehicle-model-line";
 import type { PublicListedVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 import { cn } from "@/lib/utils";
 
 const PHOTO_SIZES = "(max-width: 768px) 100vw, 33vw";
-
-/** Values staff type when they don't know a car's make or model yet. */
-const PLACEHOLDER_VALUES = new Set(["", "na", "n/a", "none", "-", "tbd", "unknown"]);
 
 function titleCase(value: string) {
   return value
@@ -30,17 +28,6 @@ function titleCase(value: string) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
-}
-
-function realValue(value: string | null | undefined) {
-  const trimmed = value?.trim() ?? "";
-  return PLACEHOLDER_VALUES.has(trimmed.toLowerCase()) ? null : trimmed;
-}
-
-/** "2026 Toyota Avanza", skipping placeholder make/model ("NA") rows. */
-function modelLine(vehicle: PublicListedVehicle) {
-  const makeModel = [realValue(vehicle.make), realValue(vehicle.model)].filter(Boolean).join(" ");
-  return makeModel ? `${vehicle.year} ${makeModel}` : `${vehicle.year} model`;
 }
 
 function illustrationVariant(category: string | null) {
@@ -93,6 +80,7 @@ export function FleetVehicleCard({
   const href = bookingFormPath(vehicle.id, tripQuery);
   const photoLayoutId = `fleet-photo-${vehicle.id}`;
 
+  const modelLine = vehicleModelLine(vehicle);
   const specs = [
     vehicle.seating_capacity
       ? { icon: Users, label: `${vehicle.seating_capacity} seats` }
@@ -174,7 +162,9 @@ export function FleetVehicleCard({
         <h3 className="mt-1 font-display text-xl font-semibold tracking-[-0.015em] text-brand-950">
           {vehicle.name}
         </h3>
-        <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">{modelLine(vehicle)}</p>
+        {modelLine ? (
+          <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">{modelLine}</p>
+        ) : null}
 
         {specs.length ? (
           <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-brand-700">

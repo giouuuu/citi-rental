@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 import { AppShell } from "@/components/app-shell/app-shell";
+import type { RentalNavCounts } from "@/features/rentals/lib/rental-nav-counts";
+import { getRentalNavCounts } from "@/features/rentals/services/get-rental-nav-counts";
 import { NOINDEX } from "@/features/seo/lib/business";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -19,6 +21,7 @@ export default async function ProtectedLayout({ children }: LayoutProps<"/">) {
   const configured = isSupabaseConfigured();
   let profile: Profile | null = null;
   let companyName = "City Rentals";
+  let rentalCounts: RentalNavCounts | null = null;
 
   if (configured) {
     const supabase = await createClient();
@@ -50,11 +53,14 @@ export default async function ProtectedLayout({ children }: LayoutProps<"/">) {
     if (!isAdminRole(profile.role)) {
       redirect("/access-disabled?reason=role");
     }
+
+    rentalCounts = await getRentalNavCounts();
   }
 
   return (
     <AppShell
       demoMode={!configured}
+      rentalCounts={rentalCounts}
       companyName={companyName}
       userName={profile?.full_name ?? "Alex Rivera"}
       userRole={profile?.role ?? "owner"}

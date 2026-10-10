@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type CSSProperties } from "react";
 import { ArrowUpRight, Check, Copy, MessageCircle } from "lucide-react";
 
@@ -44,6 +45,8 @@ export function ContactFab({
   const [open, setOpen] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const { copied, copy } = useCopyChannel();
+  // Mounted in a layout it outlives page changes: find the new page's target.
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!avoidSelector) return;
@@ -66,8 +69,10 @@ export function ContactFab({
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       if (frame) window.cancelAnimationFrame(frame);
+      // The next page may have nothing to avoid.
+      setBlocked(false);
     };
-  }, [avoidSelector]);
+  }, [avoidSelector, pathname]);
 
   if (!channels.length) return null;
 

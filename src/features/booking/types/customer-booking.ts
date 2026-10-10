@@ -32,6 +32,8 @@ export type CustomerBooking = {
   depositAmount: number | null;
   balanceDue: number | null;
   createdAt: string;
+  /** The renter already rated this trip. */
+  hasReview: boolean;
 };
 
 export function isAwaitingPayment(booking: CustomerBooking) {
@@ -49,4 +51,9 @@ export function isCurrentBookingStatus(status: CustomerBookingStatus) {
     status === "active" ||
     status === "overdue"
   );
+}
+
+/** A trip the renter can rate: returned, and not rated yet. */
+export function canReviewBooking(booking: Pick<CustomerBooking, "status" | "hasReview">) {
+  return booking.status === "completed" && !booking.hasReview;
 }

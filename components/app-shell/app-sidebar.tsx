@@ -28,18 +28,24 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import type { RentalNavCounts } from "@/features/rentals/lib/rental-nav-counts";
 import { navigationGroupsFor } from "@/lib/navigation";
+
+import { RentalNavBadges } from "./rental-nav-badges";
 
 type AppSidebarProps = {
   companyName: string;
   userName: string;
   userRole: string;
+  /** First paint of the Rentals counts; null in demo mode. */
+  rentalCounts: RentalNavCounts | null;
 };
 
 export function AppSidebar({
   companyName,
   userName,
   userRole,
+  rentalCounts,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const initials = userName
@@ -105,6 +111,9 @@ export function AppSidebar({
                           <span>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
+                      {item.href === "/rentals" ? (
+                        <RentalNavBadges initial={rentalCounts} />
+                      ) : null}
                       {item.badge ? (
                         <SidebarMenuBadge className="right-2 bg-destructive text-white">
                           {item.badge}

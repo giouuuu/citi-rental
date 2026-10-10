@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildRentalTimeline,
   type RentalTimelineInput,
+  type RentalTimelineNotification,
   type RentalTimelinePayment,
 } from "./rental-timeline";
 
@@ -183,5 +184,63 @@ describe("buildRentalTimeline", () => {
       "Booked online by the customer",
       "Cancelled",
     ]);
+  });
+
+  it("shows customer emails: sent, retrying, given up, and skipped", () => {
+    const note = (
+      overrides: Partial<RentalTimelineNotification>,
+    ): RentalTimelineNotification => ({
+      id: "n1",
+      kind: "booking_confirmed",
+      status: "sent",
+      recipient: "maria@example.com",
+      attempts: 1,
+      lastError: null,
+      createdAt: "2026-10-01T05:00:00Z",
+      lastAttemptAt: "2026-10-01T05:00:02Z",
+      sentAt: "2026-10-01T05:00:03Z",
+      ...overrides,
+    });
+    const events = buildRentalTimeline({
+      rental,
+      now,
+      audit: [],
+      payments: [],
+      notifications: [
+        note({}),
+        note({
+          id: "n2",
+          kind: "deposit_confirmed",
+          status: "failed",
+          attempts: 2,
+          lastError: "Resend 503: unavailable",
+          sentAt: null,
+        }),
+        note({
+          id: "n3",
+          kind: "booking_reminder",
+          status: "failed",
+          attempts: 5,
+          lastError: "Resend 422: invalid to address",
+          sentAt: null,
+        }),
+        note({
+          id: "n4",
+          status: "skipped",
+          recipient: null,
+          lastError: "No email address on file for this customer.",
+          sentAt: null,
+        }),
+      ],
+    });
+    const emails = events.filter((event) => event.kind === "email");
+    expect(emails.map((event) => [event.title, event.tone])).toEqual([
+      ["Reservation fee receipt failed — retrying", "warning"],
+      ["Pickup reminder failed", "danger"],
+      ["Confirmation email not sent", "warning"],
+      ["Confirmation email sent", "default"],
+    ]);
+    expect(emails[3].detail).toBe("To maria@example.com");
+    expect(emails[2].detail).toBe("No email address on file for this customer.");
   });
 });

@@ -3,12 +3,13 @@ import { z } from "zod";
 import { optionalText } from "@/features/shared/schemas/schema-helpers";
 import type { ResourceDefinition } from "@/features/shared/types/resource";
 
-export const REVIEW_SOURCES = ["facebook", "google", "direct", "other"] as const;
+export const REVIEW_SOURCES = ["facebook", "google", "direct", "website", "other"] as const;
 
 export const REVIEW_SOURCE_LABELS: Record<(typeof REVIEW_SOURCES)[number], string> = {
   facebook: "Facebook",
   google: "Google",
   direct: "Told us directly",
+  website: "Our website (renter)",
   other: "Other",
 };
 
@@ -24,7 +25,7 @@ export const reviewDefinition: ResourceDefinition = {
   subtitleField: "vehicle_label",
   searchColumn: "reviewer_name",
   description:
-    "Reviews and photos from past renters, shown on the homepage. Copy them in from Facebook or wherever customers left them.",
+    "Reviews and photos from past renters, shown on the homepage. Renters can rate a finished trip from their account; those arrive hidden until you publish them.",
   writeRoles: ["owner", "admin"],
   archive: { field: "is_hidden", value: true, label: "Hide from website" },
   detailColumns: [
@@ -36,6 +37,7 @@ export const reviewDefinition: ResourceDefinition = {
     "reviewed_on",
     "sort_order",
     "is_hidden",
+    "rating",
   ],
   schema: z.object({
     reviewer_name: optionalText(120),
@@ -115,6 +117,7 @@ export const reviewDefinition: ResourceDefinition = {
       label: "Customer",
       secondary: [{ key: "vehicle_label", label: "Car" }],
     },
+    { key: "rating", label: "Stars", format: "number" },
     { key: "body", label: "Review", exportOnly: true },
     { key: "source", label: "Posted on" },
     { key: "is_hidden", label: "Hidden", format: "boolean" },

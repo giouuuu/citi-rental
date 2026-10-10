@@ -1,6 +1,7 @@
 import { CarFront } from "lucide-react";
 
 import { VehicleRateQuote } from "@/features/vehicles/components/vehicle-rate-quote";
+import { vehicleModelLine } from "@/features/vehicles/lib/vehicle-model-line";
 import type { PublicFleetVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 
 type BookingVehicleSummaryProps = {
@@ -21,6 +22,8 @@ export function BookingVehicleSummary({
   freeCancellationHours,
   withDriver,
 }: BookingVehicleSummaryProps) {
+  const modelLine = vehicleModelLine(vehicle);
+
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-start gap-3">
@@ -32,9 +35,9 @@ export function BookingVehicleSummary({
             {vehicle.category?.trim() || "Fleet"}
           </p>
           <h2 className="text-lg font-bold text-brand-950">{vehicle.name}</h2>
-          <p className="text-sm text-muted-foreground">
-            {vehicle.make} {vehicle.model} · {vehicle.year}
-          </p>
+          {modelLine ? (
+            <p className="text-sm text-muted-foreground tabular-nums">{modelLine}</p>
+          ) : null}
           <VehicleRateQuote
             className="mt-3"
             rates={{

@@ -26,6 +26,7 @@ function booking(overrides: Partial<CustomerBooking>): CustomerBooking {
     depositAmount: 500,
     balanceDue: 4100,
     createdAt: "2026-10-09T00:00:00.000Z",
+    hasReview: false,
     ...overrides,
   };
 }

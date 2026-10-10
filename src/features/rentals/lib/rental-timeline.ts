@@ -13,6 +13,7 @@ import { formatPhpExact } from "@/features/shared/lib/money";
  * - the rental row (created, cancelled_at for rentals that predate audit logs)
  * - `audit_logs` (status changes, inspections, overdue marks, date changes)
  * - `payments` (submitted / confirmed / rejected / voided money)
+ * - `rental_notifications` (customer emails the database sent or tried to)
  *
  * Future pickup and return times are added as upcoming entries.
  */
@@ -27,6 +28,7 @@ export type RentalTimelineKind =
   | "payment"
   | "charge"
   | "refund"
+  | "email"
   | "status"
   | "upcoming";
 
@@ -75,6 +77,18 @@ export type RentalTimelinePayment = {
   updatedAt: string;
 };
 
+export type RentalTimelineNotification = {
+  id: string;
+  kind: string;
+  status: string;
+  recipient: string | null;
+  attempts: number;
+  lastError: string | null;
+  createdAt: string;
+  lastAttemptAt: string | null;
+  sentAt: string | null;
+};
+
 export type RentalTimelineInput = {
   rental: {
     status: string;
@@ -87,6 +101,7 @@ export type RentalTimelineInput = {
   };
   audit: RentalTimelineAuditEntry[];
   payments: RentalTimelinePayment[];
+  notifications?: RentalTimelineNotification[];
   now?: Date;
 };
 
@@ -341,12 +356,65 @@ function auditEvent(entry: RentalTimelineAuditEntry): RentalTimelineEvent | null
   }
 }
 
+const EMAIL_LABELS: Record<string, string> = {
+  booking_confirmed: "Confirmation email",
+  deposit_confirmed: "Reservation fee receipt",
+  booking_reminder: "Pickup reminder",
+};
+
+/** Matches the retry cap in claim_rental_notification(). */
+const EMAIL_MAX_ATTEMPTS = 5;
+
+function notificationEvent(
+  note: RentalTimelineNotification,
+): RentalTimelineEvent {
+  const label = EMAIL_LABELS[note.kind] ?? "Email";
+  const base = { id: `email:${note.id}`, kind: "email" as const, actor: null };
+  switch (note.status) {
+    case "sent":
+      return {
+        ...base,
+        at: note.sentAt ?? note.lastAttemptAt ?? note.createdAt,
+        title: `${label} sent`,
+        detail: note.recipient ? `To ${note.recipient}` : undefined,
+        tone: "default",
+      };
+    case "skipped":
+      return {
+        ...base,
+        at: note.lastAttemptAt ?? note.createdAt,
+        title: `${label} not sent`,
+        detail: note.lastError ?? undefined,
+        tone: "warning",
+      };
+    case "failed": {
+      const retrying = note.attempts < EMAIL_MAX_ATTEMPTS;
+      return {
+        ...base,
+        at: note.lastAttemptAt ?? note.createdAt,
+        title: retrying ? `${label} failed — retrying` : `${label} failed`,
+        detail: joinDetail([note.recipient ? `To ${note.recipient}` : null, note.lastError]),
+        tone: retrying ? "warning" : "danger",
+      };
+    }
+    default:
+      return {
+        ...base,
+        at: note.createdAt,
+        title: `${label} sending`,
+        detail: note.recipient ? `To ${note.recipient}` : undefined,
+        tone: "muted",
+      };
+  }
+}
+
 const OPEN_STATUSES = new Set(["draft", "reserved", "active", "overdue"]);
 
 export function buildRentalTimeline({
   rental,
   audit,
   payments,
+  notifications = [],
   now = new Date(),
 }: RentalTimelineInput): RentalTimelineEvent[] {
   const past: RentalTimelineEvent[] = [
@@ -368,6 +436,7 @@ export function buildRentalTimeline({
     if (event) past.push(event);
   }
   for (const payment of payments) past.push(...paymentEvents(payment));
+  for (const note of notifications) past.push(notificationEvent(note));
 
   // Rentals cancelled before cancellations were audit-logged.
   if (rental.cancelledAt && !past.some((event) => event.kind === "cancelled")) {

@@ -20,5 +20,6 @@ export async function listPublicReviews(): Promise<PublicReview[]> {
     ...row,
     // Only site paths and uploaded photos; anything else is not an image.
     photo_url: row.photo_url && /^(\/|https:\/\/)/.test(row.photo_url) ? row.photo_url : null,
+    rating: row.rating == null ? null : Number(row.rating),
   })).filter((row) => row.photo_url || (row.reviewer_name && row.body));
 }

@@ -18,11 +18,14 @@ export async function ResourceIndexScreen({
   definition,
   searchParams,
   bulkActions,
+  beforeTable,
 }: {
   definition: ResourceDefinition;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
   /** Controls for checked rows (adds a checkbox column for writers). */
   bulkActions?: ReactNode;
+  /** A panel between the page header and the list. */
+  beforeTable?: ReactNode;
 }) {
   const resourceQuery = parseResourceQuery(
     searchParams ? await searchParams : {},
@@ -37,6 +40,7 @@ export async function ResourceIndexScreen({
     );
     return (
       <ResourceList
+        beforeTable={beforeTable}
         canWrite={definition.allowCreate !== false}
         definition={definition}
         query={resourceQuery}
@@ -81,6 +85,7 @@ export async function ResourceIndexScreen({
 
   return (
     <ResourceList
+      beforeTable={beforeTable}
       bulkActions={bulkActions}
       canWrite={
         definition.writeRoles.includes(profile.role as AppRole) &&

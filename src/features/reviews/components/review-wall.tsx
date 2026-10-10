@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Pause, Play, Quote } from "lucide-react";
+import { Pause, Play, Quote, Star } from "lucide-react";
 import {
   animate,
   motion,
@@ -38,6 +38,7 @@ const SOURCE_LABELS: Record<PublicReview["source"], string | null> = {
   facebook: "Recommended on Facebook",
   google: "Reviewed on Google",
   direct: null,
+  website: "Verified renter",
   other: null,
 };
 
@@ -321,7 +322,26 @@ function QuoteCard({
   const meta = reviewMeta(review);
   return (
     <figure className="flex w-75 shrink-0 snap-start flex-col rounded-2xl bg-card p-6 ring-1 ring-border ring-inset sm:w-90">
-      <Quote aria-hidden="true" className="size-5 shrink-0 text-teal-500" />
+      {review.rating ? (
+        <span
+          aria-label={`${review.rating} out of 5 stars`}
+          className="flex shrink-0 gap-0.5"
+          role="img"
+        >
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              aria-hidden="true"
+              className={cn(
+                "size-4",
+                star <= review.rating! ? "fill-gold-500 text-gold-500" : "fill-transparent text-border",
+              )}
+              key={star}
+            />
+          ))}
+        </span>
+      ) : (
+        <Quote aria-hidden="true" className="size-5 shrink-0 text-teal-500" />
+      )}
       <blockquote
         className={cn(
           "mt-3 text-pretty text-brand-900",

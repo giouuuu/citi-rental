@@ -274,6 +274,21 @@ export const rentalDefinition: ResourceDefinition = {
   ],
   filters: [
     {
+      param: "status",
+      column: "status",
+      op: "eq",
+      label: "Status",
+      picker: true,
+      valueLabels: {
+        draft: "Draft",
+        reserved: "Reserved",
+        active: "Active",
+        overdue: "Overdue",
+        completed: "Completed",
+        cancelled: "Cancelled",
+      },
+    },
+    {
       param: "customer",
       column: "customer_id",
       op: "eq",

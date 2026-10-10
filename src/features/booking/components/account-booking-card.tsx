@@ -1,10 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { ChevronRight, MapPin, Star } from "lucide-react";
 
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { Button } from "@/components/ui/button";
+import { customerPaymentLabel } from "@/features/booking/lib/customer-booking-labels";
 import {
+  canReviewBooking,
   isAwaitingPayment,
   type CustomerBooking,
 } from "@/features/booking/types/customer-booking";
@@ -14,14 +16,6 @@ import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 function formatWhen(value: string) {
   if (!Number.isFinite(new Date(value).getTime())) return value;
   return formatManila(value, "stamp");
-}
-
-function paymentLabel(booking: CustomerBooking) {
-  if (booking.paymentStatus === "proof_submitted") return "Proof submitted";
-  if (booking.paymentStatus === "deposit_paid") return "Deposit paid";
-  if (booking.paymentStatus === "paid_in_full") return "Paid in full";
-  if (booking.status === "draft") return "Awaiting payment";
-  return null;
 }
 
 type AccountBookingCardProps = {
@@ -36,7 +30,8 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
   const location = booking.pickupLocation || booking.returnLocation;
   const payHref = `/book/pay/${booking.id}?ref=${encodeURIComponent(booking.referenceNumber)}`;
   const awaiting = isAwaitingPayment(booking);
-  const payment = paymentLabel(booking);
+  const payment = customerPaymentLabel(booking.status, booking.paymentStatus);
+  const detailHref = `/account/bookings/${booking.id}`;
 
   return (
     <article className="overflow-hidden rounded-xl border border-border bg-card">
@@ -60,9 +55,12 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
         <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-brand-950">
+              <Link
+                className="block truncate text-base font-semibold text-brand-950 hover:underline"
+                href={detailHref}
+              >
                 {vehicleLabel}
-              </p>
+              </Link>
               <p className="mt-0.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {booking.referenceNumber}
               </p>
@@ -116,6 +114,13 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
           ) : null}
 
           <div className="flex flex-wrap gap-2">
+            {canReviewBooking(booking) ? (
+              <Button asChild className="w-full sm:w-auto" size="sm">
+                <Link href={`${detailHref}#review`}>
+                  <Star /> Rate your trip
+                </Link>
+              </Button>
+            ) : null}
             {awaiting ? (
               <Button asChild className="w-full sm:w-auto" size="sm">
                 <Link href={payHref}>
@@ -134,6 +139,11 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
                 </Link>
               </Button>
             ) : null}
+            <Button asChild className="w-full sm:ml-auto sm:w-auto" size="sm" variant="ghost">
+              <Link href={detailHref}>
+                View details <ChevronRight />
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

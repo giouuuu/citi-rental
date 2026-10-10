@@ -9,6 +9,7 @@ import {
   Clock,
   History,
   KeyRound,
+  Mail,
   ReceiptText,
   Undo2,
   Wallet,
@@ -42,6 +43,7 @@ const ICONS: Record<RentalTimelineKind, LucideIcon> = {
   payment: Wallet,
   charge: ReceiptText,
   refund: Undo2,
+  email: Mail,
   status: CircleDot,
   upcoming: Clock,
 };
