@@ -5,7 +5,7 @@ import type { TaxSettings } from "@/features/finance/lib/income-tax";
 import { buildStatement, type StatementPayload } from "@/features/finance/lib/statement";
 
 const settings: TaxSettings = {
-  registeredName: "Zeke Car Rentals",
+  registeredName: "Zeke Car Rental & Services",
   tin: "",
   rdoCode: "",
   registeredAddress: "",

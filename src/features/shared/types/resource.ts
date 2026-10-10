@@ -69,6 +69,13 @@ export type ResourceField = {
       labelColumn?: string;
       statusColumn?: string;
       statuses: string[];
+      /** Rows in `status` also block when `column` is one of `values` (a paid draft, say). */
+      alsoWhen?: {
+        status: string;
+        column: string;
+        values: string[];
+        label?: string;
+      };
     };
   };
   /** Disable this field when another form field matches one of these values. */

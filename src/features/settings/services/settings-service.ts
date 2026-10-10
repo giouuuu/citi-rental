@@ -36,7 +36,7 @@ export type OrganizationSettings = {
 export async function getOrganizationSettings(): Promise<OrganizationSettings> {
   if (!isSupabaseConfigured())
     return {
-      name: "Zeke Car Rentals",
+      name: "Zeke Car Rental & Services",
       timezone: "Asia/Manila",
       tracker_online_threshold_minutes: 5,
       tracker_delayed_threshold_minutes: 15,

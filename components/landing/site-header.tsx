@@ -100,7 +100,7 @@ export async function SiteHeader({
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
-          aria-label="Zeke Car Rentals home"
+          aria-label="Zeke Car Rental & Services home"
           className={cn(
             "flex items-center gap-3",
             light ? "text-brand-950" : "text-white",

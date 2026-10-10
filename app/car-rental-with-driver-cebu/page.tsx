@@ -13,7 +13,7 @@ const DESCRIPTION =
   "Rent a car with a local driver in Cebu for airport transfers, Oslob and Moalboal day trips, city tours, and group travel. Sedans and 7-seaters. Message us to book.";
 
 export const metadata: Metadata = {
-  title: { absolute: `${TITLE} | Zeke Car Rentals` },
+  title: { absolute: `${TITLE} | Zeke Car Rental & Services` },
   description: DESCRIPTION,
   alternates: { canonical: PATH },
   openGraph: {
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 
 export default async function WithDriverCarRentalPage() {
   const data = await loadSeoPageData(
-    "Hi Zeke Car Rentals! I'd like to rent a car with a driver.",
+    "Hi Zeke Car Rental & Services! I'd like to rent a car with a driver.",
   );
   // Online booking is self-drive only, so a driver is arranged over chat.
   const chatLinks = data.contactChannels.filter((channel) => channel.href);
@@ -74,7 +74,6 @@ export default async function WithDriverCarRentalPage() {
         subtitle:
           "Every car can come with a driver. Message us with the car you like, or book it self-drive online.",
         vehicles: data.vehicles,
-        signedIn: data.signedIn,
         reservationFee: data.reservationFee,
       }}
       heroExtra={

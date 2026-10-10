@@ -17,7 +17,7 @@ Related docs: `AGENTS.md` (product vision and roles) · `NEXTJS-AGENT.md` (archi
 
 One single-tenant car-rental product with two faces:
 
-1. **Zeke Car Rentals (public)** — customers browse the fleet, check availability for their
+1. **Zeke Car Rental & Services (public)** — customers browse the fleet, check availability for their
    dates, and submit a reservation without calling staff first.
 2. **City Rentals (ops)** — owner/admin manage the fleet, customers, and rentals, and move each
    rental through its lifecycle.
@@ -80,7 +80,7 @@ Authorization is always `profiles.role` + RLS/RPCs. Never authorize from JWT `us
 > routes are owner/admin only. Opening the ops app to staff is a tracked gap, not a bug.
 
 ### Customer
-- Browse available vehicles, sign in (Google creates the account), and submit a reservation. No guest booking.
+- Browse available vehicles, fill in the booking, then sign in when submitting (Google creates the account). The draft, ID photos included, is kept in the browser across sign-in and restored on return. No guest booking: only signed-in accounts can submit.
 - No access to ops routes; customers hitting an ops URL go to
   `/access-disabled?reason=role`.
 
@@ -107,9 +107,11 @@ Acceptance criteria:
 - Authenticated users can access only pages allowed by their role.
 - Sensitive actions are enforced by database policies, not only by the proxy guard.
 
-Known gap: `/register` is bootstrap-only — it provisions the first **admin** and then
-refuses, so it is not a customer
-account. Email-based customer signup and a customer "my bookings" portal are incomplete.
+`/register` by email provisions the first **admin** on an empty system; after that every
+signup is a **customer**. From the booking dialog it carries `?next=` so the guest lands back
+on their saved booking (instantly, or via the email confirmation link).
+
+Known gap: a customer "my bookings" portal is incomplete.
 
 ---
 
@@ -131,7 +133,9 @@ Vehicle status values (operational only):
 - `inactive` (archive / out of fleet)
 
 Reservation and rental occupancy are **not** stored on the vehicle row. They come from rental
-date ranges (`reserved` / `active` / `overdue`).
+date ranges (`reserved` / `active` / `overdue`), plus any `draft` whose customer already sent the
+reservation fee (proof upload or PayMongo) — the dates are held from that moment, before staff
+confirm. First payment in wins; a later payment for held dates is recorded for refund.
 
 Acceptance criteria:
 - Counts derive from rental date ranges, not from a status column on the vehicle.
@@ -282,7 +286,7 @@ Business rules:
 
 ## 5.6 Public Booking (customer)
 
-Flow: pick dates and location → see available fleet → sign in → submit
+Flow: pick dates and location → see available fleet → fill in the booking → sign in on Confirm → submit
 reservation → confirmation.
 
 Features:

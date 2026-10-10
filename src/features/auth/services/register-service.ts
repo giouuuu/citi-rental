@@ -1,6 +1,10 @@
 import "server-only";
 
-import { resolvePostAuthPath } from "@/features/auth/lib/post-auth-redirect";
+import {
+  isBookingNextPath,
+  resolvePostAuthPath,
+  sanitizeNextPath,
+} from "@/features/auth/lib/post-auth-redirect";
 import { siteUrl } from "@/lib/site-url";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -20,12 +24,15 @@ export class RegistrationError extends Error {
   constructor(
     readonly code:
       | "already_authenticated"
+      | "already_registered"
       | "captcha"
+      | "invalid_email"
       | "configuration"
       | "network"
       | "provisioning"
       | "rate_limit"
-      | "signup",
+      | "signup"
+      | "weak_password",
   ) {
     super(code);
   }
@@ -59,10 +66,20 @@ function isNetworkFailure(error: unknown) {
 export async function registerWithEmail(
   input: RegisterInput,
   captchaToken?: string,
+  /** A booking to return to, e.g. a guest who signed up from the booking form. */
+  rawNext?: string,
 ): Promise<RegistrationResult> {
   if (!isSupabaseConfigured()) {
     throw new RegistrationError("configuration");
   }
+
+  const safeNext = sanitizeNextPath(rawNext);
+  const bookingNext = isBookingNextPath(safeNext) ? safeNext : undefined;
+  // The confirm link provisions the profile, then lands on the booking (or
+  // the role's home: admins on the dashboard, customers on the landing).
+  const confirmUrl = new URL("/auth/callback", siteUrl());
+  confirmUrl.searchParams.set("next", bookingNext ?? "/dashboard");
+  confirmUrl.searchParams.set("provision", "owner");
 
   try {
     const supabase = await createClient();
@@ -79,7 +96,7 @@ export async function registerWithEmail(
           full_name: input.fullName,
           ops_registration: "true",
         },
-        emailRedirectTo: `${siteUrl()}/auth/callback?next=/dashboard&provision=owner`,
+        emailRedirectTo: confirmUrl.toString(),
         captchaToken,
       },
     });
@@ -87,6 +104,15 @@ export async function registerWithEmail(
     if (error) {
       if (error.code === "captcha_failed") {
         throw new RegistrationError("captcha");
+      }
+      if (error.code === "user_already_exists" || error.code === "email_exists") {
+        throw new RegistrationError("already_registered");
+      }
+      if (error.code === "weak_password") {
+        throw new RegistrationError("weak_password");
+      }
+      if (error.code === "email_address_invalid") {
+        throw new RegistrationError("invalid_email");
       }
       throw new RegistrationError(error.status === 429 ? "rate_limit" : "signup");
     }
@@ -105,7 +131,7 @@ export async function registerWithEmail(
 
     return {
       status: "signed_in",
-      redirectTo: await resolvePostAuthPath(supabase, undefined),
+      redirectTo: await resolvePostAuthPath(supabase, bookingNext),
     };
   } catch (error) {
     if (error instanceof RegistrationError) throw error;

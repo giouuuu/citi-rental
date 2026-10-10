@@ -136,6 +136,17 @@ export function BookingPaymentForm({
         </dl>
       </div>
 
+      {booking.datesTaken ? (
+        <Alert className="text-left" variant="destructive">
+          <Info />
+          <AlertDescription>
+            {booking.depositPending
+              ? "We received your payment, but another customer secured these dates first. We will contact you to move your dates or refund your payment."
+              : "Another customer already paid for these dates. Please don't send a payment for this booking — pick different dates or another car."}
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <>
       {alreadySubmitted ? null : onlinePayment}
 
       <div className="rounded-xl border border-border bg-card p-5 text-left">
@@ -182,7 +193,7 @@ export function BookingPaymentForm({
             {booking.paymentStatus === "deposit_paid" ||
             booking.status === "reserved"
               ? "Reservation fee confirmed. Your car is reserved."
-              : "Payment proof received. We will confirm your reservation shortly."}
+              : "Payment received — these dates are now held for you. We will confirm your reservation shortly."}
             {booking.paymentReference
               ? ` Payment ref: ${booking.paymentReference}.`
               : null}
@@ -239,6 +250,8 @@ export function BookingPaymentForm({
             {pending ? "Uploading..." : "Submit payment proof"}
           </Button>
         </form>
+      )}
+        </>
       )}
     </div>
   );

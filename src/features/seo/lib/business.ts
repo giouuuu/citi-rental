@@ -9,8 +9,12 @@ import type { ContactChannelValues } from "@/features/settings/lib/contact-chann
  * Only the town is published: the street address is the owner's to share.
  */
 export const BUSINESS = {
-  name: "Zeke Car Rentals",
-  alternateNames: ["Zeke's Car Rental & Tour Services", "Zeke Cebu Car Rental"],
+  name: "Zeke Car Rental & Services",
+  alternateNames: [
+    "Zeke Car Rentals",
+    "Zeke's Car Rental & Tour Services",
+    "Zeke Cebu Car Rental",
+  ],
   legalName: "Zeke's Car Rental Services",
   email: "zekecebucarrental@gmail.com",
   locality: "Consolacion",

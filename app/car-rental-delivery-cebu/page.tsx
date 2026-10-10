@@ -12,7 +12,7 @@ const DESCRIPTION =
   "Rent a car delivered to your hotel, home, office, or Mactan-Cebu Airport, anywhere in Cebu province. Clear daily rates and delivery fees up front. Book online.";
 
 export const metadata: Metadata = {
-  title: { absolute: `${TITLE} | Zeke Car Rentals` },
+  title: { absolute: `${TITLE} | Zeke Car Rental & Services` },
   description: DESCRIPTION,
   alternates: { canonical: PATH },
   openGraph: {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 export default async function CarDeliveryPage() {
   const data = await loadSeoPageData(
-    "Hi Zeke Car Rentals! I'd like a rental car delivered.",
+    "Hi Zeke Car Rental & Services! I'd like a rental car delivered.",
   );
   const fee = data.reservationFee ? formatPhp(data.reservationFee) : null;
   const deliveryLine = data.deliveryFee
@@ -74,7 +74,6 @@ export default async function CarDeliveryPage() {
         subtitle:
           "Every car can be delivered. Enter your address in the booking form.",
         vehicles: data.vehicles,
-        signedIn: data.signedIn,
         reservationFee: data.reservationFee,
       }}
       intro="Skip the rental counter. Book online, tell us where you are, and we bring the car to you anywhere in Cebu province: your hotel, your home, your office, or Mactan-Cebu Airport."

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { bookingContinuePath, bookingFormPath } from "./booking-continue";
+import { bookingFormPath } from "./booking-continue";
 
 describe("booking links", () => {
   it("carry the trip and a with-driver choice", () => {
@@ -17,8 +17,6 @@ describe("booking links", () => {
   });
 
   it("leave self-drive out, since it is the default", () => {
-    expect(bookingContinuePath("car", { mode: "self-drive" })).toBe(
-      "/book/car/continue",
-    );
+    expect(bookingFormPath("car", { mode: "self-drive" })).toBe("/book/car");
   });
 });

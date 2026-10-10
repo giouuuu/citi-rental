@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import type { ActionResult } from "@/features/shared/types/resource";
@@ -54,6 +55,8 @@ export async function submitPaymentProofAction(
       ...parsed.data,
       proof,
     });
+    // The landing's booking reminder card reads this booking.
+    revalidatePath("/");
     return { success: true, data: result };
   } catch (error) {
     return {

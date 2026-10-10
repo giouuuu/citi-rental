@@ -61,12 +61,18 @@ export async function POST(request: Request) {
   }
 
   const result = data as Record<string, unknown>;
-  if (result.result === "recorded" || result.result === "recorded_closed") {
+  if (
+    result.result === "recorded" ||
+    result.result === "recorded_closed" ||
+    result.result === "recorded_conflict"
+  ) {
     void notifyOwnerTelegram({
       text: [
         result.result === "recorded"
-          ? "PayMongo payment received — confirm the deposit"
-          : "PayMongo payment for a closed booking — review for refund",
+          ? "PayMongo payment received — dates held, confirm the deposit"
+          : result.result === "recorded_conflict"
+            ? `PayMongo payment, but ${result.conflict_reference_number ?? "another booking"} already holds these dates — move dates or refund`
+            : "PayMongo payment for a closed booking — review for refund",
         `Ref: ${result.reference_number}`,
         `Car: ${result.vehicle_name ?? "—"}`,
         `Amount: ${formatPhp(Number(result.amount ?? 0))}`,

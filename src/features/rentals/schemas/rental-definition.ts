@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  HOLDING_DRAFT_PAYMENT_STATUSES,
+  HOLDING_RENTAL_STATUSES,
+} from "@/features/rentals/lib/rental-holds";
 import { buildDemoWorkspace } from "@/features/shared/lib/demo-workspace";
 import {
   optionalNumber,
@@ -193,7 +197,13 @@ export const rentalDefinition: ResourceDefinition = {
           field: "vehicle_id",
           table: "rentals",
           labelColumn: "reference_number",
-          statuses: ["reserved", "active", "overdue"],
+          statuses: HOLDING_RENTAL_STATUSES,
+          alsoWhen: {
+            status: "draft",
+            column: "payment_status",
+            values: HOLDING_DRAFT_PAYMENT_STATUSES,
+            label: "Deposit sent",
+          },
         },
       },
     },

@@ -35,8 +35,6 @@ export type HeroFleetCar = {
   vehicle: PublicListedVehicle;
   /** The search so far, so the dialog's quick-book panel starts from it. */
   trip: QuickBookTrip;
-  /** Signed-in customers skip the sign-in step. */
-  signedIn: boolean;
   /** Flat fee to hold a booking, from Settings. */
   reservationFee: number | null;
   /** Settings → driver day rate, for the with-driver quote. */
@@ -188,7 +186,6 @@ export function HeroCarGallery({ className }: { className?: string }) {
     <VehicleGalleryDialog
       driverDailyRate={car.driverDailyRate}
       reservationFee={car.reservationFee}
-      signedIn={car.signedIn}
       trip={car.trip}
       vehicle={car.vehicle}
     >
@@ -261,7 +258,6 @@ export function HeroCarSummary() {
         <VehicleGalleryDialog
           driverDailyRate={car.driverDailyRate}
           reservationFee={car.reservationFee}
-          signedIn={car.signedIn}
           trip={car.trip}
           vehicle={car.vehicle}
         >

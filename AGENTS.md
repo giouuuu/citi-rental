@@ -10,7 +10,7 @@ This repo is one single-tenant car-rental product with **two faces**. Keep both 
 
 ## Faces
 
-1. **Zeke Car Rentals (public)** — Cebu, DTI-registered customer brand. Landing, live availability, clear daily rates, airport/hotel/city pickup, self-drive or with driver. Job: book a car without calling staff first.
+1. **Zeke Car Rental & Services (public)** — Cebu, DTI-registered customer brand. Landing, live availability, clear daily rates, airport/hotel/city pickup, self-drive or with driver. Job: book a car without calling staff first.
 2. **City Rentals (ops)** — Owner/admin platform for the same company. Job: run fleet, rentals, customers, and GPS tracking with reliable location truth.
 
 Same Supabase project and data; different routes, UX, and roles.
@@ -19,7 +19,7 @@ Same Supabase project and data; different routes, UX, and roles.
 
 | Role | Surface | Job |
 |------|---------|-----|
-| **Customer** | Public site + booking | Browse available cars → sign in (Google) → reserve. No guest booking. |
+| **Customer** | Public site + booking | Browse available cars → fill in the booking → sign in (Google) on Confirm → reserve. Guests fill the form, but only signed-in accounts can submit. |
 | **Staff** | No ops UI yet | Role exists in data/RLS; cannot enter `app/(protected)` |
 | **Owner / admin** | Ops app (`app/(protected)`) | Fleet, GPS, geofences, users, customers, rentals, alerts, org settings |
 | **Owner only** | `/finance` | Expenses, fixed assets, 2307s, tax settings, BIR-oriented statement (`private.is_finance_user()`) |
@@ -30,7 +30,7 @@ Authorization is always `profiles.role` + RLS/RPCs. Never authorize from JWT `us
 
 ## Core loops
 
-**Customer:** Find dates/location → see available fleet → sign in → submit reservation → confirmation (soft commit; staff confirms pickup; no payments yet).
+**Customer:** Find dates/location → see available fleet → fill in the booking → sign in when they press Confirm (draft kept in the browser across sign-in) → submit reservation → confirmation (soft commit; staff confirms pickup; no payments yet).
 
 **Ops (owner/admin):** Manage vehicles/customers/rentals → transition rental (`draft → reserved → active → completed/cancelled`) with booking gates → watch map/geofences/alerts → acknowledge issues → tune org tracking settings.
 
@@ -45,7 +45,7 @@ Company profile · profiles · vehicles · customers · rentals · inspections �
 
 **GPS tracking is parked.** Devices, live map, route history, geofences, and tracking alerts moved to `GPS_TRACKING_FEATURES.md`. Existing tracking code (`src/features/tracking|devices|geofences|alerts` and the `map`, `devices`, `geofences`, `alerts` routes) stays compiling but is not extended. Do not add tracking scope without confirming first.
 
-**Vehicle vs rental status:** `vehicles.status` is operational only (`available` / `maintenance` / `inactive`). Whether a car is reserved for a day comes from rental date ranges (`reserved` / `active` / `overdue`), not from tagging the vehicle row.
+**Vehicle vs rental status:** `vehicles.status` is operational only (`available` / `maintenance` / `inactive`). Whether a car is reserved for a day comes from rental date ranges (`reserved` / `active` / `overdue`, plus a `draft` whose reservation fee was sent — `private.rental_holds_dates`), not from tagging the vehicle row. First payment in wins; a later payment for held dates is recorded for refund.
 
 ## Out of scope (for now)
 
@@ -54,8 +54,8 @@ GPS tracking (parked — see `GPS_TRACKING_FEATURES.md`) · online payments · o
 ## Known gaps (do not invent as done)
 
 - Brand naming still splits across Zeke (public) and City Rentals (ops) — prefer Zeke for customer UI, City Rentals for ops UI unless unifying.
-- `/register` creates an **ops workspace (admin + org)**, not a customer account.
-- Booking requires sign-in, and Google is the only way to create a customer account; email customer signup and a “my bookings” portal are not complete yet.
+- `/register` by email makes the **first** account on an empty system admin; every later signup is a **customer** (`complete_self_service_registration`). The booking sign-in dialog links to it with `?next=` so the guest returns to their saved booking.
+- Booking requires sign-in at submit (Google or email signup); a “my bookings” portal is not complete yet.
 - Self-drive / with-driver is landing UX only — not a rental domain field yet.
 - `staff` role exists in the schema but cannot access `app/(protected)` yet (owner/admin only).
 - Tracking surfaces (map, devices, geofences, alerts) exist in code but are **parked** — they are not part of the current rental-first scope.

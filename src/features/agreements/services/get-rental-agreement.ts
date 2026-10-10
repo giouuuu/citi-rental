@@ -69,7 +69,8 @@ export async function getRentalAgreement(
       companyPhone: data.company_phone,
       companyEmail: data.company_email,
       renterName: data.renter_name,
-      renterLicenseNumber: data.renter_license_number,
+      // Null for a with-driver renter, who never drives.
+      renterLicenseNumber: data.renter_license_number ?? "",
       renterAddress: data.renter_address,
       rentalReference: data.rental_reference,
       vehicleLabel: data.vehicle_label,

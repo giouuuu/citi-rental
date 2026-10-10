@@ -6,6 +6,8 @@ import type { VehicleRental } from "@/features/vehicles/services/list-vehicle-re
 import "./vehicle-bookings-calendar.css";
 
 export const STATUS_COLOR: Record<string, string> = {
+  /** A draft whose deposit was sent: dates held, not yet confirmed. */
+  held: "#0ea5e9",
   reserved: "#ca8a04",
   active: "#16a34a",
   overdue: "#dc2626",

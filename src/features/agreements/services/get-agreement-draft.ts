@@ -64,8 +64,8 @@ export async function getAgreementDraft(
 
   const customer = one(
     rental.customers as
-      | { full_name: string; drivers_license_number: string; address: string | null }
-      | { full_name: string; drivers_license_number: string; address: string | null }[]
+      | { full_name: string; drivers_license_number: string | null; address: string | null }
+      | { full_name: string; drivers_license_number: string | null; address: string | null }[]
       | null,
   );
   const vehicle = one(

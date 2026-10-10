@@ -16,6 +16,7 @@ import {
   RentalRenterIds,
   type RentalRenterIdPhoto,
 } from "@/features/rentals/components/rental-renter-ids";
+import { idPhotoCopy } from "@/features/booking/schemas/public-booking-schema";
 import { BOOKING_IDS_BUCKET } from "@/features/booking/lib/upload-booking-id-photos";
 import type { RentalWorkflowStatus } from "@/features/rentals/lib/booking-gates";
 import { isPublicCustomerBooking } from "@/features/rentals/lib/is-public-customer-booking";
@@ -240,9 +241,11 @@ export default async function Page({
     agreementDraft = draft;
     hasAgreement = signed != null;
 
+    // With a driver the renter sent a government ID and a selfie holding it.
+    const idCopy = idPhotoCopy[data?.with_driver ? "with-driver" : "self-drive"];
     const idPaths = [
-      ["Selfie with driver's license", data?.renter_license_selfie_path],
-      ["Another government ID", data?.renter_government_id_path],
+      [idCopy.selfieLabel, data?.renter_license_selfie_path],
+      [idCopy.idLabel, data?.renter_government_id_path],
     ] as const;
     if (idPaths.some(([, path]) => path)) {
       renterIdPhotos = await Promise.all(

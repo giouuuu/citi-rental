@@ -33,6 +33,7 @@ export async function loadResourceBlockedRanges(
       const blockedBy = field.range?.blockedBy;
       if (field.type !== "date-range" || !field.range || !blockedBy) return;
       const statusColumn = blockedBy.statusColumn ?? "status";
+      const alsoWhen = blockedBy.alsoWhen;
       const columns = [
         "id",
         blockedBy.field,
@@ -40,12 +41,18 @@ export async function loadResourceBlockedRanges(
         field.range.endField,
         blockedBy.labelColumn,
         statusColumn,
+        alsoWhen?.column,
       ].filter(Boolean);
 
-      let request = supabase
+      const selected = supabase
         .from(blockedBy.table)
-        .select([...new Set(columns)].join(","))
-        .in(statusColumn, blockedBy.statuses);
+        .select([...new Set(columns)].join(","));
+      let request = alsoWhen
+        ? selected.or(
+            `${statusColumn}.in.(${blockedBy.statuses.join(",")}),` +
+              `and(${statusColumn}.eq.${alsoWhen.status},${alsoWhen.column}.in.(${alsoWhen.values.join(",")}))`,
+          )
+        : selected.in(statusColumn, blockedBy.statuses);
       if (excludeId) request = request.neq("id", excludeId);
       const { data, error } = await request
         .order(field.name, { ascending: true })
@@ -58,9 +65,13 @@ export async function loadResourceBlockedRanges(
         const startAt = row[field.name];
         const endAt = row[field.range.endField];
         if (!key || !startAt || !endAt) continue;
+        const status =
+          alsoWhen?.label && row[statusColumn] === alsoWhen.status
+            ? alsoWhen.label
+            : statusWord(row[statusColumn]);
         const label = [
           blockedBy.labelColumn ? row[blockedBy.labelColumn] : null,
-          statusWord(row[statusColumn]),
+          status,
         ]
           .filter(Boolean)
           .join(" · ");

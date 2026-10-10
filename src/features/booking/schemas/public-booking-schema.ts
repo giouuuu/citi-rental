@@ -4,12 +4,43 @@ import { DRIVING_MODES } from "@/features/booking/lib/driving-mode";
 import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
 
 /** A picked image file; the server re-checks size and type before upload. */
-function idPhoto(message: string) {
-  return z.custom<File>(
-    (value) => typeof File !== "undefined" && value instanceof File && value.size > 0,
-    message,
-  );
+function isPhoto(value: unknown): value is File {
+  return typeof File !== "undefined" && value instanceof File && value.size > 0;
 }
+
+/**
+ * The renter drives on self-drive, so they show their driver's license. With
+ * a driver they only prove who they are: a government ID and a selfie holding
+ * it. Same two photo slots either way.
+ */
+export const idPhotoCopy = {
+  "self-drive": {
+    selfieLabel: "Selfie with driver's license",
+    selfieDescription: "A clear selfie of you holding your driver's license.",
+    selfieMissing: "Upload a selfie holding your driver's license.",
+    idLabel: "Another government ID",
+    idDescription: "Passport, UMID, PhilSys, SSS, or another government ID.",
+    idMissing: "Upload a photo of another government ID.",
+  },
+  "with-driver": {
+    selfieLabel: "Selfie with government ID",
+    selfieDescription: "A clear selfie of you holding that same government ID.",
+    selfieMissing: "Upload a selfie holding your government ID.",
+    idLabel: "Government ID",
+    idDescription: "Passport, UMID, PhilSys, SSS, driver's license, or another government ID.",
+    idMissing: "Upload a photo of your government ID.",
+  },
+} as const;
+
+/**
+ * Any value passes here; refineRenterIds rejects a missing photo with a
+ * message for the driving choice. Typed File because it is one once that
+ * check has passed.
+ */
+const renterPhoto = z
+  .custom<File>(() => true)
+  .optional()
+  .transform((value) => value as File);
 
 const bookingFields = z.object({
   vehicleId: z.uuid("Select a vehicle to book."),
@@ -33,11 +64,12 @@ const bookingFields = z.object({
     .optional()
     .transform((value) => value || undefined)
     .pipe(z.email("Enter a valid email address.").optional()),
+  // Required on self-drive only; see refineRenterIds.
   driversLicenseNumber: z
     .string()
     .trim()
-    .min(3, "Enter your driver license number.")
-    .max(80, "License number must be 80 characters or fewer."),
+    .max(80, "License number must be 80 characters or fewer.")
+    .optional(),
   address: z
     .string()
     .trim()
@@ -75,13 +107,19 @@ const bookingFields = z.object({
         .min(1, "Enter how many passengers.")
         .max(60, "Enter 60 passengers or fewer."),
     ),
-  licenseSelfie: idPhoto("Upload a selfie holding your driver's license."),
-  governmentId: idPhoto("Upload a photo of another government ID."),
+  // Checked in refineRenterIds, whose messages follow the driving choice.
+  licenseSelfie: renterPhoto,
+  governmentId: renterPhoto,
   notes: z
     .string()
     .trim()
     .max(2000, "Notes must be 2000 characters or fewer.")
     .optional(),
+  // The checkbox in react-hook-form; valuesToFormData sends a ticked one as "on".
+  acceptTerms: z.preprocess(
+    (value) => value === true || value === "on",
+    z.literal(true, "Read and agree to the terms and conditions to book."),
+  ),
 });
 
 function refineTripDates(
@@ -114,6 +152,51 @@ function refineTripDates(
   }
 }
 
-export const publicBookingSchema = bookingFields.superRefine(refineTripDates);
+/**
+ * Runs even when other fields failed (see `when` below), so the license and
+ * photo errors show in the same pass as the rest. The value may be partly
+ * invalid here, hence the defensive reads.
+ */
+function refineRenterIds(
+  value: {
+    drivingMode?: unknown;
+    driversLicenseNumber?: unknown;
+    licenseSelfie?: unknown;
+    governmentId?: unknown;
+  },
+  context: z.RefinementCtx,
+) {
+  const withDriver = value.drivingMode === "with-driver";
+  const copy = idPhotoCopy[withDriver ? "with-driver" : "self-drive"];
+  const license =
+    typeof value.driversLicenseNumber === "string"
+      ? value.driversLicenseNumber.trim()
+      : "";
+  if (!withDriver && license.length < 3) {
+    context.addIssue({
+      code: "custom",
+      path: ["driversLicenseNumber"],
+      message: "Enter your driver license number.",
+    });
+  }
+  if (!isPhoto(value.licenseSelfie)) {
+    context.addIssue({
+      code: "custom",
+      path: ["licenseSelfie"],
+      message: copy.selfieMissing,
+    });
+  }
+  if (!isPhoto(value.governmentId)) {
+    context.addIssue({
+      code: "custom",
+      path: ["governmentId"],
+      message: copy.idMissing,
+    });
+  }
+}
+
+export const publicBookingSchema = bookingFields
+  .superRefine(refineTripDates)
+  .superRefine(refineRenterIds, { when: () => true });
 
 export type PublicBookingInput = z.infer<typeof publicBookingSchema>;

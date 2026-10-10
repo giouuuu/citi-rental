@@ -1,5 +1,9 @@
 import "server-only";
 
+import {
+  calendarStatus,
+  rentalHoldsDatesFilter,
+} from "@/features/rentals/lib/rental-holds";
 import { createClient } from "@/lib/supabase/server";
 
 export type VehicleRental = {
@@ -25,7 +29,7 @@ export async function listVehicleRentals(
       "id, reference_number, status, start_at, expected_return_at, customers(full_name)",
     )
     .eq("vehicle_id", vehicleId)
-    .in("status", ["reserved", "active", "overdue", "completed"])
+    .or(rentalHoldsDatesFilter(["completed"]))
     .order("start_at", { ascending: false });
 
   if (error) return [];
@@ -33,7 +37,7 @@ export async function listVehicleRentals(
   return (data ?? []).map((r) => ({
     id: r.id,
     reference_number: r.reference_number,
-    status: r.status,
+    status: calendarStatus(r.status),
     start_at: r.start_at,
     expected_return_at: r.expected_return_at,
     customer_name:

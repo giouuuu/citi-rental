@@ -36,7 +36,6 @@ type SeoLandingPageProps = {
     subtitle: string;
     vehicles: PublicListedVehicle[];
     bookingQuery?: string;
-    signedIn: boolean;
     reservationFee: number | null;
   };
   contactChannels: ContactChannel[];
@@ -193,7 +192,6 @@ export function SeoLandingPage({
                   <FleetVehicleCard
                     bookingQuery={fleet.bookingQuery}
                     reservationFee={fleet.reservationFee}
-                    signedIn={fleet.signedIn}
                     vehicle={vehicle}
                   />
                 </li>

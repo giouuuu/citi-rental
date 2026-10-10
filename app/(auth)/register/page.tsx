@@ -5,10 +5,16 @@ import { RegisterForm } from "@/features/auth";
 
 export const metadata: Metadata = { title: "Create account" };
 
-export default function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { next } = await searchParams;
+
   return (
     <AuthShell>
-      <RegisterForm />
+      <RegisterForm nextPath={Array.isArray(next) ? next[0] : next} />
     </AuthShell>
   );
 }

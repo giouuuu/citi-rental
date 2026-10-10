@@ -36,7 +36,6 @@ export type FleetTripFilter = {
 type VehicleListingProps = {
   vehicles: PublicListedVehicle[];
   bookingQuery?: string;
-  signedIn?: boolean;
   trip?: FleetTripFilter;
   /** Category to preselect, e.g. from a "Browse by type" card (`?type=`). */
   initialCategory?: string;
@@ -59,7 +58,6 @@ function formatTripDate(value?: string) {
 export function VehicleListing({
   vehicles,
   bookingQuery,
-  signedIn = false,
   trip,
   initialCategory,
   reservationFee,
@@ -231,7 +229,6 @@ export function VehicleListing({
                 key={vehicle.id}
                 driverDailyRate={driverDailyRate}
                 reservationFee={reservationFee}
-                signedIn={signedIn}
                 vehicle={vehicle}
               />
             ))}

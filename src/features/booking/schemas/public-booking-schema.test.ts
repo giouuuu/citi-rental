@@ -23,6 +23,7 @@ const valid = {
   passengerCount: "4",
   licenseSelfie: photo("selfie.jpg"),
   governmentId: photo("umid.jpg"),
+  acceptTerms: true,
 };
 
 function errorsFor(input: Record<string, unknown>) {
@@ -40,6 +41,18 @@ describe("publicBookingSchema", () => {
     expect(errorsFor({ ...valid, drivingMode: "chauffeur" })).toHaveProperty(
       "drivingMode",
     );
+  });
+
+  it("needs the terms accepted, from the checkbox or FormData", () => {
+    expect(errorsFor({ ...valid, acceptTerms: false })).toHaveProperty(
+      "acceptTerms",
+    );
+    expect(errorsFor({ ...valid, acceptTerms: undefined })).toHaveProperty(
+      "acceptTerms",
+    );
+    expect(
+      publicBookingSchema.safeParse({ ...valid, acceptTerms: "on" }).success,
+    ).toBe(true);
   });
 
   it("accepts a complete booking and reads passengers as a number", () => {
@@ -72,6 +85,46 @@ describe("publicBookingSchema", () => {
     ]);
     expect(errors.governmentId).toEqual([
       "Upload a photo of another government ID.",
+    ]);
+  });
+
+  it("requires a license number on self-drive only", () => {
+    expect(
+      errorsFor({ ...valid, driversLicenseNumber: "" }).driversLicenseNumber,
+    ).toEqual(["Enter your driver license number."]);
+    expect(
+      publicBookingSchema.safeParse({
+        ...valid,
+        drivingMode: "with-driver",
+        driversLicenseNumber: undefined,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("names the with-driver ID photos when they are missing", () => {
+    const errors = errorsFor({
+      ...valid,
+      drivingMode: "with-driver",
+      licenseSelfie: undefined,
+      governmentId: undefined,
+    });
+    expect(errors.licenseSelfie).toEqual([
+      "Upload a selfie holding your government ID.",
+    ]);
+    expect(errors.governmentId).toEqual([
+      "Upload a photo of your government ID.",
+    ]);
+  });
+
+  it("reports missing photos alongside other field errors", () => {
+    const errors = errorsFor({
+      ...valid,
+      address: "",
+      licenseSelfie: undefined,
+    });
+    expect(errors.address).toBeDefined();
+    expect(errors.licenseSelfie).toEqual([
+      "Upload a selfie holding your driver's license.",
     ]);
   });
 

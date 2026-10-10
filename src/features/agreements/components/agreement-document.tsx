@@ -169,14 +169,79 @@ export function AgreementDocument({
             ) : null}
           </dl>
         ) : null}
-        <p>{terms.intro}</p>
-        <ul className="list-disc space-y-1.5 pl-5">
-          {terms.clauses.map((clause) => (
-            <li key={clause}>{clause}</li>
-          ))}
-        </ul>
+        <AgreementClauses terms={terms} />
       </section>
 
+      <AgreementRules terms={terms} />
+
+      <section className="space-y-4 break-inside-avoid">
+        <div className="space-y-1">
+          <h3 className="font-semibold uppercase">Acknowledgement</h3>
+          <p>{terms.acknowledgement}</p>
+        </div>
+        <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
+          <PartyBlock
+            date={dateLabel}
+            name={parties.companyName}
+            signature={
+              <SignatureLine
+                alt="Company signature"
+                placeholder="Company signature"
+                url={companySignatureUrl}
+              />
+            }
+            title="Car rental company"
+          />
+          <PartyBlock
+            date={dateLabel}
+            details={
+              <>
+                <Line
+                  label="Driver's license no."
+                  value={parties.renterLicenseNumber || "Not required (with driver)"}
+                />
+                <Line label="Address" value={parties.renterAddress} />
+              </>
+            }
+            name={parties.renterName}
+            signature={
+              <SignatureLine
+                alt="Renter signature"
+                placeholder="Renter signs at release"
+                url={renterSignatureUrl}
+              />
+            }
+            title="Renter"
+          />
+        </div>
+      </section>
+
+      <AgreementCancellationPolicy
+        className="border-t border-border pt-5 print:break-before-page print:border-0 print:pt-0"
+        terms={terms}
+      />
+    </article>
+  );
+}
+
+/** The opening clauses. Shared with the terms renters accept when booking. */
+export function AgreementClauses({ terms }: { terms: AgreementTerms }) {
+  return (
+    <>
+      <p>{terms.intro}</p>
+      <ul className="list-disc space-y-1.5 pl-5">
+        {terms.clauses.map((clause) => (
+          <li key={clause}>{clause}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/** Penalties through reminders: the rules between the clauses and signatures. */
+export function AgreementRules({ terms }: { terms: AgreementTerms }) {
+  return (
+    <>
       <section className="space-y-2">
         <h3 className="font-semibold uppercase">{terms.penalties.heading}</h3>
         <ul className="list-disc space-y-1 pl-5">
@@ -232,61 +297,32 @@ export function AgreementDocument({
           ))}
         </ul>
       </section>
+    </>
+  );
+}
 
-      <section className="space-y-4 break-inside-avoid">
-        <div className="space-y-1">
-          <h3 className="font-semibold uppercase">Acknowledgement</h3>
-          <p>{terms.acknowledgement}</p>
-        </div>
-        <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
-          <PartyBlock
-            date={dateLabel}
-            name={parties.companyName}
-            signature={
-              <SignatureLine
-                alt="Company signature"
-                placeholder="Company signature"
-                url={companySignatureUrl}
-              />
-            }
-            title="Car rental company"
-          />
-          <PartyBlock
-            date={dateLabel}
-            details={
-              <>
-                <Line label="Driver's license no." value={parties.renterLicenseNumber} />
-                <Line label="Address" value={parties.renterAddress} />
-              </>
-            }
-            name={parties.renterName}
-            signature={
-              <SignatureLine
-                alt="Renter signature"
-                placeholder="Renter signs at release"
-                url={renterSignatureUrl}
-              />
-            }
-            title="Renter"
-          />
-        </div>
-      </section>
-
-      <section className="space-y-3 border-t border-border pt-5 print:break-before-page print:border-0 print:pt-0">
-        <h2 className="text-base font-semibold uppercase">{terms.cancellation.title}</h2>
-        <p>{terms.cancellation.intro}</p>
-        <ol className="space-y-2">
-          {terms.cancellation.sections.map((section, index) => (
-            <li key={section.heading}>
-              <p className="font-semibold">
-                {index + 1}. {section.heading}
-              </p>
-              <p>{section.body}</p>
-            </li>
-          ))}
-        </ol>
-        <p>{terms.cancellation.closing}</p>
-      </section>
-    </article>
+export function AgreementCancellationPolicy({
+  terms,
+  className,
+}: {
+  terms: AgreementTerms;
+  className?: string;
+}) {
+  return (
+    <section className={cn("space-y-3", className)}>
+      <h2 className="text-base font-semibold uppercase">{terms.cancellation.title}</h2>
+      <p>{terms.cancellation.intro}</p>
+      <ol className="space-y-2">
+        {terms.cancellation.sections.map((section, index) => (
+          <li key={section.heading}>
+            <p className="font-semibold">
+              {index + 1}. {section.heading}
+            </p>
+            <p>{section.body}</p>
+          </li>
+        ))}
+      </ol>
+      <p>{terms.cancellation.closing}</p>
+    </section>
   );
 }

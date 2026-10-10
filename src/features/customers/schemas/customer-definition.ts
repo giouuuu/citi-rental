@@ -27,7 +27,8 @@ export const customerDefinition: ResourceDefinition = {
       email: optionalEmail,
       phone_number: requiredText("Phone number", 40),
       address: optionalText(500),
-      drivers_license_number: requiredText("Driver's license number", 80),
+      // Blank for renters who only book with a driver.
+      drivers_license_number: optionalText(80),
       drivers_license_expires_at: optionalText(40),
       emergency_contact_name: optionalText(120),
       emergency_contact_number: optionalText(40),
@@ -60,7 +61,7 @@ export const customerDefinition: ResourceDefinition = {
     {
       name: "drivers_license_number",
       label: "Driver's license number",
-      required: true,
+      description: "Needed for self-drive. Renters who only book with a driver may have none.",
     },
     {
       name: "drivers_license_expires_at",

@@ -63,7 +63,7 @@ export function SiteHeaderMobileNav({
           <ZekeLogo />
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <SheetDescription className="sr-only">
-            Pages on the Zeke Car Rentals site
+            Pages on the Zeke Car Rental & Services site
           </SheetDescription>
         </SheetHeader>
         <nav aria-label="Mobile navigation" className="px-3 py-4">

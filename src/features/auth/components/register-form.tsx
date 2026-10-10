@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { z } from "zod";
@@ -13,6 +13,10 @@ import {
   type RegisterActionResult,
 } from "@/features/auth/actions/register-action";
 import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
+import {
+  isBookingNextPath,
+  sanitizeNextPath,
+} from "@/features/auth/lib/post-auth-redirect";
 import {
   CAPTCHA_LOAD_ERROR,
   useAuthCaptcha,
@@ -48,9 +52,9 @@ const fields = [
   },
   {
     name: "email" as const,
-    label: "Work email",
+    label: "Email address",
     autoComplete: "email",
-    placeholder: "you@company.com",
+    placeholder: "you@example.com",
     type: "email",
   },
 ];
@@ -62,8 +66,11 @@ const emptyValues: RegisterFormValues = {
   confirmPassword: "",
 };
 
-export function RegisterForm() {
+export function RegisterForm({ nextPath }: { nextPath?: string }) {
   const router = useRouter();
+  const safeNext = sanitizeNextPath(nextPath);
+  /** A guest signing up from the booking form, whose draft waits there. */
+  const bookingNext = isBookingNextPath(safeNext) ? safeNext : undefined;
   const [result, setResult] = useState<RegisterActionResult>();
   const [pending, startTransition] = useTransition();
   const captcha = useAuthCaptcha();
@@ -77,6 +84,7 @@ export function RegisterForm() {
     if (!captcha.ready) return;
     setResult(undefined);
     const formData = valuesToFormData(values, { captchaToken: captcha.token ?? "" });
+    if (bookingNext) formData.set("next", bookingNext);
     startTransition(async () => {
       const nextResult = await registerAction(formData);
       captcha.reset();
@@ -115,15 +123,19 @@ export function RegisterForm() {
         Create your account
       </h1>
       <p className="mt-2 leading-7 text-muted-foreground">
-        Renting a car? Continue with Google. Setting up your rental team?
-        Create a workspace with email.
+        {bookingNext
+          ? "Then you go straight back to your booking, with everything you entered."
+          : "Book a car in a few minutes and keep track of your reservations."}
       </p>
 
       <div className="mt-8 space-y-5">
-        <GoogleSignInButton label="Continue with Google" nextPath="/" />
+        <GoogleSignInButton
+          label="Continue with Google"
+          nextPath={bookingNext ?? "/"}
+        />
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <div className="h-px flex-1 bg-border" />
-          or set up a workspace with email
+          or sign up with email
           <div className="h-px flex-1 bg-border" />
         </div>
       </div>
@@ -176,11 +188,11 @@ export function RegisterForm() {
           size="lg"
           type="submit"
         >
-          {pending || !captcha.ready ? <Spinner /> : <Building2 />}
+          {pending || !captcha.ready ? <Spinner /> : null}
           {pending
-            ? "Creating workspace..."
+            ? "Creating account..."
             : captcha.ready
-              ? "Create workspace"
+              ? "Create account"
               : captcha.pendingLabel}
         </Button>
       </form>
@@ -188,7 +200,11 @@ export function RegisterForm() {
         Already have an account?{" "}
         <Link
           className="font-medium text-teal-700 underline-offset-4 hover:underline"
-          href="/login"
+          href={
+            bookingNext
+              ? `/login?next=${encodeURIComponent(bookingNext)}`
+              : "/login"
+          }
         >
           Sign in
         </Link>

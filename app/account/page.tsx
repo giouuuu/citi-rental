@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Account",
-  description: "Your Zeke Car Rentals account, current bookings, and history.",
+  description: "Your Zeke Car Rental & Services account, current bookings, and history.",
 };
 
 function initialsFromName(name: string) {

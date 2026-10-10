@@ -14,7 +14,7 @@ import {
 } from "@/components/landing/vehicle-gallery-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { bookingContinuePath, bookingFormPath } from "@/features/booking/lib/booking-continue";
+import { bookingFormPath } from "@/features/booking/lib/booking-continue";
 import { VehicleRateQuote } from "@/features/vehicles/components/vehicle-rate-quote";
 import type { PublicListedVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 import { cn } from "@/lib/utils";
@@ -64,8 +64,6 @@ function illustrationColor(category: string | null) {
 type FleetVehicleCardProps = {
   vehicle: PublicListedVehicle;
   bookingQuery?: string;
-  /** When true, skip the sign-in step and go straight to the form. */
-  signedIn?: boolean;
   /** Flat fee to hold a booking, from Settings. */
   reservationFee?: number | null;
   /** Settings → driver day rate, for the with-driver quote. */
@@ -75,7 +73,6 @@ type FleetVehicleCardProps = {
 export function FleetVehicleCard({
   vehicle,
   bookingQuery,
-  signedIn = false,
   reservationFee,
   driverDailyRate,
 }: FleetVehicleCardProps) {
@@ -93,9 +90,7 @@ export function FleetVehicleCard({
   };
   const hasTripDates = Boolean(tripQuery.start && tripQuery.end);
   const coverUrl = vehicle.photo_url ?? vehicle.gallery[0]?.url ?? null;
-  const href = signedIn
-    ? bookingFormPath(vehicle.id, tripQuery)
-    : bookingContinuePath(vehicle.id, tripQuery);
+  const href = bookingFormPath(vehicle.id, tripQuery);
   const photoLayoutId = `fleet-photo-${vehicle.id}`;
 
   const specs = [
@@ -133,7 +128,6 @@ export function FleetVehicleCard({
             if (open) setRaised(true);
           }}
           reservationFee={reservationFee}
-          signedIn={signedIn}
           trip={tripQuery}
           vehicle={vehicle}
         >

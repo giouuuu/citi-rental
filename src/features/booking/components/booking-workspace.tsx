@@ -24,7 +24,7 @@ import type { PublicListedVehicle } from "@/features/vehicles/types/public-fleet
 
 type BookingWorkspaceProps = Omit<
   ComponentProps<typeof BookingFlow>,
-  "vehicle" | "bookedRanges" | "bookedRangesLoading" | "onDatesChange" | "query"
+  "vehicle" | "bookedRanges" | "bookedRangesLoading" | "onDatesChange"
 > & {
   /** The site header, rendered on the server. */
   header: ReactNode;
@@ -32,7 +32,7 @@ type BookingWorkspaceProps = Omit<
   bookedRanges: PublicVehicleBookedRange[];
   /** Every bookable car, for the switcher. */
   fleet: PublicListedVehicle[];
-  /** The trip from the URL, carried into sign-in and the address bar. */
+  /** The trip from the URL; seeds the dates checked against the car. */
   query: BookingContinueQuery;
 };
 
@@ -118,7 +118,6 @@ export function BookingWorkspace({
           bookedRanges={bookedRanges ?? []}
           bookedRangesLoading={loadingRanges || !bookedRanges}
           onDatesChange={setDates}
-          query={query}
           vehicle={vehicle}
         />
       </div>

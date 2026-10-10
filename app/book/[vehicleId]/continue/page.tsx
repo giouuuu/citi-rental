@@ -1,13 +1,6 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
-import { SiteHeader } from "@/components/landing/site-header";
-import { BookingSignInStep } from "@/features/booking/components/booking-sign-in-step";
 import { bookingFormPath } from "@/features/booking/lib/booking-continue";
-import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
-import { getPublicVehicle } from "@/features/booking/services/public-booking-service";
-import { NOINDEX } from "@/features/seo/lib/business";
 
 type ContinuePageProps = {
   params: Promise<{ vehicleId: string }>;
@@ -19,73 +12,15 @@ type ContinuePageProps = {
   }>;
 };
 
-export const metadata: Metadata = {
-  title: "Continue booking",
-  description: "Sign in to reserve your car.",
-  robots: NOINDEX,
-};
-
+/**
+ * Booking used to ask for sign-in here first. Guests now fill in the form
+ * and sign in when they confirm, so old links go straight to it.
+ */
 export default async function BookContinuePage({
   params,
   searchParams,
 }: ContinuePageProps) {
   const { vehicleId } = await params;
-  const query = await searchParams;
-  const bookingQuery = {
-    pickup: query.pickup,
-    start: query.start,
-    end: query.end,
-    mode: query.mode,
-  };
-
-  if (await isBookingUserSignedIn()) {
-    redirect(bookingFormPath(vehicleId, bookingQuery));
-  }
-
-  const vehicle = await getPublicVehicle(vehicleId);
-
-  if (!vehicle) notFound();
-
-  if (vehicle.status === "maintenance" || vehicle.status === "inactive") {
-    return (
-      <main className="min-h-screen bg-background" id="main-content">
-        <div className="bg-brand-950 text-white">
-          <SiteHeader />
-        </div>
-        <div className="mx-auto max-w-lg px-4 py-16 sm:px-6">
-          <p className="text-sm text-warning">
-            This car is not available for booking right now.{" "}
-            <Link className="font-medium underline" href="/#fleet">
-              Browse available cars
-            </Link>
-            .
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="min-h-screen bg-background" id="main-content">
-      <div className="bg-brand-950 text-white">
-        <SiteHeader />
-        <div className="mx-auto max-w-lg px-4 py-10 sm:px-6">
-          <p className="text-xs font-semibold tracking-[0.18em] text-teal-300 uppercase">
-            Customer booking
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            Sign in to book
-          </h1>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-lg px-4 py-10 sm:px-6">
-        <BookingSignInStep
-          query={bookingQuery}
-          vehicleId={vehicleId}
-          vehicleName={vehicle.name}
-        />
-      </div>
-    </main>
-  );
+  const { pickup, start, end, mode } = await searchParams;
+  redirect(bookingFormPath(vehicleId, { pickup, start, end, mode }));
 }

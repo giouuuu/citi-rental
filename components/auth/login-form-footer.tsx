@@ -7,16 +7,21 @@ const linkClassName =
 export function LoginFormFooter({
   embedded,
   isBookingReturn,
+  nextPath,
 }: {
   embedded: boolean;
   isBookingReturn: boolean;
+  /** The booking to come back to after signing up. */
+  nextPath?: string;
 }) {
-  const signUpLine = isBookingReturn ? (
-    <>New here? Continue with Google to create your account.</>
-  ) : (
+  const registerHref =
+    isBookingReturn && nextPath
+      ? `/register?next=${encodeURIComponent(nextPath)}`
+      : "/register";
+  const signUpLine = (
     <>
-      New to Zeke Car Rentals?{" "}
-      <Link className={linkClassName} href="/register">
+      {isBookingReturn ? "New here?" : "New to Zeke Car Rental & Services?"}{" "}
+      <Link className={linkClassName} href={registerHref}>
         Create an account
       </Link>
     </>

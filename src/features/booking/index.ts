@@ -4,13 +4,8 @@ export { AccountBookingSection } from "./components/account-booking-section";
 export { AccountProfileSummary } from "./components/account-profile-summary";
 export { BookingForm } from "./components/booking-form";
 export { BookingPaymentForm } from "./components/booking-payment-form";
-export { BookingSignInStep } from "./components/booking-sign-in-step";
 export { RouteModal } from "./components/route-modal";
-export {
-  bookingContinuePath,
-  bookingFormPath,
-  bookingSignInPath,
-} from "./lib/booking-continue";
+export { bookingFormPath, bookingSignInPath } from "./lib/booking-continue";
 export { publicBookingSchema } from "./schemas/public-booking-schema";
 export type { CustomerBooking } from "./types/customer-booking";
 export type {

@@ -36,7 +36,7 @@ delete from public.customers where id::text like 'de000002-%';
 -- 1. Tax settings: non-VAT while seeding history (re-stamped in step 6).
 -- ---------------------------------------------------------------------------
 update public.tax_settings set
-  registered_name = 'Zeke Car Rentals',
+  registered_name = 'Zeke Car Rental & Services',
   tin = '123-456-789-00000',
   rdo_code = '081',
   registered_address = 'Cebu City, Cebu',

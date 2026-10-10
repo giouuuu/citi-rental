@@ -30,14 +30,15 @@ function checkPhoto(file: File, label: string) {
 /**
  * Uploads both renter ID photos into one fresh `<uuid>/` folder. Paths are
  * fixed (`license-selfie.*`, `government-id.*`) because the storage policy and
- * create_public_booking only accept that shape.
+ * create_public_booking only accept that shape. With a driver the selfie
+ * shows the government ID instead of a license; it keeps the same slot.
  */
 export async function uploadBookingIdPhotos(options: {
   supabase: SupabaseClient;
   photos: BookingIdPhotos;
 }): Promise<{ licenseSelfiePath: string; governmentIdPath: string }> {
   const { supabase, photos } = options;
-  checkPhoto(photos.licenseSelfie, "license selfie");
+  checkPhoto(photos.licenseSelfie, "selfie");
   checkPhoto(photos.governmentId, "government ID");
 
   const folder = crypto.randomUUID();

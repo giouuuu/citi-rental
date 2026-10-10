@@ -4,7 +4,7 @@ import { getPublicVehicle } from "@/features/booking/services/public-booking-ser
 import { vehicleSeoTitle } from "@/features/seo/lib/vehicle-title";
 import { formatPhp } from "@/features/shared/lib/money";
 
-export const alt = "Car for rent in Cebu — Zeke Car Rentals";
+export const alt = "Car for rent in Cebu — Zeke Car Rental & Services";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -43,13 +43,13 @@ export default async function Image({
       >
         <div
           style={{
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: 600,
             color: "#0f766e",
-            letterSpacing: 3,
+            letterSpacing: 2,
           }}
         >
-          ZEKE CAR RENTALS · CEBU
+          ZEKE CAR RENTAL & SERVICES · CEBU
         </div>
         <div
           style={{

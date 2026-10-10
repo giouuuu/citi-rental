@@ -13,7 +13,7 @@ const DESCRIPTION =
   "Rent a car at Mactan-Cebu International Airport. We deliver the car to the airport when you land, or anywhere else in Cebu province. Self-drive or with driver.";
 
 export const metadata: Metadata = {
-  title: { absolute: `${TITLE} | Zeke Car Rentals` },
+  title: { absolute: `${TITLE} | Zeke Car Rental & Services` },
   description: DESCRIPTION,
   alternates: { canonical: PATH },
   openGraph: {
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 
 export default async function AirportCarRentalPage() {
   const data = await loadSeoPageData(
-    "Hi Zeke Car Rentals! I'd like to rent a car from Mactan-Cebu Airport.",
+    "Hi Zeke Car Rental & Services! I'd like to rent a car from Mactan-Cebu Airport.",
   );
   const fee = data.reservationFee ? formatPhp(data.reservationFee) : null;
   // Cards open the booking form with the airport already filled in.
@@ -87,7 +87,6 @@ export default async function AirportCarRentalPage() {
           "The airport is filled in as your delivery point. Change it to any address in Cebu province if you prefer.",
         vehicles: data.vehicles,
         bookingQuery,
-        signedIn: data.signedIn,
         reservationFee: data.reservationFee,
       }}
       intro="We deliver your rental car to Mactan-Cebu International Airport, so you can drive straight to your hotel, the beach, or the south of the island. The airport is one stop: we deliver anywhere in Cebu province."

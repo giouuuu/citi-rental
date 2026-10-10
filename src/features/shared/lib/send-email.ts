@@ -1,7 +1,7 @@
 import "server-only";
 
 /** Must be an address on a domain verified in Resend. */
-const DEFAULT_FROM = "Zeke Car Rentals <no-reply@zekecebucarrental.com>";
+const DEFAULT_FROM = "Zeke Car Rental & Services <no-reply@zekecebucarrental.com>";
 
 export type OutgoingEmail = {
   to: string | string[];

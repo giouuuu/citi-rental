@@ -1,6 +1,6 @@
 # Zeke’s logo refresh
 
-The owner's yellow classic car, checkered road and ZEKE’S lettering are the identity anchors. The website uses a transparent car symbol alongside live lettering, allowing white lettering on dark headers and navy lettering on light surfaces. The service line is “CAR RENTAL”, spread letter by letter across the width of ZEKE’S. (It was “CAR RENTAL & TOUR SERVICES” until October 2026; the logo PNG and the brand board were edited to match, keeping the original lettering.) Existing UI action colors remain part of the application's design system.
+The owner's yellow classic car, checkered road and ZEKE’S lettering are the identity anchors. The website uses a transparent car symbol alongside live lettering, allowing white lettering on dark headers and navy lettering on light surfaces. The service line is “CAR RENTAL & SERVICES”, spread letter by letter across the width of ZEKE’S, and the business goes by Zeke Car Rental & Services. (It was “CAR RENTAL & TOUR SERVICES” at first, then briefly “CAR RENTAL”; on 10 October 2026 the service line in the logo PNG and on the brand board was reset in Montserrat Bold to read “CAR RENTAL & SERVICES”, keeping the original car and ZEKE’S lettering.) Existing UI action colors remain part of the application's design system.
 
 ## Deliverables
 
@@ -14,7 +14,7 @@ Generated with the built-in image generation tool. These are raster assets, not 
 
 ## Generation prompts
 
-The original prompts, kept for reference. They still name the old service line; ask for “CAR RENTAL” if regenerating.
+The original prompts, kept for reference. They still name the old service line; ask for “CAR RENTAL & SERVICES” if regenerating.
 
 ### Horizontal logo
 

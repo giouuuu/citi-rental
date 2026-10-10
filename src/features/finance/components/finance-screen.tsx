@@ -41,7 +41,7 @@ export async function FinanceScreen({ searchParams }: { searchParams: Promise<Se
   };
   const fiscalStart = settings.fiscalYearStartMonth;
   const window = resolveFinanceWindow({ period: read("period"), from: read("from"), to: read("to") }, fiscalStart);
-  const registered = settings.registeredName || "Zeke Car Rentals";
+  const registered = settings.registeredName || "Zeke Car Rental & Services";
 
   return (
     <div className="space-y-6">

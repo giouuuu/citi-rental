@@ -33,7 +33,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
       <section className="relative flex min-h-dvh flex-col px-4 sm:px-8 lg:min-h-0 lg:px-12 xl:px-16">
         <header className="flex h-20 items-center justify-between gap-4">
-          <Link aria-label="Zeke Car Rentals home" href="/">
+          <Link aria-label="Zeke Car Rental & Services home" href="/">
             <ZekeLogo />
           </Link>
           <Link
@@ -57,7 +57,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         </div>
 
         <p className="pb-6 text-center text-xs leading-5 text-muted-foreground lg:text-left">
-          Zeke Car Rentals, Cebu. DTI-registered.
+          Zeke Car Rental & Services, Cebu. DTI-registered.
         </p>
       </section>
 

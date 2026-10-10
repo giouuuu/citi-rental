@@ -14,10 +14,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { DrivingModeToggle } from "@/features/booking/components/driving-mode-toggle";
-import {
-  bookingContinuePath,
-  bookingFormPath,
-} from "@/features/booking/lib/booking-continue";
+import { bookingFormPath } from "@/features/booking/lib/booking-continue";
 import {
   parseDrivingMode,
   type DrivingMode,
@@ -43,14 +40,12 @@ export function QuickBookPanel({
   trip,
   reservationFee,
   driverDailyRate,
-  signedIn = false,
   onBook,
 }: {
   vehicle: PublicListedVehicle;
   trip: QuickBookTrip;
   reservationFee?: number | null;
   driverDailyRate?: number | null;
-  signedIn?: boolean;
   /** Close the dialog: the booking step opens as its own modal. */
   onBook: () => void;
 }) {
@@ -66,7 +61,7 @@ export function QuickBookPanel({
   const withDriver = mode === "with-driver";
   const seats = vehicle.seating_capacity;
 
-  const href = (signedIn ? bookingFormPath : bookingContinuePath)(vehicle.id, {
+  const href = bookingFormPath(vehicle.id, {
     pickup: pickup.trim() || undefined,
     start: start || undefined,
     end: end || undefined,

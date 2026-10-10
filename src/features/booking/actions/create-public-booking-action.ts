@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
 import { publicBookingSchema } from "@/features/booking/schemas/public-booking-schema";
@@ -38,6 +39,7 @@ export async function createPublicBookingAction(
     licenseSelfie: formData.get("licenseSelfie"),
     governmentId: formData.get("governmentId"),
     notes: formData.get("notes") || undefined,
+    acceptTerms: formData.get("acceptTerms"),
   });
 
   if (!parsed.success) {
@@ -59,6 +61,8 @@ export async function createPublicBookingAction(
       vehicleId: booking.vehicleId,
       rentalId: booking.rentalId,
     });
+    // The landing's booking reminder card reads this booking.
+    revalidatePath("/");
     return { success: true, data: booking };
   } catch (error) {
     return {

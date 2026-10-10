@@ -19,6 +19,7 @@ import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { uploadPaymentProof } from "@/features/booking/lib/upload-payment-proof";
 import { uploadBookingIdPhotos } from "@/features/booking/lib/upload-booking-id-photos";
+import { AGREEMENT_TEMPLATE_VERSION } from "@/features/agreements/lib/agreement-template";
 
 function toTimestamptz(value: string) {
   const date = parseManilaTimestamp(value);
@@ -62,6 +63,8 @@ function mapPaymentDetails(
       typeof row.payment_proof_submitted_at === "string"
         ? row.payment_proof_submitted_at
         : null,
+    depositPending: row.deposit_payment_status === "submitted",
+    datesTaken: Boolean(row.dates_taken),
     vehicleName: String(row.vehicle_name ?? ""),
     vehicleMake: String(row.vehicle_make ?? ""),
     vehicleModel: String(row.vehicle_model ?? ""),
@@ -72,6 +75,11 @@ function mapPaymentDetails(
         ? row.payment_instructions
         : null,
     companyName: String(row.company_name ?? ""),
+    cancelledAt: typeof row.cancelled_at === "string" ? row.cancelled_at : null,
+    reservationFeeForfeited:
+      typeof row.reservation_fee_forfeited === "boolean"
+        ? row.reservation_fee_forfeited
+        : null,
   };
 }
 
@@ -176,7 +184,11 @@ export async function createPublicBooking(
     p_full_name: input.fullName || null,
     p_phone_number: input.phoneNumber || null,
     p_email: input.email || null,
-    p_drivers_license_number: input.driversLicenseNumber || null,
+    // The renter only drives on self-drive; with a driver there is no license to send.
+    p_drivers_license_number:
+      input.drivingMode === "with-driver"
+        ? null
+        : input.driversLicenseNumber || null,
     p_pickup_location: input.pickupLocation,
     p_return_location: input.returnLocation,
     p_notes: input.notes || null,
@@ -189,6 +201,8 @@ export async function createPublicBooking(
     // Only sent when asked for: self-drive bookings work against a database
     // that predates the driver option.
     ...(input.drivingMode === "with-driver" ? { p_with_driver: true } : {}),
+    // The schema only passes a booking whose terms were ticked.
+    p_terms_version: AGREEMENT_TEMPLATE_VERSION,
   });
 
   if (error) {
@@ -332,7 +346,9 @@ export async function submitBookingPaymentProof(input: {
 
   void notifyOwnerTelegram({
     text: [
-      "Payment proof submitted — please verify",
+      payload.dates_taken
+        ? "Payment proof submitted, but another booking already holds these dates — move dates or refund"
+        : "Payment proof submitted — dates held, please verify",
       `Ref: ${payload.reference_number}`,
       `Car: ${payload.vehicle_name ?? details.vehicleName}`,
       `Deposit: ${formatPhp(num(payload.deposit_amount, details.depositAmount))}`,
@@ -360,4 +376,68 @@ export async function submitBookingPaymentProof(input: {
         ? payload.message
         : "Payment proof received. We will confirm your reservation shortly.",
   };
+}
+
+export type CancelMyBookingResult = {
+  rentalId: string;
+  referenceNumber: string;
+  /** Something was paid (or proof sent) before cancelling. */
+  paid: boolean;
+  /** Paid and cancelled inside the free-cancellation window: fee kept. */
+  reservationFeeForfeited: boolean;
+};
+
+/** The signed-in owner cancels their draft or reserved booking. */
+export async function cancelMyBooking(
+  rentalId: string,
+): Promise<CancelMyBookingResult> {
+  if (!isSupabaseConfigured()) {
+    throw new Error("Cancelling is unavailable until Supabase is configured.");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("cancel_my_booking", {
+    p_rental_id: rentalId,
+  });
+
+  if (error) {
+    throw new Error(error.message || "We could not cancel your booking.");
+  }
+
+  const payload = data as Record<string, unknown>;
+  if (!payload?.success) {
+    throw new Error("We could not cancel your booking. Please try again.");
+  }
+
+  const result: CancelMyBookingResult = {
+    rentalId: String(payload.rental_id),
+    referenceNumber: String(payload.reference_number),
+    paid: payload.paid === true,
+    reservationFeeForfeited: payload.reservation_fee_forfeited === true,
+  };
+
+  void notifyOwnerTelegram({
+    text: [
+      "Booking cancelled by the customer",
+      `Ref: ${result.referenceNumber}`,
+      `Car: ${payload.vehicle_name ?? "—"}`,
+      `Customer: ${payload.customer_name ?? "—"}`,
+      result.paid
+        ? result.reservationFeeForfeited
+          ? `Reservation fee ${formatPhp(num(payload.deposit_amount))} kept (inside the free-cancellation window)`
+          : `Reservation fee ${formatPhp(num(payload.deposit_amount))} to refund`
+        : "Nothing was paid",
+      `Ops: ${siteUrl()}/rentals/${result.rentalId}`,
+    ].join("\n"),
+  }).then((notify) => {
+    if (!notify.sent) {
+      console.error(
+        "[telegram] cancellation notify not delivered:",
+        notify.reason ?? "unknown",
+        { rentalId: result.rentalId },
+      );
+    }
+  });
+
+  return result;
 }

@@ -2,6 +2,10 @@
 
 import { z } from "zod";
 
+import {
+  calendarStatus,
+  rentalHoldsDatesFilter,
+} from "@/features/rentals/lib/rental-holds";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -23,9 +27,6 @@ const rangeSchema = z.object({
   start: z.iso.datetime({ offset: true }),
   end: z.iso.datetime({ offset: true }),
 });
-
-/** Bookings on the calendar: held, out, late, or done. Drafts hold no car. */
-const CALENDAR_STATUSES = ["reserved", "active", "overdue", "completed"];
 
 /**
  * Every car's bookings that touch the window the fleet calendar is showing.
@@ -58,7 +59,8 @@ export async function listFleetBookingsAction(input: {
     .select(
       "id, reference_number, status, start_at, expected_return_at, actual_return_at, vehicle_id, vehicles ( plate_number, name ), customers ( full_name )",
     )
-    .in("status", CALENDAR_STATUSES)
+    // Held, out, late, or done — plus drafts whose deposit was sent.
+    .or(rentalHoldsDatesFilter(["completed"]))
     .lt("start_at", parsed.data.end)
     .gt("expected_return_at", parsed.data.start)
     .order("start_at")
@@ -82,7 +84,7 @@ export async function listFleetBookingsAction(input: {
     data: ((data ?? []) as unknown as Row[]).map((row) => ({
       id: row.id,
       referenceNumber: row.reference_number,
-      status: row.status,
+      status: calendarStatus(row.status),
       startAt: row.start_at,
       // A finished rental occupied the car until it actually came back.
       endAt:

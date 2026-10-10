@@ -2,7 +2,7 @@ import { ZekeMark } from "@/components/brand/zeke-mark";
 import { zekeWordmark } from "@/components/landing/landing-fonts";
 import { cn } from "@/lib/utils";
 
-const TAGLINE = [..."CAR RENTAL"];
+const TAGLINE = [..."CAR RENTAL & SERVICES"];
 
 /** Live lettering keeps the service line crisp at small responsive sizes. */
 export function ZekeLogo({
@@ -14,7 +14,7 @@ export function ZekeLogo({
 }) {
   return (
     <span
-      aria-label="Zeke’s Car Rental"
+      aria-label="Zeke Car Rental & Services"
       role="img"
       className={cn("inline-flex shrink-0 items-center gap-1.5 sm:gap-2", className)}
     >

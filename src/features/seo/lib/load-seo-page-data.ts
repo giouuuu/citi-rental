@@ -1,6 +1,5 @@
 import "server-only";
 
-import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
 import {
   getPublicFreeCancellationHours,
   getPublicReservationFee,
@@ -18,20 +17,18 @@ import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-p
  * what the booking flow and the agreement actually charge.
  */
 export async function loadSeoPageData(greeting: string) {
-  const [vehicles, contact, reservationFee, freeCancellationHours, signedIn] =
+  const [vehicles, contact, reservationFee, freeCancellationHours] =
     await Promise.all([
       listPublicAvailableVehicles(),
       getPublicContactChannels(),
       getPublicReservationFee(),
       getPublicFreeCancellationHours(),
-      isBookingUserSignedIn(),
     ]);
 
   const rates = vehicles.map((v) => v.daily_rate).filter((rate) => rate > 0);
 
   return {
     vehicles,
-    signedIn,
     reservationFee,
     freeCancellationHours,
     contactChannels: buildContactChannels(contact, greeting),

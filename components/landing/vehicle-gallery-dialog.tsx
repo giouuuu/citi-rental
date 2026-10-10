@@ -33,8 +33,6 @@ type VehicleGalleryDialogProps = {
   vehicle: PublicListedVehicle;
   /** The visitor's search so far; the quick-book panel starts from it. */
   trip: QuickBookTrip;
-  /** Signed-in customers skip the sign-in step. */
-  signedIn?: boolean;
   /** Flat fee to hold a booking, from Settings. */
   reservationFee?: number | null;
   /** Settings → driver day rate, for the with-driver quote. */
@@ -73,7 +71,6 @@ export const VehicleGalleryTrigger = DialogPrimitive.Trigger;
 export function VehicleGalleryDialog({
   vehicle,
   trip,
-  signedIn,
   reservationFee,
   driverDailyRate,
   layoutId,
@@ -110,7 +107,6 @@ export function VehicleGalleryDialog({
               onClose={() => handleOpenChange(false)}
               reservationFee={reservationFee}
               setIndex={setIndex}
-              signedIn={signedIn}
               trip={trip}
               vehicle={vehicle}
             />
@@ -124,7 +120,6 @@ export function VehicleGalleryDialog({
 function GalleryBody({
   vehicle,
   trip,
-  signedIn,
   reservationFee,
   driverDailyRate,
   layoutId,
@@ -342,7 +337,6 @@ function GalleryBody({
                 driverDailyRate={driverDailyRate}
                 onBook={onClose}
                 reservationFee={reservationFee}
-                signedIn={signedIn}
                 trip={trip}
                 vehicle={vehicle}
               />

@@ -39,11 +39,9 @@ import { landingSteps } from "@/components/landing/landing-steps";
 import { SiteHeader } from "@/components/landing/site-header";
 import { VehicleListing } from "@/components/landing/vehicle-listing";
 import { Button } from "@/components/ui/button";
-import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
-import {
-  bookingContinuePath,
-  bookingFormPath,
-} from "@/features/booking/lib/booking-continue";
+import { BookingReminderCard } from "@/features/booking/components/booking-reminder-card";
+import { bookingFormPath } from "@/features/booking/lib/booking-continue";
+import { getMyBookingReminder } from "@/features/booking/services/get-my-booking-reminder";
 import {
   getPublicDriverDailyRate,
   getPublicFreeCancellationHours,
@@ -93,7 +91,7 @@ function focusDelay(ms: number) {
 export const metadata: Metadata = {
   title: {
     absolute:
-      "Car Rental in Cebu – Self-Drive & With Driver | Zeke Car Rentals",
+      "Car Rental in Cebu – Self-Drive & With Driver | Zeke Car Rental & Services",
   },
   description: SEO_DESCRIPTION,
   // Trip searches (?start=…&pickup=…) are the same page; rank only one URL.
@@ -139,6 +137,7 @@ export default async function HomePage({
     reviews,
     freeCancellationHours,
     driverDailyRate,
+    bookingReminder,
   ] = await Promise.all([
     listPublicAvailableVehicles({
       startDate: trip.start,
@@ -149,6 +148,7 @@ export default async function HomePage({
     listPublicReviews(),
     getPublicFreeCancellationHours(),
     getPublicDriverDailyRate(),
+    getMyBookingReminder(),
   ]);
   // The Messenger setting is the Facebook page username (m.me/<page>).
   const facebookPage = contactValues.messenger?.trim().replace(/^@/, "");
@@ -161,9 +161,8 @@ export default async function HomePage({
   ).length;
   const contactChannels = buildContactChannels(
     contactValues,
-    "Hi Zeke Car Rentals! I'd like to ask about renting a car.",
+    "Hi Zeke Car Rental & Services! I'd like to ask about renting a car.",
   );
-  const signedIn = await isBookingUserSignedIn();
   const bookingParams = new URLSearchParams();
   if (trip.pickup) bookingParams.set("pickup", trip.pickup);
   if (trip.start) bookingParams.set("start", trip.start);
@@ -236,13 +235,12 @@ export default async function HomePage({
             color: vehicle.color,
             imageUrl: vehicle.showcase_image_url,
             dailyRate: vehicle.daily_rate,
-            bookHref: (signedIn ? bookingFormPath : bookingContinuePath)(
-              vehicle.id,
-              { ...trip, mode: query.mode },
-            ),
+            bookHref: bookingFormPath(vehicle.id, {
+              ...trip,
+              mode: query.mode,
+            }),
             vehicle,
             trip: { ...trip, mode: query.mode },
-            signedIn,
             reservationFee,
             driverDailyRate,
           },
@@ -317,7 +315,7 @@ export default async function HomePage({
             {/* The visible lockup lives in the scene, behind the green ridge. */}
             <div className="relative mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 sm:px-6 lg:px-8">
               <h1 className="sr-only">
-                Car rental in Cebu: your Cebu journey with Zeke Car Rentals
+                Car rental in Cebu: your Cebu journey with Zeke Car Rental & Services
               </h1>
               <p className="sr-only">{HERO_SUBTITLE}</p>
 
@@ -333,6 +331,9 @@ export default async function HomePage({
             className="focus-in relative z-20 mx-auto w-full max-w-7xl px-4 pb-4 sm:px-6 sm:pb-8 lg:px-8 lg:pb-10"
             style={focusDelay(SEARCH_CARD_DELAY_MS)}
           >
+            {bookingReminder ? (
+              <BookingReminderCard className="mb-2" reminder={bookingReminder} />
+            ) : null}
             <BookingSearch
               initialEnd={trip.end}
               initialMode={query.mode}
@@ -366,7 +367,6 @@ export default async function HomePage({
         key={query.type ?? "all"}
         driverDailyRate={driverDailyRate}
         reservationFee={reservationFee}
-        signedIn={signedIn}
         trip={trip}
         vehicles={availableVehicles}
       />
@@ -704,7 +704,7 @@ export default async function HomePage({
           </div>
 
           <div className="mt-12 flex flex-col gap-3 border-t border-border pt-6 text-xs sm:flex-row sm:items-start sm:justify-between">
-            <p>© 2026 Zeke Car Rentals</p>
+            <p>© 2026 Zeke Car Rental & Services</p>
             <details className="sm:text-right">
               <summary className="cursor-pointer transition-colors hover:text-brand-950">
                 Photo credits

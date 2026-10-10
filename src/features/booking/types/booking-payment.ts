@@ -25,12 +25,19 @@ export type BookingPaymentDetails = {
   paymentReference: string | null;
   hasPaymentProof: boolean;
   paymentProofSubmittedAt: string | null;
+  /** A deposit was sent and is waiting for staff (proof upload or PayMongo). */
+  depositPending: boolean;
+  /** Another booking already holds these dates, so this one can't take them. */
+  datesTaken: boolean;
   vehicleName: string;
   vehicleMake: string;
   vehicleModel: string;
   paymentQrUrl: string | null;
   paymentInstructions: string | null;
   companyName: string;
+  cancelledAt: string | null;
+  /** Set when a paid booking is cancelled: true keeps the fee, false refunds it. */
+  reservationFeeForfeited: boolean | null;
 };
 
 export type PublicBookingResult = {

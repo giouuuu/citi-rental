@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
 export const alt =
-  "Zeke Car Rentals — car rental in Cebu, self-drive or with driver";
+  "Zeke Car Rental & Services — car rental in Cebu, self-drive or with driver";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

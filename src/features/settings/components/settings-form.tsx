@@ -349,7 +349,7 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                     aria-invalid={fieldState.invalid}
                     disabled={isPending}
                     id="payment_instructions"
-                    placeholder="GCash name: Zeke Car Rentals&#10;Number: 09XX XXX XXXX&#10;Put the booking reference in the note."
+                    placeholder="GCash name: Zeke Car Rental & Services&#10;Number: 09XX XXX XXXX&#10;Put the booking reference in the note."
                     rows={4}
                     value={field.value ?? ""}
                   />

@@ -191,6 +191,7 @@ export function LoginForm({
       <LoginFormFooter
         embedded={embedded}
         isBookingReturn={isBookingReturn}
+        nextPath={safeNext}
       />
     </div>
   );

@@ -32,8 +32,8 @@ export const metadata: Metadata = {
   // Relative canonical/OG URLs resolve against the real domain in production.
   metadataBase: new URL(siteUrl()),
   title: {
-    default: "Car Rental in Cebu | Zeke Car Rentals",
-    template: "%s | Zeke Car Rentals",
+    default: "Car Rental in Cebu | Zeke Car Rental & Services",
+    template: "%s | Zeke Car Rental & Services",
   },
   description: SEO_DESCRIPTION,
   applicationName: BUSINESS.name,
