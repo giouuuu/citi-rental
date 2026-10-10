@@ -178,9 +178,9 @@ const WIN_ANSI_EXTRAS = new Set(
 export function pdfText(value: string): string {
   return value
     .replace(/₱\s?/g, "PHP ")
-    .replace(/[‐‑‒]/g, "-")
-    .replace(/→/g, "->")
-    .replace(/[  ]/g, " ")
+    .replace(/[\u2010\u2011\u2012]/g, "-")
+    .replace(/\u2192/g, "->")
+    .replace(/[\u00A0\u202F]/g, " ")
     .replace(/[^\n\x20-\x7E\xA1-\xFF]/g, (char) => (WIN_ANSI_EXTRAS.has(char) ? char : "?"));
 }
 
