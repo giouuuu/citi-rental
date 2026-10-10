@@ -2,6 +2,8 @@ export type BookingContinueQuery = {
   pickup?: string;
   start?: string;
   end?: string;
+  /** `with-driver` carries the choice; self-drive is the default and omitted. */
+  mode?: string;
 };
 
 export function buildBookingQueryString(query: BookingContinueQuery) {
@@ -9,6 +11,7 @@ export function buildBookingQueryString(query: BookingContinueQuery) {
   if (query.pickup) params.set("pickup", query.pickup);
   if (query.start) params.set("start", query.start);
   if (query.end) params.set("end", query.end);
+  if (query.mode === "with-driver") params.set("mode", "with-driver");
   const value = params.toString();
   return value ? `?${value}` : "";
 }

@@ -328,7 +328,7 @@ select throws_ok(
 );
 select is(
   (select prosecdef from pg_proc
-    where oid = 'public.create_public_booking(uuid, timestamptz, timestamptz, text, text, text, text, text, text, text, text, text, text, integer, text, text)'::regprocedure),
+    where oid = 'public.create_public_booking(uuid, timestamptz, timestamptz, text, text, text, text, text, text, text, text, text, text, integer, text, text, boolean)'::regprocedure),
   true,
   'create_public_booking remains SECURITY DEFINER'
 );

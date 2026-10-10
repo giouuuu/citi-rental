@@ -33,6 +33,7 @@ import { SetChargeCostForm } from "@/features/rentals/components/set-charge-cost
 import {
   buildRentalBill,
   describeRentLine,
+  type RentalBillDriver,
   rentalBillStatus,
   summarizeChargeCosts,
 } from "@/features/rentals/lib/rental-bill";
@@ -57,6 +58,8 @@ type RentalPaymentPanelProps = {
   quotedDays?: number | null;
   quotedHours?: number | null;
   quotedTotal?: number | null;
+  /** With-driver rentals: the driver line inside the quoted total. */
+  driver?: RentalBillDriver | null;
   depositAmount?: number | null;
   depositPercent?: number | null;
   payments: RentalPayment[];
@@ -119,6 +122,7 @@ export function RentalPaymentPanel({
   quotedDays = null,
   quotedHours = null,
   quotedTotal = null,
+  driver = null,
   depositAmount,
   depositPercent,
   payments,
@@ -140,6 +144,7 @@ export function RentalPaymentPanel({
     quotedDays,
     quotedHours,
     quotedTotal,
+    driver,
     payments,
   });
   const canAddCharges = rentalStatus !== "cancelled";
@@ -276,6 +281,17 @@ export function RentalPaymentPanel({
             detail={rentDetail}
             label="Rent"
           />
+          {bill.driver ? (
+            <BillLine
+              amount={formatPhpExact(bill.driver.fee)}
+              detail={
+                bill.driver.rate != null && bill.driver.days != null
+                  ? `${formatPhpExact(bill.driver.rate)} × ${bill.driver.days} ${bill.driver.days === 1 ? "day" : "days"}`
+                  : "Customer asked for a driver. Add the driver fee as a charge."
+              }
+              label="Driver"
+            />
+          ) : null}
           {bill.charges.map((charge) => {
             const isAdjustment = charge.chargeTypeCode === BILL_ADJUSTMENT_CODE;
             const name =

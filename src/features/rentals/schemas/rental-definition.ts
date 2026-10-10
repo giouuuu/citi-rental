@@ -298,6 +298,7 @@ export const rentalDefinition: ResourceDefinition = {
       reference: { table: "vehicles", column: "plate_number" },
       secondary: [
         { key: "vehicle_name", label: "Car name", reference: { table: "vehicles", column: "name" } },
+        { key: "with_driver", label: "With driver", format: "boolean" },
       ],
     },
     {

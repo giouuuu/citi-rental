@@ -69,6 +69,7 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
       location_retention_days: settings.location_retention_days,
       gps_provider: settings.gps_provider as SettingsInput["gps_provider"],
       reservation_fee: settings.reservation_fee,
+      driver_daily_rate: settings.driver_daily_rate,
       free_cancellation_hours: settings.free_cancellation_hours,
       payment_qr_url: settings.payment_qr_url,
       payment_instructions: settings.payment_instructions,
@@ -226,6 +227,46 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                   <FieldDescription>
                     Fixed amount an online booking pays to hold the car. Never
                     more than the trip total.
+                  </FieldDescription>
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="driver_daily_rate"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="driver_daily_rate">
+                    Driver daily rate (₱)
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    disabled={isPending}
+                    id="driver_daily_rate"
+                    min={0}
+                    step="0.01"
+                    onChange={(event) =>
+                      field.onChange(
+                        event.target.value === ""
+                          ? null
+                          : event.target.valueAsNumber,
+                      )
+                    }
+                    placeholder="Staff quote it"
+                    type="number"
+                    value={
+                      field.value === undefined || field.value === null
+                        ? ""
+                        : String(field.value)
+                    }
+                  />
+                  <FieldDescription>
+                    Added to with-driver bookings for every started 24 hours.
+                    Leave empty to quote the driver yourself.
                   </FieldDescription>
                   {fieldState.invalid ? (
                     <FieldError errors={[fieldState.error]} />

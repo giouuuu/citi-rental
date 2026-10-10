@@ -13,6 +13,7 @@ import {
 } from "@/features/rentals/lib/booking-gates";
 import { isPublicCustomerBooking } from "@/features/rentals/lib/is-public-customer-booking";
 import {
+  driverCharge,
   quoteRentalDates,
   requoteBookedTime,
 } from "@/features/rentals/lib/rental-quote";
@@ -145,7 +146,7 @@ export async function saveRentalAction(
       const { data: existing, error: existingError } = await supabase
         .from("rentals")
         .select(
-          "id, status, reference_number, start_at, expected_return_at, quoted_daily_rate, quoted_half_day_rate, quoted_hourly_rate, quoted_days, quoted_hours",
+          "id, status, reference_number, start_at, expected_return_at, quoted_daily_rate, quoted_half_day_rate, quoted_hourly_rate, quoted_days, quoted_hours, with_driver, driver_daily_rate, driver_fee",
         )
         .eq("id", id)
         .maybeSingle();
@@ -217,7 +218,24 @@ export async function saveRentalAction(
                 },
                 rates,
               );
-        if (quote) Object.assign(payload, quote);
+        if (quote) {
+          Object.assign(payload, quote);
+          // quoted_total carries the driver too: re-price the driver on new
+          // dates, otherwise keep the booked driver fee.
+          if (existing.with_driver) {
+            const driver = datesChanged
+              ? driverCharge(
+                  new Date(startAt),
+                  new Date(expectedReturnAt),
+                  optionalRate(existing.driver_daily_rate),
+                )
+              : { driver_fee: Number(existing.driver_fee ?? 0) };
+            Object.assign(payload, driver, {
+              quoted_total:
+                Math.round((quote.quoted_total + driver.driver_fee) * 100) / 100,
+            });
+          }
+        }
       }
 
       const { data, error } = await supabase

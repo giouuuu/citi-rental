@@ -42,6 +42,8 @@ type VehicleListingProps = {
   initialCategory?: string;
   /** Flat fee to hold a booking, from Settings. */
   reservationFee?: number | null;
+  /** Settings → driver day rate, for the with-driver quote. */
+  driverDailyRate?: number | null;
 };
 
 function formatTripDate(value?: string) {
@@ -61,6 +63,7 @@ export function VehicleListing({
   trip,
   initialCategory,
   reservationFee,
+  driverDailyRate,
 }: VehicleListingProps) {
   const categories = useMemo(() => {
     const fromFleet = Array.from(
@@ -111,7 +114,7 @@ export function VehicleListing({
   }
 
   return (
-    <section className="relative scroll-mt-4 py-20 sm:py-24" id="fleet">
+    <section className="relative scroll-mt-2 pt-10 pb-20 sm:pt-12 sm:pb-24" id="fleet">
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-3xl font-semibold tracking-[-0.025em] text-balance text-brand-950 sm:text-4xl">
@@ -218,11 +221,15 @@ export function VehicleListing({
         </div>
 
         {filteredVehicles.length ? (
-          <div className="mt-8 grid gap-x-6 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            className="mt-8 grid gap-x-6 gap-y-8 md:grid-cols-2 xl:grid-cols-3"
+            data-reveal-group=""
+          >
             {filteredVehicles.map((vehicle) => (
               <FleetVehicleCard
                 bookingQuery={bookingQuery}
                 key={vehicle.id}
+                driverDailyRate={driverDailyRate}
                 reservationFee={reservationFee}
                 signedIn={signedIn}
                 vehicle={vehicle}

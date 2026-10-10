@@ -4,6 +4,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -166,6 +167,14 @@ function CellValue({
     ) : secondary ? null : (
       <StatusBadge status="unknown" />
     );
+  // A yes/no line under a value is a tag when it applies, and nothing when it
+  // does not, so a rare flag does not print "No" on every row.
+  if (secondary && column.format === "boolean")
+    return value === true ? (
+      <Badge className="h-5 px-2 text-[11px]" variant="secondary">
+        {column.label}
+      </Badge>
+    ) : null;
   if (column.format === "image")
     return value ? (
       // eslint-disable-next-line @next/next/no-img-element

@@ -5,9 +5,11 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/landing/site-header";
 import { BookingFlow } from "@/features/booking/components/booking-flow";
 import { bookingSignInPath } from "@/features/booking/lib/booking-continue";
+import { parseDrivingMode } from "@/features/booking/lib/driving-mode";
 import { turnstileSiteKey } from "@/features/booking/lib/turnstile";
 import { listPublicVehicleBookedRanges } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import {
+  getPublicDriverDailyRate,
   getPublicFreeCancellationHours,
   getPublicReservationFee,
   getPublicVehicle,
@@ -24,6 +26,7 @@ type BookPageProps = {
     pickup?: string;
     start?: string;
     end?: string;
+    mode?: string;
   }>;
 };
 
@@ -73,11 +76,12 @@ export default async function BookVehiclePage({
 
   if (!vehicle) notFound();
 
-  const [bookedRanges, reservationFee, freeCancellationHours] =
+  const [bookedRanges, reservationFee, freeCancellationHours, driverDailyRate] =
     await Promise.all([
       listPublicVehicleBookedRanges(vehicleId),
       getPublicReservationFee(),
       getPublicFreeCancellationHours(),
+      getPublicDriverDailyRate(),
     ]);
 
   let signedIn = false;
@@ -129,7 +133,9 @@ export default async function BookVehiclePage({
         ) : (
           <BookingFlow
             bookedRanges={bookedRanges}
+            driverDailyRate={driverDailyRate}
             freeCancellationHours={freeCancellationHours}
+            initialDrivingMode={parseDrivingMode(query.mode)}
             initialEmail={initialEmail}
             initialFullName={initialFullName}
             initialPickupLocation={query.pickup}

@@ -22,6 +22,7 @@ export async function createPublicBookingAction(
       : publicBookingSchema;
   const parsed = schema.safeParse({
     vehicleId: formData.get("vehicleId"),
+    drivingMode: formData.get("drivingMode") || undefined,
     startAt: formData.get("startAt"),
     expectedReturnAt: formData.get("expectedReturnAt"),
     fullName: formData.get("fullName") ?? "",

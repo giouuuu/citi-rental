@@ -22,6 +22,16 @@ export const settingsSchema = z
       .number()
       .min(1, "Enter a reservation fee of at least ₱1.")
       .max(1_000_000),
+    // Empty: with-driver bookings go through and staff quote the driver.
+    driver_daily_rate: z.preprocess(
+      (value) =>
+        value === "" || value == null || Number.isNaN(value) ? null : value,
+      z.coerce
+        .number()
+        .min(0, "The driver rate cannot be negative.")
+        .max(1_000_000)
+        .nullable(),
+    ),
     free_cancellation_hours: z.coerce
       .number()
       .int("Use whole hours.")

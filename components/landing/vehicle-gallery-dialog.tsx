@@ -7,6 +7,10 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 
+import {
+  QuickBookPanel,
+  type QuickBookTrip,
+} from "@/components/landing/quick-book-panel";
 import { Button } from "@/components/ui/button";
 import { trackSiteEvent } from "@/features/site-analytics/lib/track-site-event";
 import { VehicleRateQuote } from "@/features/vehicles/components/vehicle-rate-quote";
@@ -26,10 +30,14 @@ const FLOATING_BUTTON =
 
 type VehicleGalleryDialogProps = {
   vehicle: PublicListedVehicle;
-  bookHref: string;
-  trip: { start?: string; end?: string };
+  /** The visitor's search so far; the quick-book panel starts from it. */
+  trip: QuickBookTrip;
+  /** Signed-in customers skip the guest-or-sign-in step. */
+  signedIn?: boolean;
   /** Flat fee to hold a booking, from Settings. */
   reservationFee?: number | null;
+  /** Settings → driver day rate, for the with-driver quote. */
+  driverDailyRate?: number | null;
   /**
    * The opener's photo frame `layoutId`. When set, the stage morphs out of
    * that frame and back into it on close; otherwise it fades and scales in.
@@ -63,9 +71,10 @@ export const VehicleGalleryTrigger = DialogPrimitive.Trigger;
  */
 export function VehicleGalleryDialog({
   vehicle,
-  bookHref,
   trip,
+  signedIn,
   reservationFee,
+  driverDailyRate,
   layoutId,
   cover,
   onOpenChange,
@@ -92,14 +101,15 @@ export function VehicleGalleryDialog({
         <AnimatePresence onExitComplete={onExitComplete}>
           {open ? (
             <GalleryBody
-              bookHref={bookHref}
               cover={cover}
+              driverDailyRate={driverDailyRate}
               index={index}
               key="gallery"
               layoutId={layoutId}
               onClose={() => handleOpenChange(false)}
               reservationFee={reservationFee}
               setIndex={setIndex}
+              signedIn={signedIn}
               trip={trip}
               vehicle={vehicle}
             />
@@ -112,9 +122,10 @@ export function VehicleGalleryDialog({
 
 function GalleryBody({
   vehicle,
-  bookHref,
   trip,
+  signedIn,
   reservationFee,
+  driverDailyRate,
   layoutId,
   cover,
   index,
@@ -136,6 +147,16 @@ function GalleryBody({
   }
 
   function handleKeyDown(event: KeyboardEvent) {
+    // Arrows page photos only from the gallery itself: the booking panel's
+    // fields, toggle and calendars use them too (and their popovers bubble
+    // here through the portal).
+    const target = event.target as HTMLElement;
+    if (
+      target !== event.currentTarget &&
+      !target.closest?.("[data-gallery-keys]")
+    ) {
+      return;
+    }
     if (event.key === "ArrowRight") {
       event.preventDefault();
       step(1);
@@ -170,8 +191,12 @@ function GalleryBody({
           (event.currentTarget as HTMLElement).focus();
         }}
       >
-        {/* Width also bows to viewport height, so photo + details always fit. */}
-        <div className="relative w-[min(48rem,100%,calc((100dvh-16rem)*1.6))] min-w-[min(20rem,100%)] p-2">
+        {/*
+          Phones: photo, then the booking panel, scrolling inside the sheet.
+          md+: photo column beside a fixed panel; the width bows to viewport
+          height so the photo and its thumbnails always fit.
+        */}
+        <div className="relative w-[min(36rem,100%)] p-2 md:w-[min(70rem,100%,calc((100dvh-12rem)*1.6+22rem))]">
           {/*
             The modal's white card is a layer behind the photo, not its parent:
             fading a parent would fade the photo mid-morph too.
@@ -183,6 +208,8 @@ function GalleryBody({
             exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.18, ease: EASE_OUT } }}
             initial={{ opacity: 0, scale: 0.97 }}
           />
+          <div className="relative grid max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain md:max-h-none md:grid-cols-[minmax(0,1fr)_20rem] md:gap-x-5 md:overflow-visible">
+          <div className="min-w-0" data-gallery-keys="">
           <motion.div
             animate={layoutId ? undefined : { opacity: 1, scale: 1 }}
             className="relative aspect-[16/10] touch-pan-y overflow-hidden bg-[radial-gradient(120%_90%_at_50%_100%,var(--brand-100),var(--brand-50)_70%)] select-none"
@@ -339,35 +366,40 @@ function GalleryBody({
                 })}
               </ul>
             ) : null}
+          </motion.div>
+          </div>
 
-            <div className="flex flex-col gap-4 px-2 pt-4 pb-2 sm:flex-row sm:items-end sm:justify-between sm:px-3">
-              <div className="min-w-0">
-                <DialogPrimitive.Title className="font-display text-lg font-semibold tracking-[-0.015em] text-brand-950">
-                  {vehicle.name}
-                </DialogPrimitive.Title>
-                <DialogPrimitive.Description className="sr-only">
-                  Photo gallery for {vehicle.name}. Use the arrow keys to switch angles.
-                </DialogPrimitive.Description>
-                <VehicleRateQuote
-                  className="mt-1"
-                  end={trip.end}
-                  rates={{
-                    daily: vehicle.daily_rate,
-                    halfDay: vehicle.half_day_rate,
-                    hourly: vehicle.hourly_rate,
-                  }}
-                  reservationFee={reservationFee}
-                  start={trip.start}
-                />
-              </div>
-              <Button asChild className="shrink-0 sm:min-w-40" size="lg">
-                {/* Close first: the booking step opens as its own modal. */}
-                <Link href={bookHref} onClick={onClose}>
-                  Book this car
-                </Link>
-              </Button>
+          {/* The booking panel: beside the photo on md+, under it on phones. */}
+          <motion.div
+            animate={{
+              opacity: 1,
+              y: 0,
+              transition: { delay: 0.18, duration: 0.32, ease: EASE_OUT },
+            }}
+            className="relative px-2 pt-4 pb-2 text-popover-foreground md:py-3 md:pr-2 md:pl-0"
+            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+            initial={{ opacity: 0, y: 8 }}
+          >
+            <DialogPrimitive.Title className="font-display text-xl font-semibold tracking-[-0.015em] text-brand-950">
+              {vehicle.name}
+            </DialogPrimitive.Title>
+            <DialogPrimitive.Description className="mt-0.5 text-sm text-muted-foreground">
+              {[vehicle.category?.trim(), vehicle.year ? `${vehicle.year} model` : null]
+                .filter(Boolean)
+                .join(" · ") || "Choose your trip and book online."}
+            </DialogPrimitive.Description>
+            <div className="mt-4">
+              <QuickBookPanel
+                driverDailyRate={driverDailyRate}
+                onBook={onClose}
+                reservationFee={reservationFee}
+                signedIn={signedIn}
+                trip={trip}
+                vehicle={vehicle}
+              />
             </div>
           </motion.div>
+          </div>
         </div>
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>

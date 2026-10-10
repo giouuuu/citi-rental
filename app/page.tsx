@@ -4,14 +4,10 @@ import Link from "next/link";
 import { type CSSProperties, type ReactNode } from "react";
 import {
   ArrowRight,
-  CalendarCheck,
-  CarFront,
   ClipboardCheck,
   ExternalLink,
   Info,
-  MapPin,
   PhoneCall,
-  ReceiptText,
   Store,
   Tag,
 } from "lucide-react";
@@ -19,6 +15,8 @@ import {
 import { ZekeLogo } from "@/components/brand/zeke-logo";
 import { BookingSearch } from "@/components/landing/booking-search";
 import { ContactCards } from "@/components/landing/contact-cards";
+import { RevealGroups } from "@/components/landing/reveal-groups";
+import { SectionScroll } from "@/components/landing/section-scroll";
 import { ContactFab } from "@/components/landing/contact-fab";
 import { todayDateValue } from "@/components/landing/booking-search-schema";
 import {
@@ -32,8 +30,8 @@ import {
 import { HeroScene, HeroSceneControls } from "@/components/landing/hero-scene";
 import { HERO_SCENE_INTRO_MS } from "@/components/landing/hero-scene-timing";
 import {
+  heroTitleFont,
   landingFontClassName,
-  zekeWordmark,
 } from "@/components/landing/landing-fonts";
 import { LandingIntro } from "@/components/landing/landing-intro";
 import { landingPolicies } from "@/components/landing/landing-policies";
@@ -47,6 +45,7 @@ import {
   bookingFormPath,
 } from "@/features/booking/lib/booking-continue";
 import {
+  getPublicDriverDailyRate,
   getPublicFreeCancellationHours,
   getPublicReservationFee,
 } from "@/features/booking/services/public-booking-service";
@@ -58,8 +57,12 @@ import {
   SEO_DESCRIPTION,
 } from "@/features/seo/lib/business";
 import { faqJsonLd, landingFaq } from "@/features/seo/lib/landing-faq";
-import { agreementDeliveryFee } from "@/features/seo/lib/delivery";
+import {
+  agreementDeliveryFee,
+  agreementDeliveryFromAmount,
+} from "@/features/seo/lib/delivery";
 import { SEO_PAGES } from "@/features/seo/lib/seo-pages";
+import { formatPhp } from "@/features/shared/lib/money";
 import { ReviewWall } from "@/features/reviews/components/review-wall";
 import { listPublicReviews } from "@/features/reviews/services/list-public-reviews";
 import { buildContactChannels } from "@/features/settings/lib/contact-channels";
@@ -135,6 +138,7 @@ export default async function HomePage({
     reservationFee,
     reviews,
     freeCancellationHours,
+    driverDailyRate,
   ] = await Promise.all([
     listPublicAvailableVehicles({
       startDate: trip.start,
@@ -144,6 +148,7 @@ export default async function HomePage({
     getPublicReservationFee(),
     listPublicReviews(),
     getPublicFreeCancellationHours(),
+    getPublicDriverDailyRate(),
   ]);
   // The Messenger setting is the Facebook page username (m.me/<page>).
   const facebookPage = contactValues.messenger?.trim().replace(/^@/, "");
@@ -165,8 +170,56 @@ export default async function HomePage({
   if (trip.end) bookingParams.set("end", trip.end);
   if (query.mode) bookingParams.set("mode", query.mode);
   const bookingQuery = bookingParams.toString() || undefined;
-  const readyCount = availableVehicles.length;
   const dailyRates = availableVehicles.map((vehicle) => vehicle.daily_rate);
+  const lowestRate = dailyRates.filter((rate) => rate > 0);
+  const deliveryFrom = agreementDeliveryFromAmount();
+  // The renter's first questions after the hero, answered with live numbers.
+  // A fact whose setting is missing drops out rather than showing a guess.
+  const factCandidates: (Fact | null)[] = [
+    lowestRate.length
+      ? {
+          value: formatPhp(Math.min(...lowestRate)),
+          unit: "/day",
+          label: "Lowest daily rate in the fleet",
+          href: "#fleet",
+        }
+      : null,
+    deliveryFrom
+      ? {
+          value: formatPhp(deliveryFrom),
+          unit: "/way",
+          label: "Delivered to your door in Cebu\u00a0City",
+          href: "/car-rental-delivery-cebu",
+        }
+      : null,
+    freeCancellationHours && reservationFee
+      ? {
+          value: String(freeCancellationHours),
+          unit: freeCancellationHours === 1 ? "hr" : "hrs",
+          label: "Free cancellation before pickup",
+          href: "#faq",
+        }
+      : null,
+    {
+      value: "DTI",
+      unit: "& permit",
+      label:
+        BUSINESS.dtiRegistrationNo || BUSINESS.businessPermitNo
+          ? [
+              BUSINESS.dtiRegistrationNo
+                ? `DTI No. ${BUSINESS.dtiRegistrationNo}`
+                : null,
+              BUSINESS.businessPermitNo
+                ? `Permit No. ${BUSINESS.businessPermitNo}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(", ")
+          : "Registered business with a business permit",
+      href: "#why",
+    },
+  ];
+  const facts = factCandidates.filter((fact): fact is Fact => fact !== null);
   const faq = landingFaq({
     dailyRates,
     reservationFee,
@@ -185,11 +238,13 @@ export default async function HomePage({
             dailyRate: vehicle.daily_rate,
             bookHref: (signedIn ? bookingFormPath : bookingContinuePath)(
               vehicle.id,
-              trip,
+              { ...trip, mode: query.mode },
             ),
             vehicle,
-            trip,
+            trip: { ...trip, mode: query.mode },
+            signedIn,
             reservationFee,
+            driverDailyRate,
           },
         ]
       : [],
@@ -219,30 +274,32 @@ export default async function HomePage({
               caption={
                 <p
                   className="focus-in mx-auto w-fit max-w-[calc(100%-2rem)] rounded-full bg-white/75 px-4 py-1.5 text-center text-sm font-medium text-balance text-brand-950 shadow-[0_10px_30px_-14px_rgb(7_17_31/0.45)] ring-1 ring-white/70 backdrop-blur-md sm:px-5 sm:text-base"
-                  style={focusDelay(1300)}
+                  style={focusDelay(1800)}
                 >
                   {HERO_SUBTITLE}
                 </p>
               }
               className={HERO_SCENE_FRAME}
-              title={
-                // Poster lockup in the ZEKE'S wordmark lettering, sized from
-                // `--title-size` (globals.css `.hero-ridge-anchor`). It stands
-                // in the far distance, so it takes the haze like the
-                // mountains do: deep slate fading to their blue at the ridge.
+              // Tall poster lockup, sized from `--title-size` (globals.css
+              // `.hero-ridge-anchor`, which also sets the words' line
+              // heights and the lockup's proportions). Each word rises from behind its
+              // own mountains. It stands in the far distance, so it takes
+              // the haze like the mountains do: deep slate fading to their
+              // blue at the ridge.
+              eyebrow={
                 <p
-                  className={`${zekeWordmark.className} flex flex-col items-center text-center uppercase drop-shadow-[0_2px_18px_rgb(241_246_251/0.55)]`}
+                  className={`${heroTitleFont.className} rise-in pl-[0.24em] text-center text-(length:--eyebrow-size) leading-(--eyebrow-lh) tracking-[0.24em] text-teal-600 uppercase drop-shadow-[0_2px_18px_rgb(241_246_251/0.55)]`}
+                  style={focusDelay(1300)}
                 >
-                  <span
-                    className="focus-in pl-[0.24em] text-[calc(var(--title-size)*0.26)] leading-none tracking-[0.24em] text-teal-600"
-                    style={focusDelay(800)}
-                  >
-                    Your Cebu
-                  </span>
-                  <span
-                    className="focus-in mt-[calc(var(--title-size)*0.08)] bg-linear-to-b from-brand-800 from-25% to-[color-mix(in_oklab,var(--brand-500)_75%,#8fb2d4)] bg-clip-text text-(length:--title-size) leading-[0.86] tracking-[0.01em] text-transparent"
-                    style={focusDelay(900)}
-                  >
+                  Your Cebu
+                </p>
+              }
+              title={
+                <p
+                  className={`${heroTitleFont.className} rise-in text-center uppercase drop-shadow-[0_2px_18px_rgb(241_246_251/0.55)]`}
+                  style={focusDelay(1450)}
+                >
+                  <span className="block bg-linear-to-b from-brand-800 from-25% to-[color-mix(in_oklab,var(--brand-500)_75%,#8fb2d4)] bg-clip-text text-(length:--title-size) leading-(--title-lh) tracking-[0.01em] text-transparent">
                     Journey
                   </span>
                 </p>
@@ -287,42 +344,27 @@ export default async function HomePage({
         </section>
       </HeroFleetProvider>
 
-      <section aria-label="Why book with Zeke" className="bg-white pt-8 pb-6">
-        <ul
-          className="focus-in mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-8 px-4 sm:px-6 lg:grid-cols-4 lg:px-8"
-          style={focusDelay(HERO_SCENE_INTRO_MS)}
+      {facts.length ? (
+        <section
+          aria-label="Rates and policies at a glance"
+          className="bg-white"
         >
-          <FeatureItem
-            icon={<CarFront aria-hidden="true" />}
-            title="Live availability"
-            description={
-              readyCount
-                ? `${readyCount} ${readyCount === 1 ? "car" : "cars"} ready today`
-                : "Updated as cars are booked"
-            }
-          />
-          <FeatureItem
-            icon={<ReceiptText aria-hidden="true" />}
-            title="Clear daily rates"
-            description="Trip total shown before you book"
-          />
-          <FeatureItem
-            icon={<CalendarCheck aria-hidden="true" />}
-            title="Book online"
-            description="As a guest or with Google"
-          />
-          <FeatureItem
-            icon={<MapPin aria-hidden="true" />}
-            title="Delivered to you"
-            description="Anywhere in Cebu province"
-          />
-        </ul>
-      </section>
+          <ul
+            className={`mx-auto grid max-w-6xl grid-cols-2 gap-px bg-border max-lg:[&>li:last-child:nth-child(odd)]:col-span-2 ${FACT_COLUMNS[facts.length]}`}
+            data-reveal-group=""
+          >
+            {facts.map((fact) => (
+              <FactItem key={fact.href + fact.label} {...fact} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <VehicleListing
         bookingQuery={bookingQuery}
         initialCategory={query.type}
         key={query.type ?? "all"}
+        driverDailyRate={driverDailyRate}
         reservationFee={reservationFee}
         signedIn={signedIn}
         trip={trip}
@@ -383,7 +425,10 @@ export default async function HomePage({
             subtitle="Reserve online without calling first."
             title="How it works"
           />
-          <ol className="reveal mt-10 grid list-none gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ol
+            className="mt-10 grid list-none gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            data-reveal-group=""
+          >
             {landingSteps.map(({ icon: Icon, number, title, description }) => (
               <li
                 className="flex flex-col rounded-2xl bg-card p-6 ring-1 ring-border"
@@ -457,7 +502,10 @@ export default async function HomePage({
             subtitle="Renting a car in Cebu, kept simple."
             title="Why choose Zeke?"
           />
-          <ul className="reveal mt-10 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+          <ul
+            className="mt-10 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4"
+            data-reveal-group=""
+          >
             <WhyItem
               description="Day rate and deposit set before you pay"
               icon={<Tag aria-hidden="true" />}
@@ -509,7 +557,10 @@ export default async function HomePage({
             title="Car rental in Cebu, answered"
           />
           {/* Always open: answers stay in the page for search engines. */}
-          <dl className="reveal mx-auto mt-10 grid max-w-5xl gap-x-10 gap-y-8 md:grid-cols-2">
+          <dl
+            className="mx-auto mt-10 grid max-w-5xl gap-x-10 gap-y-8 md:grid-cols-2"
+            data-reveal-group=""
+          >
             {faq.map(({ question, answer }) => (
               <div key={question}>
                 <dt className="font-semibold text-brand-950">{question}</dt>
@@ -533,7 +584,7 @@ export default async function HomePage({
             subtitle="Questions before you book? Message the owner on the app you use."
             title="Contact us"
           />
-          <div className="reveal mx-auto mt-10 max-w-5xl">
+          <div className="mx-auto mt-10 max-w-5xl">
             <ContactCards
               channels={contactChannels}
               email={BUSINESS.email}
@@ -688,6 +739,8 @@ export default async function HomePage({
         </div>
       </footer>
 
+      <SectionScroll />
+      <RevealGroups />
       <ContactFab
         avoidSelector="#find-a-car"
         channels={contactChannels}
@@ -720,28 +773,40 @@ function SectionHeading({
   );
 }
 
-function FeatureItem({
-  icon,
-  title,
-  description,
-}: {
-  icon: ReactNode;
-  title: string;
-  description: string;
-}) {
+type Fact = { value: string; unit?: string; label: string; href: string };
+
+const FACT_COLUMNS: Record<number, string> = {
+  1: "lg:grid-cols-1",
+  2: "lg:grid-cols-2",
+  3: "lg:grid-cols-3",
+  4: "lg:grid-cols-4",
+};
+
+/** One headline figure with what it means; links to where it is explained. */
+function FactItem({ value, unit, label, href }: Fact) {
   return (
-    <li className="flex flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:gap-3">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 [&_svg]:size-5">
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold text-brand-950">
-          {title}
+    <li className="bg-white">
+      <Link
+        className="group flex h-full flex-col gap-1.5 px-4 py-5 transition-colors outline-none hover:bg-teal-50/50 focus-visible:bg-teal-50/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-6 lg:px-8 lg:py-7"
+        href={href}
+      >
+        <span className="flex items-baseline gap-1 font-display text-3xl leading-none font-semibold tracking-[-0.03em] text-brand-950 tabular-nums lg:text-4xl">
+          {value}
+          {unit ? (
+            <span className="text-sm font-medium tracking-normal text-muted-foreground">
+              {unit}
+            </span>
+          ) : null}
         </span>
-        <span className="block text-xs text-muted-foreground">
-          {description}
+        <span className="text-sm leading-5 text-balance text-muted-foreground transition-colors group-hover:text-brand-950">
+          {label}
+          {/* Inline, so it follows the last word when the label wraps. */}
+          <ArrowRight
+            aria-hidden="true"
+            className="ml-1 inline size-3.5 -translate-y-px opacity-0 transition-[opacity,transform] group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100"
+          />
         </span>
-      </span>
+      </Link>
     </li>
   );
 }

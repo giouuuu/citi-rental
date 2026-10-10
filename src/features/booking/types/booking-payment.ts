@@ -48,6 +48,9 @@ export type PublicBookingResult = {
   /** Hours past the whole days; null on bookings quoted by calendar days. */
   quotedHours: number | null;
   quotedTotal: number;
+  /** The customer asked for a driver; `driverFee` is inside `quotedTotal`. */
+  withDriver: boolean;
+  driverFee: number;
   depositAmount: number;
   balanceDue: number;
   paymentStatus: RentalPaymentStatus;

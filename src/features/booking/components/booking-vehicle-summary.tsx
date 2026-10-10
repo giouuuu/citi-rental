@@ -9,6 +9,8 @@ type BookingVehicleSummaryProps = {
   expectedReturnAt?: string | null;
   reservationFee?: number | null;
   freeCancellationHours?: number | null;
+  /** Set for a with-driver trip: the owner's driver day rate, if any. */
+  withDriver?: { rate: number | null } | null;
 };
 
 export function BookingVehicleSummary({
@@ -17,6 +19,7 @@ export function BookingVehicleSummary({
   expectedReturnAt,
   reservationFee,
   freeCancellationHours,
+  withDriver,
 }: BookingVehicleSummaryProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -42,6 +45,7 @@ export function BookingVehicleSummary({
             end={expectedReturnAt}
             reservationFee={reservationFee}
             start={startAt}
+            withDriver={withDriver}
           />
           {reservationFee && freeCancellationHours != null ? (
             <p className="mt-1 text-xs text-muted-foreground">

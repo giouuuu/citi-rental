@@ -20,6 +20,8 @@ import {
 } from "@/features/booking/components/booking-form-fields";
 import { compressBookingPhoto } from "@/features/booking/lib/compress-booking-photo";
 import { BookingVehicleSummary } from "@/features/booking/components/booking-vehicle-summary";
+import { DrivingModeToggle } from "@/features/booking/components/driving-mode-toggle";
+import type { DrivingMode } from "@/features/booking/lib/driving-mode";
 import type { ResolvedBookingContact } from "@/features/booking/lib/booking-contact";
 import {
   publicBookingSchema,
@@ -49,6 +51,10 @@ type BookingFormProps = {
   initialStartAt?: string;
   initialReturnAt?: string;
   initialPickupLocation?: string;
+  /** From the landing search or the car dialog (`?mode=with-driver`). */
+  initialDrivingMode?: DrivingMode;
+  /** Settings → driver day rate; null means staff quote the driver. */
+  driverDailyRate?: number | null;
   initialFullName?: string;
   initialEmail?: string;
   /** Flat fee to hold the booking, from Settings. */
@@ -74,6 +80,8 @@ export function BookingForm({
   initialStartAt,
   initialReturnAt,
   initialPickupLocation,
+  initialDrivingMode = "self-drive",
+  driverDailyRate,
   initialFullName,
   initialEmail,
   reservationFee,
@@ -106,6 +114,7 @@ export function BookingForm({
       : zodResolver(publicBookingSchema),
     defaultValues: {
       vehicleId: vehicle.id,
+      drivingMode: initialDrivingMode,
       startAt: toDateTimeLocalValue(initialStartAt),
       expectedReturnAt: toDateTimeLocalValue(initialReturnAt),
       fullName: initialFullName ?? "",
@@ -124,6 +133,8 @@ export function BookingForm({
 
   const startAt = form.watch("startAt");
   const expectedReturnAt = form.watch("expectedReturnAt");
+  const drivingMode = form.watch("drivingMode") ?? "self-drive";
+  const withDriver = drivingMode === "with-driver";
 
   function onSubmit(values: BookingFormOutput) {
     setResult(undefined);
@@ -174,7 +185,27 @@ export function BookingForm({
         reservationFee={reservationFee}
         startAt={startAt}
         vehicle={vehicle}
+        withDriver={withDriver ? { rate: driverDailyRate ?? null } : null}
       />
+
+      <FieldSet>
+        <FieldLegend>Driving</FieldLegend>
+        <DrivingModeToggle
+          disabled={pending}
+          driverDailyRate={driverDailyRate}
+          onChange={(mode) =>
+            form.setValue("drivingMode", mode, { shouldDirty: true })
+          }
+          value={drivingMode}
+        />
+        <p className="text-sm text-muted-foreground">
+          {withDriver
+            ? driverDailyRate
+              ? "A local driver who knows Cebu drives you for the whole trip. Their day rate is in your total."
+              : "A local driver who knows Cebu drives you for the whole trip. Staff confirm the driver fee with you."
+            : "You drive. Bring your valid driver's license to pickup."}
+        </p>
+      </FieldSet>
 
       <BookingDateRangeCalendar
         bookedRanges={bookedRanges}
@@ -325,7 +356,9 @@ export function BookingForm({
             control={form.control}
             description={
               vehicle.seating_capacity
-                ? `This car seats ${vehicle.seating_capacity}.`
+                ? withDriver
+                  ? `With a driver, this car seats ${vehicle.seating_capacity - 1}.`
+                  : `This car seats ${vehicle.seating_capacity}.`
                 : undefined
             }
             disabled={pending}

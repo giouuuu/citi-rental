@@ -68,6 +68,8 @@ type FleetVehicleCardProps = {
   signedIn?: boolean;
   /** Flat fee to hold a booking, from Settings. */
   reservationFee?: number | null;
+  /** Settings → driver day rate, for the with-driver quote. */
+  driverDailyRate?: number | null;
 };
 
 export function FleetVehicleCard({
@@ -75,6 +77,7 @@ export function FleetVehicleCard({
   bookingQuery,
   signedIn = false,
   reservationFee,
+  driverDailyRate,
 }: FleetVehicleCardProps) {
   // Lifted above its neighbours while the photo is in (or flying back from) the gallery.
   const [raised, setRaised] = useState(false);
@@ -86,6 +89,7 @@ export function FleetVehicleCard({
     pickup: query.pickup,
     start: query.start,
     end: query.end,
+    mode: query.mode,
   };
   const hasTripDates = Boolean(tripQuery.start && tripQuery.end);
   const coverUrl = vehicle.photo_url ?? vehicle.gallery[0]?.url ?? null;
@@ -121,14 +125,15 @@ export function FleetVehicleCard({
     >
       {coverUrl && vehicle.gallery.length ? (
         <VehicleGalleryDialog
-          bookHref={href}
           cover={{ src: coverUrl, sizes: PHOTO_SIZES }}
+          driverDailyRate={driverDailyRate}
           layoutId={photoLayoutId}
           onExitComplete={() => setRaised(false)}
           onOpenChange={(open) => {
             if (open) setRaised(true);
           }}
           reservationFee={reservationFee}
+          signedIn={signedIn}
           trip={tripQuery}
           vehicle={vehicle}
         >

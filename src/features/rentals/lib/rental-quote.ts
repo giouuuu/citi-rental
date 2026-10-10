@@ -1,4 +1,5 @@
 import {
+  driverDays,
   quoteRent,
   quoteRentForHours,
   type RentQuote,
@@ -40,6 +41,15 @@ export function requoteBookedTime(
     };
   }
   return rentalQuoteColumns(quoteRentForHours(booked.days * 24 + booked.hours, rates), rates);
+}
+
+/**
+ * The driver's share of a with-driver rental for its dates, as rentals
+ * columns. No rate (staff quote it) is a zero fee.
+ */
+export function driverCharge(startAt: Date, returnAt: Date, rate: number | null) {
+  const days = driverDays(startAt, returnAt);
+  return { driver_days: days, driver_fee: round((rate ?? 0) * days) };
 }
 
 /**

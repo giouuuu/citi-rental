@@ -34,6 +34,7 @@ import {
 import { getAgreementDraft } from "@/features/agreements/services/get-agreement-draft";
 import { getRentalAgreement } from "@/features/agreements/services/get-rental-agreement";
 import type { AgreementDraft } from "@/features/agreements/types";
+import type { RentalBillDriver } from "@/features/rentals/lib/rental-bill";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -49,6 +50,7 @@ export default async function Page({
   let status: RentalWorkflowStatus = "draft";
   let paymentStatus: string | null = null;
   let quotedTotal: number | null = null;
+  let driver: RentalBillDriver | null = null;
   let quotedRates: RentRates | null = null;
   let quotedDays: number | null = null;
   let quotedHours: number | null = null;
@@ -98,6 +100,10 @@ export default async function Page({
           quoted_hourly_rate,
           quoted_days,
           quoted_hours,
+          with_driver,
+          driver_daily_rate,
+          driver_days,
+          driver_fee,
           start_at,
           expected_return_at,
           deposit_amount,
@@ -134,6 +140,16 @@ export default async function Page({
     if (data?.status) status = data.status as RentalWorkflowStatus;
     paymentStatus = data?.payment_status ?? null;
     quotedTotal = data?.quoted_total != null ? Number(data.quoted_total) : null;
+    driver = data?.with_driver
+      ? {
+          fee: Number(data.driver_fee ?? 0),
+          rate:
+            data.driver_daily_rate != null
+              ? Number(data.driver_daily_rate)
+              : null,
+          days: data.driver_days != null ? Number(data.driver_days) : null,
+        }
+      : null;
     const rate = (value: unknown) => (value != null ? Number(value) : null);
     quotedDays = rate(data?.quoted_days);
     quotedHours = rate(data?.quoted_hours);
@@ -316,6 +332,7 @@ export default async function Page({
               quotedRates={quotedRates}
               bookingPaymentFailed={query.payment === "failed"}
               quotedTotal={quotedTotal}
+              driver={driver}
               rentalId={id}
               rentalStatus={status}
             />

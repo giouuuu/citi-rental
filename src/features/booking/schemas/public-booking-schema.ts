@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { DRIVING_MODES } from "@/features/booking/lib/driving-mode";
 import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
 
 /** A picked image file; the server re-checks size and type before upload. */
@@ -12,6 +13,7 @@ function idPhoto(message: string) {
 
 const bookingFields = z.object({
   vehicleId: z.uuid("Select a vehicle to book."),
+  drivingMode: z.enum(DRIVING_MODES).default("self-drive"),
   startAt: z.string().min(1, "Pick-up date is required."),
   expectedReturnAt: z.string().min(1, "Return date is required."),
   fullName: z

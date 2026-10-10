@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils";
 import { describeBilledTime, type RentRates } from "@/features/rentals/lib/rent-pricing";
 import {
   formatPhp,
-  quoteRentalTotal,
   quoteReservationFee,
+  quoteTrip,
 } from "@/features/vehicles/lib/rental-pricing";
 
 type VehicleRateQuoteProps = {
@@ -12,6 +12,8 @@ type VehicleRateQuoteProps = {
   end?: string | null;
   /** Flat fee to hold the booking; omit to hide the line. */
   reservationFee?: number | null;
+  /** Set when the trip has a driver: the owner's driver day rate, if any. */
+  withDriver?: { rate: number | null } | null;
   className?: string;
   /** Extra classes for the daily price figure, e.g. a larger display size. */
   priceClassName?: string;
@@ -22,10 +24,11 @@ export function VehicleRateQuote({
   start,
   end,
   reservationFee,
+  withDriver,
   className,
   priceClassName,
 }: VehicleRateQuoteProps) {
-  const quote = quoteRentalTotal(rates, start, end);
+  const quote = quoteTrip(rates, start, end, withDriver);
   const deposit =
     quote && reservationFee
       ? quoteReservationFee(quote.total, reservationFee)
@@ -51,8 +54,16 @@ export function VehicleRateQuote({
           <span className="font-bold tabular-nums">{formatPhp(quote.total)}</span>
           <span className="text-muted-foreground">
             {" "}
-            for {describeBilledTime(quote)}
+            for {describeBilledTime(quote.rent)}
+            {quote.driver ? " with a driver" : null}
           </span>
+        </p>
+      ) : null}
+      {quote?.driver ? (
+        <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+          {quote.driver.rate != null
+            ? `Car ${formatPhp(quote.rent.total)} + driver ${formatPhp(quote.driver.rate)} × ${quote.driver.days} ${quote.driver.days === 1 ? "day" : "days"}`
+            : "Driver fee confirmed by staff"}
         </p>
       ) : null}
       {deposit ? (

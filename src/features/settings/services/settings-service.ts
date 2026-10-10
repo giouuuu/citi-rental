@@ -26,6 +26,8 @@ export type OrganizationSettings = {
   location_retention_days: number;
   gps_provider: string;
   reservation_fee: number;
+  /** Per day on with-driver bookings; null when staff quote the driver. */
+  driver_daily_rate: number | null;
   free_cancellation_hours: number;
   payment_qr_url: string;
   payment_instructions: string;
@@ -41,6 +43,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       location_retention_days: 90,
       gps_provider: "simulator",
       reservation_fee: 500,
+      driver_daily_rate: null,
       free_cancellation_hours: 24,
       payment_qr_url: "",
       payment_instructions: "",
@@ -53,7 +56,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     .from("company_profile")
     .select(
       [
-        "name, timezone, reservation_fee, free_cancellation_hours, payment_qr_url, payment_instructions",
+        "name, timezone, reservation_fee, driver_daily_rate, free_cancellation_hours, payment_qr_url, payment_instructions",
         ...CONTACT_COLUMNS,
       ].join(", "),
     )
@@ -72,6 +75,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     name: string;
     timezone: string;
     reservation_fee: number | null;
+    driver_daily_rate: number | null;
     free_cancellation_hours: number | null;
     payment_qr_url: string | null;
     payment_instructions: string | null;
@@ -98,6 +102,10 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       values.get("gps.provider") ?? process.env.GPS_PROVIDER ?? "simulator",
     ),
     reservation_fee: Number(organization.reservation_fee ?? 500),
+    driver_daily_rate:
+      organization.driver_daily_rate == null
+        ? null
+        : Number(organization.driver_daily_rate),
     free_cancellation_hours: Number(
       organization.free_cancellation_hours ?? 24,
     ),

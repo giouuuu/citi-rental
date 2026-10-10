@@ -31,6 +31,21 @@ function entry(overrides: Partial<RentalPayment>): RentalPayment {
 }
 
 describe("buildRentalBill", () => {
+  it("shows a with-driver rental's driver apart from the rent", () => {
+    const bill = buildRentalBill({
+      quotedRates: { daily: 2500 },
+      quotedDays: 2,
+      quotedTotal: 7000,
+      driver: { fee: 2000, rate: 1000, days: 2 },
+      payments: [entry({ paymentType: "deposit", amount: 500 })],
+    });
+
+    expect(bill.rent.total).toBe(5000);
+    expect(bill.driver?.fee).toBe(2000);
+    expect(bill.total).toBe(7000);
+    expect(bill.balance).toBe(6500);
+  });
+
   it("adds charges to the rent and subtracts what was paid", () => {
     const bill = buildRentalBill({
       quotedRates: { daily: 2500 },

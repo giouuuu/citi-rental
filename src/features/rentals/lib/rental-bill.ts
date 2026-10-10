@@ -16,8 +16,17 @@ export type RentalBillRent = {
   total: number;
 };
 
+/** A with-driver rental's driver line; its fee is inside `quoted_total`. */
+export type RentalBillDriver = {
+  fee: number;
+  /** Day rate at booking; null when staff quote the driver. */
+  rate: number | null;
+  days: number | null;
+};
+
 export type RentalBill = {
   rent: RentalBillRent;
+  driver: RentalBillDriver | null;
   /** Confirmed charges (penalty rows): car wash, delivery, extension, fuel, bill adjustments, … */
   charges: RentalPayment[];
   total: number;
@@ -41,12 +50,14 @@ export function buildRentalBill({
   quotedDays,
   quotedHours = null,
   quotedTotal,
+  driver = null,
   payments,
 }: {
   quotedRates: RentRates | null;
   quotedDays: number | null;
   quotedHours?: number | null;
   quotedTotal: number | null;
+  driver?: RentalBillDriver | null;
   payments: RentalPayment[];
 }): RentalBill {
   // A bill reads in the order things happened; the ledger arrives newest first.
@@ -55,8 +66,10 @@ export function buildRentalBill({
     .toSorted((a, b) => a.submittedAt.localeCompare(b.submittedAt));
   const received = payments.filter((payment) => payment.paymentType !== "penalty");
 
-  const rentTotal = quotedTotal ?? 0;
-  const total = round(rentTotal + charges.reduce((sum, charge) => sum + charge.amount, 0));
+  const quoted = quotedTotal ?? 0;
+  // quoted_total holds the car and the driver; the bill shows them apart.
+  const rentTotal = round(quoted - (driver?.fee ?? 0));
+  const total = round(quoted + charges.reduce((sum, charge) => sum + charge.amount, 0));
   const paid = round(
     received.reduce((sum, payment) => {
       if (payment.status !== "confirmed") return sum;
@@ -68,6 +81,7 @@ export function buildRentalBill({
 
   return {
     rent: { rates: quotedRates, days: quotedDays, hours: quotedHours, total: rentTotal },
+    driver,
     charges,
     total,
     paid,

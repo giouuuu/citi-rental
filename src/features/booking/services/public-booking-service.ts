@@ -92,6 +92,20 @@ export async function getPublicReservationFee(): Promise<number | null> {
   return Number.isFinite(fee) && fee > 0 ? fee : null;
 }
 
+/** The owner's driver day rate for with-driver bookings. Null when not set. */
+export async function getPublicDriverDailyRate(): Promise<number | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_public_driver_daily_rate");
+  if (error) {
+    console.error("get_public_driver_daily_rate failed", error.message);
+    return null;
+  }
+  const rate = Number(data);
+  return data != null && Number.isFinite(rate) && rate > 0 ? rate : null;
+}
+
 /** Hours before pickup a booking can be cancelled with the fee refunded. */
 export async function getPublicFreeCancellationHours(): Promise<number | null> {
   if (!isSupabaseConfigured()) return null;
@@ -175,6 +189,9 @@ export async function createPublicBooking(
     p_passenger_count: input.passengerCount,
     p_license_selfie_path: licenseSelfiePath,
     p_government_id_path: governmentIdPath,
+    // Only sent when asked for: self-drive bookings work against a database
+    // that predates the driver option.
+    ...(input.drivingMode === "with-driver" ? { p_with_driver: true } : {}),
   });
 
   if (error) {
@@ -204,6 +221,8 @@ export async function createPublicBooking(
     quotedDays: num(payload.quoted_days, 1),
     quotedHours: optionalNum(payload.quoted_hours),
     quotedTotal: num(payload.quoted_total),
+    withDriver: payload.with_driver === true,
+    driverFee: num(payload.driver_fee),
     depositAmount: num(payload.deposit_amount),
     balanceDue: num(payload.balance_due),
     paymentStatus: (payload.payment_status as RentalPaymentStatus) || "unpaid",
@@ -221,6 +240,9 @@ export async function createPublicBooking(
       `Car: ${result.vehicleName ?? result.vehicleId}`,
       `Reservation fee: ${formatPhp(result.depositAmount)}`,
       `Total: ${formatPhp(result.quotedTotal)} · ${result.quotedDays} day(s)`,
+      result.withDriver
+        ? `WITH DRIVER: ${result.driverFee > 0 ? `${formatPhp(result.driverFee)} included` : "fee to quote"}`
+        : "Self-drive",
       `Trip: ${input.pickupLocation} → ${input.destination} · ${input.passengerCount} pax`,
       input.fullName
         ? `Customer: ${input.fullName} · ${input.phoneNumber || input.email}`

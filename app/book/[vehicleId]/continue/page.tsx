@@ -15,6 +15,7 @@ type ContinuePageProps = {
     pickup?: string;
     start?: string;
     end?: string;
+    mode?: string;
   }>;
 };
 
@@ -34,6 +35,7 @@ export default async function BookContinuePage({
     pickup: query.pickup,
     start: query.start,
     end: query.end,
+    mode: query.mode,
   };
 
   if (await isBookingUserSignedIn()) {

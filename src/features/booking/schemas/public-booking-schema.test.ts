@@ -34,6 +34,17 @@ function errorsFor(input: Record<string, unknown>) {
 }
 
 describe("publicBookingSchema", () => {
+  it("is self-drive unless the renter asks for a driver", () => {
+    expect(publicBookingSchema.parse(valid).drivingMode).toBe("self-drive");
+    expect(
+      publicBookingSchema.parse({ ...valid, drivingMode: "with-driver" })
+        .drivingMode,
+    ).toBe("with-driver");
+    expect(errorsFor({ ...valid, drivingMode: "chauffeur" })).toHaveProperty(
+      "drivingMode",
+    );
+  });
+
   it("accepts a complete booking and reads passengers as a number", () => {
     const result = publicBookingSchema.safeParse(valid);
     expect(result.success).toBe(true);

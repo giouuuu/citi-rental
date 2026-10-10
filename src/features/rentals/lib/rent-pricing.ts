@@ -118,3 +118,13 @@ export function describeBilledTime(quote: Pick<RentQuote, "days" | "hours">): st
     .filter(Boolean)
     .join(" ");
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * A driver's billed days: every started 24 hours, at least one. Mirrors
+ * `private.rental_driver_days`, which prices online bookings.
+ */
+export function driverDays(startAt: Date, returnAt: Date) {
+  return Math.max(1, Math.ceil((returnAt.getTime() - startAt.getTime()) / DAY_MS));
+}

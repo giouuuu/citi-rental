@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from "react";
 
+import type { QuickBookTrip } from "@/components/landing/quick-book-panel";
 import { VehicleGalleryDialog } from "@/components/landing/vehicle-gallery-dialog";
 import { Button } from "@/components/ui/button";
 import { formatPhp } from "@/features/shared/lib/money";
@@ -32,10 +33,14 @@ export type HeroFleetCar = {
   bookHref: string;
   /** The full listing, for the photo gallery the car opens. */
   vehicle: PublicListedVehicle;
-  /** Trip dates, so the gallery quotes the same total as the search. */
-  trip: { start?: string; end?: string };
+  /** The search so far, so the dialog's quick-book panel starts from it. */
+  trip: QuickBookTrip;
+  /** Signed-in customers skip the guest-or-sign-in step. */
+  signedIn: boolean;
   /** Flat fee to hold a booking, from Settings. */
   reservationFee: number | null;
+  /** Settings → driver day rate, for the with-driver quote. */
+  driverDailyRate: number | null;
 };
 
 type HeroFleetState = {
@@ -181,8 +186,9 @@ export function HeroCarGallery({ className }: { className?: string }) {
 
   return (
     <VehicleGalleryDialog
-      bookHref={car.bookHref}
+      driverDailyRate={car.driverDailyRate}
       reservationFee={car.reservationFee}
+      signedIn={car.signedIn}
       trip={car.trip}
       vehicle={car.vehicle}
     >
@@ -253,8 +259,9 @@ export function HeroCarSummary() {
       ) : null}
       {car.vehicle.gallery.length ? (
         <VehicleGalleryDialog
-          bookHref={car.bookHref}
+          driverDailyRate={car.driverDailyRate}
           reservationFee={car.reservationFee}
+          signedIn={car.signedIn}
           trip={car.trip}
           vehicle={car.vehicle}
         >
