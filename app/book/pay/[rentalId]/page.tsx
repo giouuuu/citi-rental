@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { SiteHeader } from "@/components/landing/site-header";
 import { BookingPaymentForm } from "@/features/booking/components/booking-payment-form";
@@ -42,9 +42,14 @@ export default async function BookingPayPage({
   const reference = query.ref?.trim();
   if (!reference) notFound();
 
-  const [booking, signedIn, freeCancellationHours] = await Promise.all([
+  // The booking belongs to its signed-in owner, not to whoever holds the link.
+  if (!(await isBookingUserSignedIn())) {
+    const next = `/book/pay/${rentalId}?ref=${encodeURIComponent(reference)}`;
+    redirect(`/login?next=${encodeURIComponent(next)}`);
+  }
+
+  const [booking, freeCancellationHours] = await Promise.all([
     getBookingPaymentDetails(rentalId, reference),
-    isBookingUserSignedIn(),
     getPublicFreeCancellationHours(),
   ]);
   if (!booking) notFound();
@@ -84,7 +89,7 @@ export default async function BookingPayPage({
   }
 
   const cancellable =
-    signedIn && (booking.status === "draft" || booking.status === "reserved");
+    booking.status === "draft" || booking.status === "reserved";
   const hours = freeCancellationHours ?? DEFAULT_FREE_CANCELLATION_HOURS;
 
   const paymongoReturn: PaymongoReturn =
