@@ -275,37 +275,35 @@ export function VehicleMaintenancePanel({
           ) : null}
         </CardHeader>
         <CardContent>
-          <Table aria-label="Service history">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead className="text-right">Odometer</TableHead>
-                <TableHead>Shop</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-0" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {records.length === 0 ? (
+          {/* Empty state outside the table: on a phone the seven headers scroll
+              sideways, which would clip a message rendered inside the body. */}
+          {records.length === 0 ? (
+            <Empty className="py-6">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Wrench />
+                </EmptyMedia>
+                <EmptyTitle>No services recorded yet</EmptyTitle>
+                <EmptyDescription>
+                  Record each oil change, cleaning or repair as it&apos;s done.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <Table aria-label="Service history">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7}>
-                    <Empty className="py-6">
-                      <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                          <Wrench />
-                        </EmptyMedia>
-                        <EmptyTitle>No services recorded yet</EmptyTitle>
-                        <EmptyDescription>
-                          Record each oil change, cleaning or repair as it&apos;s done.
-                        </EmptyDescription>
-                      </EmptyHeader>
-                    </Empty>
-                  </TableCell>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead className="text-right">Odometer</TableHead>
+                  <TableHead>Shop</TableHead>
+                  <TableHead className="text-right">Cost</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-0" />
                 </TableRow>
-              ) : (
-                records.map((record) => (
+              </TableHeader>
+              <TableBody>
+                {records.map((record) => (
                   <TableRow className={cn(record.status === "void" && "text-muted-foreground")} key={record.id}>
                     <TableCell className="whitespace-nowrap">{formatDateKey(record.performedOn)}</TableCell>
                     <TableCell>
@@ -354,10 +352,10 @@ export function VehicleMaintenancePanel({
                       ) : null}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

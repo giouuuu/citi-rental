@@ -514,7 +514,10 @@ function SidebarMenuButton({
     />
   )
 
-  if (!tooltip) {
+  // The mobile sheet never collapses to icons, so its tooltips never show. A
+  // hidden tooltip still opens on focus and eats the first Escape, which left
+  // the sheet open until a second press.
+  if (!tooltip || isMobile) {
     return button
   }
 

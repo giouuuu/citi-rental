@@ -54,13 +54,13 @@ function BlockHeader({
   window: FinanceWindow;
 }) {
   return (
-    <CardHeader className="flex flex-row items-start justify-between gap-4 border-b">
+    <CardHeader className="flex flex-col gap-3 border-b sm:flex-row sm:items-start sm:justify-between sm:gap-4">
       <div className="space-y-1.5">
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </div>
       {exportType ? (
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 print:hidden">
+        <div className="flex flex-wrap items-center gap-1 sm:shrink-0 sm:justify-end print:hidden">
           <ExportButton href={exportHref(exportType, window, "xlsx")} size="sm" />
           <Button asChild size="sm" variant="ghost">
             <a download href={exportHref(exportType, window)}>
@@ -548,7 +548,7 @@ export function TaxWorksheetBlock({
         </section>
 
         <section aria-labelledby="monthly" className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold" id="monthly">
               By month
             </h3>

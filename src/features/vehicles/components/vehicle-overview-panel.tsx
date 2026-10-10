@@ -98,7 +98,7 @@ async function OverviewBody({
     <>
       {o.financeVisible && o.expenses !== null && o.profit !== null ? (
         <Card>
-          <CardContent className="grid gap-6 py-2 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
+          <CardContent className="grid gap-6 py-2 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-center">
             <Figure hint="Rental payments for this car, after refunds and VAT" label="Income" value={o.income} />
             <Operator symbol="−" />
             <Figure
@@ -532,7 +532,7 @@ function ActivityCard({
 
 function Operator({ symbol }: { symbol: string }) {
   return (
-    <span aria-hidden="true" className="hidden text-3xl font-light text-muted-foreground md:block">
+    <span aria-hidden="true" className="hidden text-3xl font-light text-muted-foreground lg:block">
       {symbol}
     </span>
   );

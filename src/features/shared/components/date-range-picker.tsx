@@ -212,7 +212,7 @@ export function DateRangePicker({
       <PopoverContent
         align={align}
         aria-label="Choose dates"
-        className="w-auto max-w-[calc(100vw-2rem)] gap-0 overflow-hidden p-0"
+        className="max-h-(--radix-popover-content-available-height) w-auto max-w-[calc(100vw-2rem)] gap-0 overflow-x-hidden overflow-y-auto overscroll-contain p-0"
         collisionPadding={16}
       >
         <div className="grid sm:grid-cols-[12rem_auto] sm:grid-rows-[1fr_auto]">

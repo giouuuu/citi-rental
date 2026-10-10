@@ -124,11 +124,11 @@ function Health({
     <Card>
       <CardContent className="flex items-start gap-4 py-5">
         <div
-          className={`flex size-10 items-center justify-center rounded-md ${ready ? "bg-success-surface text-success" : "bg-muted text-muted-foreground"}`}
+          className={`flex size-10 shrink-0 items-center justify-center rounded-md ${ready ? "bg-success-surface text-success" : "bg-muted text-muted-foreground"}`}
         >
           <Icon className="size-5" />
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className="font-medium">{label}</p>
             {ready ? (
@@ -137,7 +137,7 @@ function Health({
               <CircleOff className="size-5 text-muted-foreground" />
             )}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
+          <p className="mt-1 text-sm wrap-anywhere text-muted-foreground">{detail}</p>
         </div>
       </CardContent>
     </Card>

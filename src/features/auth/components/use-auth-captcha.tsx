@@ -43,6 +43,10 @@ export function useAuthCaptcha() {
       }}
       ref={ref}
       siteKey={SITE_KEY}
+      // "flexible" sets an inline 300px min-width; on a 320px phone that
+      // widened the sign-in form past the screen. Let the box shrink and clip
+      // the (rarely shown) checkbox frame instead.
+      style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
     />
   ) : null;
 

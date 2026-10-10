@@ -23,7 +23,7 @@ function enterDelay(ms: number) {
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <main
-      className={`${landingFontClassName} relative grid min-h-dvh bg-background font-landing lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:p-3`}
+      className={`${landingFontClassName} relative grid min-h-dvh grid-cols-1 bg-background font-landing lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:p-3`}
       id="main-content"
     >
       <div

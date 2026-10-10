@@ -150,7 +150,7 @@ export function ResourceForm({
       {/* Success is a toast, not an inline alert — on create the user is
           already being routed to the new record's page. Errors stay inline,
           next to the fields that need fixing. */}
-      <FieldGroup className="grid gap-5 md:grid-cols-2">
+      <FieldGroup className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {definition.fields.map((fieldDef) => {
           if (hidden.has(fieldDef.name) || rangeEnds.has(fieldDef.name))
             return null;
