@@ -39,6 +39,16 @@ export function manilaDateTimeInput(instant: Date): string {
   return new Date(instant.getTime() + MANILA_OFFSET_MS).toISOString().slice(0, 16);
 }
 
+/**
+ * The earliest pick-up a customer can choose: `instant` rounded up to the
+ * next `stepMinutes` mark, as a Manila `YYYY-MM-DDTHH:mm`. At 7:00 that is
+ * 7:00; at 7:01 it is 7:05.
+ */
+export function earliestManilaDateTimeInput(instant: Date, stepMinutes = 5): string {
+  const step = stepMinutes * 60_000;
+  return manilaDateTimeInput(new Date(Math.ceil(instant.getTime() / step) * step));
+}
+
 /** Reads a `YYYY-MM-DDTHH:mm` picker value as Manila time; null when malformed. */
 export function parseManilaDateTimeInput(value: string | null | undefined): Date | null {
   const match = value?.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/);

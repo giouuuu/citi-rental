@@ -11,6 +11,9 @@ const supabaseHostname = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  // `npm run tunnel` serves the dev server on a random *.trycloudflare.com
+  // host; without this Next blocks HMR and dev assets from that origin.
+  allowedDevOrigins: ["*.trycloudflare.com"],
   experimental: {
     // Client Cache lifetimes. `dynamic` defaults to 0, so today every return to
     // a list re-queries Postgres; 30s absorbs the open-a-record-then-go-back

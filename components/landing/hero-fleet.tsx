@@ -35,7 +35,7 @@ export type HeroFleetCar = {
   vehicle: PublicListedVehicle;
   /** The search so far, so the dialog's quick-book panel starts from it. */
   trip: QuickBookTrip;
-  /** Signed-in customers skip the guest-or-sign-in step. */
+  /** Signed-in customers skip the sign-in step. */
   signedIn: boolean;
   /** Flat fee to hold a booking, from Settings. */
   reservationFee: number | null;

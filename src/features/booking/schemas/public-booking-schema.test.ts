@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  publicBookingSchema,
-  returningBookingSchema,
-} from "./public-booking-schema";
+import { publicBookingSchema } from "./public-booking-schema";
 
 const photo = (name: string) =>
   new File([new Uint8Array([1, 2, 3])], name, { type: "image/jpeg" });
@@ -85,22 +82,5 @@ describe("publicBookingSchema", () => {
     expect(errorsFor({ ...valid, passengerCount: "0" }).passengerCount).toEqual([
       "Enter how many passengers.",
     ]);
-  });
-});
-
-describe("returningBookingSchema", () => {
-  it("lets a returning guest omit identity fields but not trip details or IDs", () => {
-    const result = returningBookingSchema.safeParse({
-      ...valid,
-      fullName: "",
-      driversLicenseNumber: "",
-      address: "",
-      facebookAccount: "",
-      destination: "",
-      licenseSelfie: undefined,
-    });
-    expect(result.success).toBe(false);
-    const errors = result.error?.flatten().fieldErrors ?? {};
-    expect(Object.keys(errors).sort()).toEqual(["destination", "licenseSelfie"]);
   });
 });

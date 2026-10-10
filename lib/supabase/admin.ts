@@ -6,9 +6,8 @@ import { getSupabasePublicEnv } from "@/lib/supabase/env";
 
 /**
  * Service-role client for RPCs that are deliberately closed to anon and
- * authenticated callers (e.g. lookup_booking_contact, which must only run
- * after a server-side Turnstile check). Bypasses RLS — never hand it a
- * user-controlled query, and never import it from client code.
+ * authenticated callers (e.g. webhooks and site analytics). Bypasses RLS —
+ * never hand it a user-controlled query, and never import it from client code.
  */
 export function createAdminClient() {
   const env = getSupabasePublicEnv();

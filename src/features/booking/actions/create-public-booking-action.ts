@@ -1,10 +1,8 @@
 "use server";
 
 import type { ActionResult } from "@/features/shared/types/resource";
-import {
-  publicBookingSchema,
-  returningBookingSchema,
-} from "@/features/booking/schemas/public-booking-schema";
+import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
+import { publicBookingSchema } from "@/features/booking/schemas/public-booking-schema";
 import { createPublicBooking } from "@/features/booking/services/public-booking-service";
 import type { PublicBookingResult } from "@/features/booking/types/booking-payment";
 import { recordSiteEvent } from "@/features/site-analytics/services/record-site-event";
@@ -14,13 +12,15 @@ export type CreatePublicBookingResult = ActionResult<PublicBookingResult>;
 export async function createPublicBookingAction(
   formData: FormData,
 ): Promise<CreatePublicBookingResult> {
-  // A returning guest omits name, phone and license; the RPC only accepts
-  // that when the email or phone matches an existing customer.
-  const schema =
-    formData.get("returning") === "1"
-      ? returningBookingSchema
-      : publicBookingSchema;
-  const parsed = schema.safeParse({
+  // Booking needs an account; create_public_booking is closed to anon too.
+  if (!(await isBookingUserSignedIn())) {
+    return {
+      success: false,
+      message: "Sign in to book. Your session may have expired.",
+    };
+  }
+
+  const parsed = publicBookingSchema.safeParse({
     vehicleId: formData.get("vehicleId"),
     drivingMode: formData.get("drivingMode") || undefined,
     startAt: formData.get("startAt"),

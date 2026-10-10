@@ -62,7 +62,7 @@ export function landingFaq({
     {
       question: "Do I need to call before booking?",
       answer:
-        "No. See which cars are free for your dates, then reserve online as a guest or with Google. Staff confirm your pickup after you book.",
+        "No. See which cars are free for your dates, then sign in with Google and reserve online. Staff confirm your pickup after you book.",
     },
   ];
 }

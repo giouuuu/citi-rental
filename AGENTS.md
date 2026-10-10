@@ -19,7 +19,7 @@ Same Supabase project and data; different routes, UX, and roles.
 
 | Role | Surface | Job |
 |------|---------|-----|
-| **Customer** | Public site + booking | Browse available cars → reserve (guest or signed-in/Google) |
+| **Customer** | Public site + booking | Browse available cars → sign in (Google) → reserve. No guest booking. |
 | **Staff** | No ops UI yet | Role exists in data/RLS; cannot enter `app/(protected)` |
 | **Owner / admin** | Ops app (`app/(protected)`) | Fleet, GPS, geofences, users, customers, rentals, alerts, org settings |
 | **Owner only** | `/finance` | Expenses, fixed assets, 2307s, tax settings, BIR-oriented statement (`private.is_finance_user()`) |
@@ -30,7 +30,7 @@ Authorization is always `profiles.role` + RLS/RPCs. Never authorize from JWT `us
 
 ## Core loops
 
-**Customer:** Find dates/location → see available fleet → continue as guest or sign in → submit reservation → confirmation (soft commit; staff confirms pickup; no payments yet).
+**Customer:** Find dates/location → see available fleet → sign in → submit reservation → confirmation (soft commit; staff confirms pickup; no payments yet).
 
 **Ops (owner/admin):** Manage vehicles/customers/rentals → transition rental (`draft → reserved → active → completed/cancelled`) with booking gates → watch map/geofences/alerts → acknowledge issues → tune org tracking settings.
 
@@ -55,7 +55,7 @@ GPS tracking (parked — see `GPS_TRACKING_FEATURES.md`) · online payments · o
 
 - Brand naming still splits across Zeke (public) and City Rentals (ops) — prefer Zeke for customer UI, City Rentals for ops UI unless unifying.
 - `/register` creates an **ops workspace (admin + org)**, not a customer account.
-- Customer Google signup exists; email customer signup and a “my bookings” portal are not complete yet.
+- Booking requires sign-in, and Google is the only way to create a customer account; email customer signup and a “my bookings” portal are not complete yet.
 - Self-drive / with-driver is landing UX only — not a rental domain field yet.
 - `staff` role exists in the schema but cannot access `app/(protected)` yet (owner/admin only).
 - Tracking surfaces (map, devices, geofences, alerts) exist in code but are **parked** — they are not part of the current rental-first scope.

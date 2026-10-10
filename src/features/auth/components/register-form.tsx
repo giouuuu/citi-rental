@@ -13,6 +13,10 @@ import {
   type RegisterActionResult,
 } from "@/features/auth/actions/register-action";
 import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
+import {
+  CAPTCHA_LOAD_ERROR,
+  useAuthCaptcha,
+} from "@/features/auth/components/use-auth-captcha";
 import { RegisterPasswordFields } from "@/features/auth/components/register-password-fields";
 import { RegisterVerificationNotice } from "@/features/auth/components/register-verification-notice";
 import { registerSchema } from "@/features/auth/schemas/register-schema";
@@ -39,7 +43,7 @@ const fields = [
     name: "fullName" as const,
     label: "Full name",
     autoComplete: "name",
-    placeholder: "Alex Rivera",
+    placeholder: "Juan dela Cruz",
     type: "text",
   },
   {
@@ -62,6 +66,7 @@ export function RegisterForm() {
   const router = useRouter();
   const [result, setResult] = useState<RegisterActionResult>();
   const [pending, startTransition] = useTransition();
+  const captcha = useAuthCaptcha();
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -69,9 +74,12 @@ export function RegisterForm() {
   });
 
   function onSubmit(values: RegisterFormValues) {
+    if (!captcha.ready) return;
     setResult(undefined);
+    const formData = valuesToFormData(values, { captchaToken: captcha.token ?? "" });
     startTransition(async () => {
-      const nextResult = await registerAction(valuesToFormData(values));
+      const nextResult = await registerAction(formData);
+      captcha.reset();
       setResult(nextResult);
       if (!nextResult.success && nextResult.fieldErrors) {
         applyServerFieldErrors(form.setError, nextResult.fieldErrors);
@@ -103,27 +111,19 @@ export function RegisterForm() {
           className="fixed inset-x-0 top-0 z-50 h-1 rounded-none bg-primary/20"
         />
       ) : null}
-      <div className="mb-8 lg:hidden">
-        <span className="flex size-10 items-center justify-center rounded-md bg-brand-900 text-sm font-black text-white">
-          M
-        </span>
-      </div>
-      <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
-        Create your workspace
-      </p>
-      <h1 className="mt-2 text-3xl font-bold tracking-[-0.03em]">
-        Start managing your fleet
+      <h1 className="font-display text-[2rem] leading-tight font-semibold tracking-[-0.03em] text-brand-950 sm:text-4xl">
+        Create your account
       </h1>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        Set up your rental organization and developer admin account. Or continue
-        with Google for a customer booking account.
+      <p className="mt-2 leading-7 text-muted-foreground">
+        Renting a car? Continue with Google. Setting up your rental team?
+        Create a workspace with email.
       </p>
 
       <div className="mt-8 space-y-5">
         <GoogleSignInButton label="Continue with Google" nextPath="/" />
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <div className="h-px flex-1 bg-border" />
-          or create a workspace with email
+          or set up a workspace with email
           <div className="h-px flex-1 bg-border" />
         </div>
       </div>
@@ -146,7 +146,7 @@ export function RegisterForm() {
                     {...field}
                     aria-invalid={fieldState.invalid}
                     autoComplete={item.autoComplete}
-                    className="h-11"
+                    className="h-11 rounded-xl"
                     disabled={pending}
                     id={item.name}
                     placeholder={item.placeholder}
@@ -161,20 +161,35 @@ export function RegisterForm() {
           ))}
           <RegisterPasswordFields control={form.control} pending={pending} />
         </FieldGroup>
-        {result && !result.success ? (
-          <Alert variant="destructive">
+        {captcha.widget}
+        {(result && !result.success) || captcha.failed ? (
+          <Alert className="rounded-xl" variant="destructive">
             <Info />
-            <AlertDescription>{result.message}</AlertDescription>
+            <AlertDescription>
+              {result && !result.success ? result.message : CAPTCHA_LOAD_ERROR}
+            </AlertDescription>
           </Alert>
         ) : null}
-        <Button className="w-full" disabled={pending} size="lg" type="submit">
-          {pending ? <Spinner /> : <Building2 />}
-          {pending ? "Creating workspace..." : "Create account"}
+        <Button
+          className="h-12 w-full rounded-xl text-base active:scale-[0.99]"
+          disabled={pending || !captcha.ready}
+          size="lg"
+          type="submit"
+        >
+          {pending || !captcha.ready ? <Spinner /> : <Building2 />}
+          {pending
+            ? "Creating workspace..."
+            : captcha.ready
+              ? "Create workspace"
+              : captcha.pendingLabel}
         </Button>
       </form>
       <p className="mt-7 text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link className="font-medium text-primary hover:underline" href="/login">
+        <Link
+          className="font-medium text-teal-700 underline-offset-4 hover:underline"
+          href="/login"
+        >
           Sign in
         </Link>
       </p>

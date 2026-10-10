@@ -21,6 +21,15 @@ export type AuthActionState = {
   };
 };
 
+const CAPTCHA_FAILED_MESSAGE =
+  "The security check expired or failed. Please try again.";
+
+/** Turnstile token from the form; Supabase Auth verifies it. */
+function captchaTokenFrom(formData: FormData) {
+  const token = String(formData.get("captchaToken") ?? "").trim();
+  return token || undefined;
+}
+
 export async function loginAction(
   formData: FormData,
 ): Promise<AuthActionState> {
@@ -41,9 +50,15 @@ export async function loginAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(validated.data);
+  const { error } = await supabase.auth.signInWithPassword({
+    ...validated.data,
+    options: { captchaToken: captchaTokenFrom(formData) },
+  });
 
   if (error) {
+    if (error.code === "captcha_failed") {
+      return { message: CAPTCHA_FAILED_MESSAGE };
+    }
     if (error.code === "email_not_confirmed") {
       return {
         message:
@@ -81,10 +96,14 @@ export async function forgotPasswordAction(
     validated.data.email,
     {
       redirectTo: `${siteUrl()}/auth/callback?next=/reset-password`,
+      captchaToken: captchaTokenFrom(formData),
     },
   );
 
   if (error) {
+    if (error.code === "captcha_failed") {
+      return { message: CAPTCHA_FAILED_MESSAGE };
+    }
     return { message: "The reset email could not be sent. Please try again." };
   }
 

@@ -20,16 +20,13 @@ export default async function AccessDisabledPage({
   return (
     <AuthShell>
       <div className="text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-lg bg-danger-surface text-destructive">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-danger-surface text-destructive">
           <LockKeyhole className="size-6" />
         </div>
-        <p className="mt-6 text-xs font-semibold tracking-[0.14em] text-destructive uppercase">
+        <h1 className="mt-6 font-display text-[2rem] leading-tight font-semibold tracking-[-0.03em] text-brand-950 sm:text-4xl">
           Access unavailable
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-[-0.03em]">
-          Contact your administrator
         </h1>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+        <p className="mt-3 leading-7 text-muted-foreground">
           {setupFailed
             ? "Your account was created, but the organization workspace could not be initialized. Sign out and contact support before trying again."
             : missingProfile
@@ -39,7 +36,7 @@ export default async function AccessDisabledPage({
                 : "Your staff profile is disabled and cannot access fleet or rental information."}
         </p>
         <form action={logoutAction} className="mt-8">
-          <Button className="w-full" type="submit" variant="outline">
+          <Button className="h-12 w-full rounded-xl text-base active:scale-[0.99]" size="lg" type="submit" variant="outline">
             <LogOut /> Sign out
           </Button>
         </form>

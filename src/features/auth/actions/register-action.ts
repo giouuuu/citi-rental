@@ -18,6 +18,7 @@ export type RegisterActionResult = ActionResult<RegistrationData>;
 
 const errorMessages: Record<RegistrationError["code"], string> = {
   already_authenticated: "You are already signed in. Open your dashboard to continue.",
+  captcha: "The security check expired or failed. Please try again.",
   configuration: "Registration is not available until Supabase is configured.",
   network:
     "Could not reach the authentication service. Check your internet connection and try again.",
@@ -45,11 +46,15 @@ export async function registerAction(
   }
 
   try {
-    const result = await registerWithEmail({
-      fullName: parsed.data.fullName,
-      email: parsed.data.email,
-      password: parsed.data.password,
-    });
+    const captchaToken = String(formData.get("captchaToken") ?? "").trim();
+    const result = await registerWithEmail(
+      {
+        fullName: parsed.data.fullName,
+        email: parsed.data.email,
+        password: parsed.data.password,
+      },
+      captchaToken || undefined,
+    );
     if (result.status === "verification_required") {
       return {
         success: true,

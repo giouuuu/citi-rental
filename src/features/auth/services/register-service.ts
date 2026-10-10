@@ -20,6 +20,7 @@ export class RegistrationError extends Error {
   constructor(
     readonly code:
       | "already_authenticated"
+      | "captcha"
       | "configuration"
       | "network"
       | "provisioning"
@@ -57,6 +58,7 @@ function isNetworkFailure(error: unknown) {
 
 export async function registerWithEmail(
   input: RegisterInput,
+  captchaToken?: string,
 ): Promise<RegistrationResult> {
   if (!isSupabaseConfigured()) {
     throw new RegistrationError("configuration");
@@ -78,10 +80,14 @@ export async function registerWithEmail(
           ops_registration: "true",
         },
         emailRedirectTo: `${siteUrl()}/auth/callback?next=/dashboard&provision=owner`,
+        captchaToken,
       },
     });
 
     if (error) {
+      if (error.code === "captcha_failed") {
+        throw new RegistrationError("captcha");
+      }
       throw new RegistrationError(error.status === 429 ? "rate_limit" : "signup");
     }
 

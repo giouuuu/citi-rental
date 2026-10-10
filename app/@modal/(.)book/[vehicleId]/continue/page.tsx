@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { BookingContinueChoice } from "@/features/booking/components/booking-continue-choice";
+import { BookingSignInStep } from "@/features/booking/components/booking-sign-in-step";
 import { RouteModal } from "@/features/booking/components/route-modal";
 import { bookingFormPath } from "@/features/booking/lib/booking-continue";
 import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
@@ -53,11 +53,10 @@ export default async function InterceptedBookContinuePage({
 
   return (
     <RouteModal
-      description="Sign in for trip tracking, or continue as a guest with the same booking steps."
-      title="How do you want to continue?"
+      description="Booking needs an account so you can track your reservation."
+      title="Sign in to book"
     >
-      <BookingContinueChoice
-        compact
+      <BookingSignInStep
         query={bookingQuery}
         vehicleId={vehicleId}
         vehicleName={vehicle.name}

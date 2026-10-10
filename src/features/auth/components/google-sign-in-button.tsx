@@ -95,7 +95,7 @@ export function GoogleSignInButton({
   return (
     <div className="space-y-3">
       <Button
-        className="w-full"
+        className="h-12 w-full rounded-xl bg-card text-base shadow-[0_12px_24px_-18px_rgb(7_17_31/0.35)] active:scale-[0.99]"
         disabled={pending}
         onClick={continueWithGoogle}
         size="lg"

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 
 import { forgotPasswordAction } from "@/app/(auth)/actions";
@@ -17,6 +17,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import {
+  CAPTCHA_LOAD_ERROR,
+  useAuthCaptcha,
+} from "@/features/auth/components/use-auth-captcha";
+import {
   forgotPasswordSchema,
   type ForgotPasswordInput,
 } from "@/features/auth/schemas/login-schema";
@@ -29,6 +33,7 @@ export function ForgotPasswordForm() {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string>();
   const [success, setSuccess] = useState(false);
+  const captcha = useAuthCaptcha();
 
   const form = useForm<ForgotPasswordInput>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -36,10 +41,13 @@ export function ForgotPasswordForm() {
   });
 
   function onSubmit(values: ForgotPasswordInput) {
+    if (!captcha.ready) return;
     setMessage(undefined);
     setSuccess(false);
+    const formData = valuesToFormData(values, { captchaToken: captcha.token ?? "" });
     startTransition(async () => {
-      const result = await forgotPasswordAction(valuesToFormData(values));
+      const result = await forgotPasswordAction(formData);
+      captcha.reset();
       if (result.errors) {
         applyServerFieldErrors(form.setError, result.errors);
       }
@@ -52,17 +60,9 @@ export function ForgotPasswordForm() {
 
   return (
     <div>
-      <Button asChild className="-ml-3 mb-6" variant="ghost">
-        <Link href="/login">
-          <ArrowLeft /> Back to sign in
-        </Link>
-      </Button>
-      <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
-        Account recovery
-      </p>
-      <h1 className="mt-2 text-3xl font-bold tracking-[-0.03em]">Reset your password</h1>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        Enter your staff email and we will send a secure reset link.
+      <h1 className="font-display text-[2rem] leading-tight font-semibold tracking-[-0.03em] text-brand-950 sm:text-4xl">Reset your password</h1>
+      <p className="mt-2 leading-7 text-muted-foreground">
+        Enter the email you signed up with and we will send a reset link.
       </p>
       <form
         className="mt-8 space-y-5"
@@ -80,8 +80,9 @@ export function ForgotPasswordForm() {
                   {...field}
                   aria-invalid={fieldState.invalid}
                   autoComplete="email"
+                  className="h-11 rounded-xl"
                   id="email"
-                  placeholder="you@company.com"
+                  placeholder="you@example.com"
                   type="email"
                 />
                 {fieldState.invalid ? (
@@ -91,12 +92,18 @@ export function ForgotPasswordForm() {
             )}
           />
         </FieldGroup>
+        {captcha.widget}
+        {captcha.failed && !message ? (
+          <div className="rounded-xl bg-warning-surface p-3 text-sm text-warning" role="alert">
+            {CAPTCHA_LOAD_ERROR}
+          </div>
+        ) : null}
         {message ? (
           <div
             className={
               success
-                ? "flex gap-2 rounded-md bg-success-surface p-3 text-sm text-success"
-                : "rounded-md bg-warning-surface p-3 text-sm text-warning"
+                ? "flex gap-2 rounded-xl bg-success-surface p-3 text-sm text-success"
+                : "rounded-xl bg-warning-surface p-3 text-sm text-warning"
             }
             role="status"
           >
@@ -104,11 +111,29 @@ export function ForgotPasswordForm() {
             {message}
           </div>
         ) : null}
-        <Button className="w-full" disabled={pending} size="lg" type="submit">
-          {pending ? <Spinner /> : null}
-          {pending ? "Sending..." : "Send reset link"}
+        <Button
+          className="h-12 w-full rounded-xl text-base active:scale-[0.99]"
+          disabled={pending || !captcha.ready}
+          size="lg"
+          type="submit"
+        >
+          {pending || !captcha.ready ? <Spinner /> : null}
+          {pending
+            ? "Sending..."
+            : captcha.ready
+              ? "Send reset link"
+              : captcha.pendingLabel}
         </Button>
       </form>
+      <p className="mt-7 text-center text-sm text-muted-foreground">
+        Remembered it?{" "}
+        <Link
+          className="font-medium text-teal-700 underline-offset-4 hover:underline"
+          href="/login"
+        >
+          Back to sign in
+        </Link>
+      </p>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
@@ -13,8 +12,10 @@ import {
 } from "@/components/landing/quick-book-panel";
 import { Button } from "@/components/ui/button";
 import { trackSiteEvent } from "@/features/site-analytics/lib/track-site-event";
-import { VehicleRateQuote } from "@/features/vehicles/components/vehicle-rate-quote";
-import type { PublicListedVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
+import type {
+  PublicListedVehicle,
+  PublicVehiclePhoto,
+} from "@/features/vehicles/types/public-fleet-vehicle";
 import { cn } from "@/lib/utils";
 
 /** Shared by the card photo and the gallery stage so the morph reads as one object. */
@@ -25,14 +26,14 @@ const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 const SWIPE_THRESHOLD = 40;
 
 /** Round white controls floating over the photo stage. */
-const FLOATING_BUTTON =
+export const FLOATING_BUTTON =
   "rounded-full bg-white/85 text-brand-950 shadow-[0_8px_24px_-8px_rgb(7_17_31/0.5)] backdrop-blur-md transition-[transform,background-color] duration-200 ease-out hover:bg-white active:scale-95";
 
 type VehicleGalleryDialogProps = {
   vehicle: PublicListedVehicle;
   /** The visitor's search so far; the quick-book panel starts from it. */
   trip: QuickBookTrip;
-  /** Signed-in customers skip the guest-or-sign-in step. */
+  /** Signed-in customers skip the sign-in step. */
   signedIn?: boolean;
   /** Flat fee to hold a booking, from Settings. */
   reservationFee?: number | null;
@@ -245,30 +246,12 @@ function GalleryBody({
                 src={cover.src}
               />
             ) : null}
-            {photos.map((photo, photoIndex) => {
-              const offset = photoIndex - index;
-              return (
-                <Image
-                  alt={`${vehicle.name}, ${photo.label}`}
-                  aria-hidden={offset !== 0}
-                  className={cn(
-                    "object-contain transition-[opacity,transform] duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
-                    offset === 0
-                      ? "translate-x-0 scale-100 opacity-100"
-                      : offset < 0
-                        ? "-translate-x-[6%] scale-[1.02] opacity-0"
-                        : "translate-x-[6%] scale-[1.02] opacity-0",
-                  )}
-                  draggable={false}
-                  fill
-                  key={photo.kind}
-                  onLoad={photoIndex === 0 ? () => setFirstLoaded(true) : undefined}
-                  priority={photoIndex === 0}
-                  sizes="(min-width: 768px) 768px, 100vw"
-                  src={photo.url}
-                />
-              );
-            })}
+            <GalleryPhotoStack
+              index={index}
+              onFirstLoad={() => setFirstLoaded(true)}
+              photos={photos}
+              vehicleName={vehicle.name}
+            />
 
             {/* Controls wait for the morph, so they never shrink or stretch with it. */}
             <motion.div
@@ -325,46 +308,12 @@ function GalleryBody({
             initial={{ opacity: 0, y: -8 }}
           >
             {count > 1 ? (
-              <ul
-                aria-label="Photos"
-                className="grid grid-cols-6 gap-2 border-b border-border px-2 pt-3 pb-3 sm:flex sm:justify-center sm:gap-3"
-              >
-                {photos.map((photo, photoIndex) => {
-                  const active = photoIndex === index;
-                  return (
-                    <li className="sm:w-20" key={photo.kind}>
-                      <button
-                        aria-current={active ? "true" : undefined}
-                        aria-label={`Show ${photo.label}`}
-                        className={cn(
-                          "group/thumb relative block aspect-[4/3] w-full overflow-hidden rounded-lg ring-2 ring-offset-2 ring-offset-popover transition-[box-shadow,opacity] duration-200 ease-out focus-visible:ring-ring focus-visible:outline-none",
-                          active
-                            ? "opacity-100 ring-teal-500"
-                            : "opacity-55 ring-transparent hover:opacity-90",
-                        )}
-                        onClick={() => setIndex(() => photoIndex)}
-                        type="button"
-                      >
-                        <Image
-                          alt=""
-                          className="object-cover transition-transform duration-300 ease-out group-hover/thumb:scale-105"
-                          fill
-                          sizes="120px"
-                          src={photo.url}
-                        />
-                      </button>
-                      <span
-                        className={cn(
-                          "mt-1.5 hidden truncate text-center text-[11px] transition-colors duration-200 sm:block",
-                          active ? "font-medium text-brand-950" : "text-muted-foreground",
-                        )}
-                      >
-                        {photo.label}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
+              <GalleryThumbnails
+                className="border-b border-border px-2 pt-3 pb-3"
+                index={index}
+                onSelect={(photoIndex) => setIndex(() => photoIndex)}
+                photos={photos}
+              />
             ) : null}
           </motion.div>
           </div>
@@ -406,7 +355,7 @@ function GalleryBody({
   );
 }
 
-function GalleryArrow({
+export function GalleryArrow({
   direction,
   onClick,
 }: {
@@ -429,5 +378,108 @@ function GalleryArrow({
     >
       <Icon aria-hidden="true" className="size-5" />
     </Button>
+  );
+}
+
+/**
+ * Every angle stays mounted and stacked, so stepping between them is a
+ * crossfade with a short slide in the direction of travel, and the next angle
+ * is already loaded. Fills its positioned parent.
+ */
+export function GalleryPhotoStack({
+  photos,
+  index,
+  vehicleName,
+  sizes = "(min-width: 768px) 768px, 100vw",
+  onFirstLoad,
+}: {
+  photos: PublicVehiclePhoto[];
+  index: number;
+  vehicleName: string;
+  sizes?: string;
+  onFirstLoad?: () => void;
+}) {
+  return photos.map((photo, photoIndex) => {
+    const offset = photoIndex - index;
+    return (
+      <Image
+        alt={`${vehicleName}, ${photo.label}`}
+        aria-hidden={offset !== 0}
+        className={cn(
+          "object-contain transition-[opacity,transform] duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
+          offset === 0
+            ? "translate-x-0 scale-100 opacity-100"
+            : offset < 0
+              ? "-translate-x-[6%] scale-[1.02] opacity-0"
+              : "translate-x-[6%] scale-[1.02] opacity-0",
+        )}
+        draggable={false}
+        fill
+        key={photo.kind}
+        onLoad={photoIndex === 0 ? onFirstLoad : undefined}
+        priority={photoIndex === 0}
+        sizes={sizes}
+        src={photo.url}
+      />
+    );
+  });
+}
+
+/** One button per angle; the current one is ringed and labelled. */
+export function GalleryThumbnails({
+  photos,
+  index,
+  onSelect,
+  className,
+}: {
+  photos: PublicVehiclePhoto[];
+  index: number;
+  onSelect: (index: number) => void;
+  className?: string;
+}) {
+  return (
+    <ul
+      aria-label="Photos"
+      className={cn(
+        "grid grid-cols-6 gap-2 sm:flex sm:justify-center sm:gap-3",
+        className,
+      )}
+    >
+      {photos.map((photo, photoIndex) => {
+        const active = photoIndex === index;
+        return (
+          <li className="sm:w-20" key={photo.kind}>
+            <button
+              aria-current={active ? "true" : undefined}
+              aria-label={`Show ${photo.label}`}
+              className={cn(
+                "group/thumb relative block aspect-[4/3] w-full overflow-hidden rounded-lg ring-2 ring-offset-2 ring-offset-popover transition-[box-shadow,opacity] duration-200 ease-out focus-visible:ring-ring focus-visible:outline-none",
+                active
+                  ? "opacity-100 ring-teal-500"
+                  : "opacity-55 ring-transparent hover:opacity-90",
+              )}
+              onClick={() => onSelect(photoIndex)}
+              type="button"
+            >
+              <Image
+                alt=""
+                className="object-cover transition-transform duration-300 ease-out group-hover/thumb:scale-105"
+                fill
+                sizes="120px"
+                src={photo.url}
+              />
+            </button>
+            <span
+              className={cn(
+                "mt-1.5 hidden truncate text-center text-[11px] transition-colors duration-200 sm:block",
+                active ? "font-medium text-brand-950" : "text-muted-foreground",
+              )}
+            >
+              {photo.label}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

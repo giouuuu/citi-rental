@@ -46,11 +46,8 @@ export function ResetPasswordForm() {
 
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
-        Choose a new password
-      </p>
-      <h1 className="mt-2 text-3xl font-bold tracking-[-0.03em]">Secure your account</h1>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+      <h1 className="font-display text-[2rem] leading-tight font-semibold tracking-[-0.03em] text-brand-950 sm:text-4xl">Choose a new password</h1>
+      <p className="mt-2 leading-7 text-muted-foreground">
         Use at least 8 characters. Avoid passwords used on other services.
       </p>
       <form
@@ -69,6 +66,7 @@ export function ResetPasswordForm() {
                   {...field}
                   aria-invalid={fieldState.invalid}
                   autoComplete="new-password"
+                  className="h-11 rounded-xl"
                   id="password"
                 />
                 {fieldState.invalid ? (
@@ -82,13 +80,13 @@ export function ResetPasswordForm() {
         </FieldGroup>
         {message ? (
           <p
-            className="rounded-md bg-danger-surface p-3 text-sm text-destructive"
+            className="rounded-xl bg-danger-surface p-3 text-sm text-destructive"
             role="alert"
           >
             {message}
           </p>
         ) : null}
-        <Button className="w-full" disabled={pending} size="lg" type="submit">
+        <Button className="h-12 w-full rounded-xl text-base active:scale-[0.99]" disabled={pending} size="lg" type="submit">
           {pending ? <Spinner /> : null}
           {pending ? "Updating..." : "Update password"}
         </Button>

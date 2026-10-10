@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { SiteHeader } from "@/components/landing/site-header";
-import { BookingContinueChoice } from "@/features/booking/components/booking-continue-choice";
+import { BookingSignInStep } from "@/features/booking/components/booking-sign-in-step";
 import { bookingFormPath } from "@/features/booking/lib/booking-continue";
 import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
 import { getPublicVehicle } from "@/features/booking/services/public-booking-service";
@@ -21,7 +21,7 @@ type ContinuePageProps = {
 
 export const metadata: Metadata = {
   title: "Continue booking",
-  description: "Sign in or continue as a guest to reserve your car.",
+  description: "Sign in to reserve your car.",
   robots: NOINDEX,
 };
 
@@ -74,13 +74,13 @@ export default async function BookContinuePage({
             Customer booking
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            Almost ready to reserve
+            Sign in to book
           </h1>
         </div>
       </div>
 
       <div className="mx-auto max-w-lg px-4 py-10 sm:px-6">
-        <BookingContinueChoice
+        <BookingSignInStep
           query={bookingQuery}
           vehicleId={vehicleId}
           vehicleName={vehicle.name}

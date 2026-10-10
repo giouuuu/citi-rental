@@ -1,57 +1,38 @@
 "use client";
 
-import { type ComponentProps, useState } from "react";
+import type { ComponentProps } from "react";
 
-import { BookingContactStep } from "@/features/booking/components/booking-contact-step";
 import { BookingForm } from "@/features/booking/components/booking-form";
-import type { ResolvedBookingContact } from "@/features/booking/lib/booking-contact";
+import { BookingSignInStep } from "@/features/booking/components/booking-sign-in-step";
+import type { BookingContinueQuery } from "@/features/booking/lib/booking-continue";
 
-type BookingFlowProps = Omit<
-  ComponentProps<typeof BookingForm>,
-  "contact" | "onChangeContact"
-> & {
+type BookingFlowProps = ComponentProps<typeof BookingForm> & {
   signedIn: boolean;
-  signInHref: string;
-  turnstileSiteKey: string | null;
+  /** The trip from the URL, carried through sign-in. */
+  query: BookingContinueQuery;
 };
 
 /**
- * Signed-in customers go straight to the booking form. Guests first enter an
- * email or mobile number; a returning customer then books with trip details
- * only, a new one fills in the full form.
+ * Only signed-in customers book. Everyone else signs in first and comes
+ * back to this form.
  */
 export function BookingFlow({
   signedIn,
-  signInHref,
-  turnstileSiteKey,
+  query,
   ...formProps
 }: BookingFlowProps) {
-  const [contact, setContact] = useState<ResolvedBookingContact>();
-  const [rawContact, setRawContact] = useState("");
-
   if (signedIn) return <BookingForm {...formProps} />;
 
-  if (!contact) {
-    return (
-      <BookingContactStep
-        initialValue={rawContact}
-        onResolved={(resolved, raw) => {
-          setRawContact(raw);
-          setContact(resolved);
-        }}
-        signInHref={signInHref}
-        turnstileSiteKey={turnstileSiteKey}
-      />
-    );
-  }
-
   return (
-    <BookingForm
-      {...formProps}
-      contact={contact}
-      // Remount so default values follow the newly resolved contact.
-      key={`${contact.kind}:${contact.value}`}
-      onChangeContact={() => setContact(undefined)}
-    />
+    <section className="rounded-xl border border-border bg-background p-4 sm:p-6">
+      <h2 className="text-lg font-bold text-brand-950">Sign in to book</h2>
+      <div className="mt-3">
+        <BookingSignInStep
+          query={query}
+          vehicleId={formProps.vehicle.id}
+          vehicleName={formProps.vehicle.name}
+        />
+      </div>
+    </section>
   );
 }

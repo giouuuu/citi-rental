@@ -3,10 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SiteHeader } from "@/components/landing/site-header";
-import { BookingFlow } from "@/features/booking/components/booking-flow";
-import { bookingSignInPath } from "@/features/booking/lib/booking-continue";
+import { BookingHero } from "@/features/booking/components/booking-hero";
+import { BookingWorkspace } from "@/features/booking/components/booking-workspace";
 import { parseDrivingMode } from "@/features/booking/lib/driving-mode";
-import { turnstileSiteKey } from "@/features/booking/lib/turnstile";
 import { listPublicVehicleBookedRanges } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import {
   getPublicDriverDailyRate,
@@ -17,6 +16,7 @@ import {
 import { OPEN_GRAPH_BASE } from "@/features/seo/lib/business";
 import { vehicleSeoTitle } from "@/features/seo/lib/vehicle-title";
 import { formatPhp } from "@/features/shared/lib/money";
+import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-public-available-vehicles";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -76,13 +76,25 @@ export default async function BookVehiclePage({
 
   if (!vehicle) notFound();
 
-  const [bookedRanges, reservationFee, freeCancellationHours, driverDailyRate] =
-    await Promise.all([
-      listPublicVehicleBookedRanges(vehicleId),
-      getPublicReservationFee(),
-      getPublicFreeCancellationHours(),
-      getPublicDriverDailyRate(),
-    ]);
+  const [
+    bookedRanges,
+    fleet,
+    reservationFee,
+    freeCancellationHours,
+    driverDailyRate,
+  ] = await Promise.all([
+    listPublicVehicleBookedRanges(vehicleId),
+    listPublicAvailableVehicles(),
+    getPublicReservationFee(),
+    getPublicFreeCancellationHours(),
+    getPublicDriverDailyRate(),
+  ]);
+  const bookingQuery = {
+    pickup: query.pickup,
+    start: query.start,
+    end: query.end,
+    mode: query.mode,
+  };
 
   let signedIn = false;
   let initialFullName: string | undefined;
@@ -103,26 +115,11 @@ export default async function BookVehiclePage({
     }
   }
 
-  return (
-    <main className="min-h-screen bg-background" id="main-content">
-      <div className="bg-brand-950 text-white">
-        <SiteHeader />
+  if (vehicle.status === "maintenance" || vehicle.status === "inactive") {
+    return (
+      <main className="min-h-screen bg-background" id="main-content">
+        <BookingHero header={<SiteHeader />} vehicleName={vehicle.name} />
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-          <p className="text-xs font-semibold tracking-[0.18em] text-teal-300 uppercase">
-            Customer booking
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            Reserve {vehicle.name}
-          </h1>
-          <p className="mt-2 text-sm text-brand-100">
-            Submit your trip details and we will hold the car as reserved for
-            staff confirmation.
-          </p>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-        {vehicle.status === "maintenance" || vehicle.status === "inactive" ? (
           <div className="rounded-xl border border-warning/30 bg-warning-surface p-6 text-sm text-warning">
             This car is not available for booking right now.{" "}
             <Link className="font-medium underline" href="/#fleet">
@@ -130,25 +127,35 @@ export default async function BookVehiclePage({
             </Link>
             .
           </div>
-        ) : (
-          <BookingFlow
-            bookedRanges={bookedRanges}
-            driverDailyRate={driverDailyRate}
-            freeCancellationHours={freeCancellationHours}
-            initialDrivingMode={parseDrivingMode(query.mode)}
-            initialEmail={initialEmail}
-            initialFullName={initialFullName}
-            initialPickupLocation={query.pickup}
-            initialReturnAt={query.end}
-            initialStartAt={query.start}
-            reservationFee={reservationFee}
-            signInHref={bookingSignInPath(vehicle.id, query)}
-            signedIn={signedIn}
-            turnstileSiteKey={turnstileSiteKey()}
-            vehicle={vehicle}
-          />
-        )}
-      </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-background" id="main-content">
+      <BookingWorkspace
+        bookedRanges={bookedRanges}
+        driverDailyRate={driverDailyRate}
+        fleet={fleet}
+        freeCancellationHours={freeCancellationHours}
+        header={<SiteHeader />}
+        initialDrivingMode={parseDrivingMode(query.mode)}
+        initialEmail={initialEmail}
+        initialFullName={initialFullName}
+        initialPickupLocation={query.pickup}
+        initialReturnAt={query.end}
+        initialStartAt={query.start}
+        query={bookingQuery}
+        reservationFee={reservationFee}
+        signedIn={signedIn}
+        vehicle={
+          fleet.find((car) => car.id === vehicle.id) ?? {
+            ...vehicle,
+            gallery: [],
+          }
+        }
+      />
     </main>
   );
 }

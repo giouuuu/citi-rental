@@ -1,78 +1,133 @@
-import type { ReactNode } from "react";
-import { CheckCircle2, MapPinned, RadioTower } from "lucide-react";
+import type { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
+import { ZekeLogo } from "@/components/brand/zeke-logo";
+import car from "@/components/landing/hero-scene/car.webp";
+import {
+  heroTitleFont,
+  landingFontClassName,
+} from "@/components/landing/landing-fonts";
+
+/** Stagger for `.focus-in` / `.rise-in` intro elements. */
+function enterDelay(ms: number) {
+  return { "--focus-delay": `${ms}ms` } as CSSProperties;
+}
+
+/**
+ * Auth pages wear the public site's look: the form on the left, the landing
+ * hero's Cebu road (with the YOUR CEBU / JOURNEY lockup) on the right at lg+.
+ * Phones keep the form first, under a sky-tinted band.
+ */
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <main
-      className="grid min-h-dvh bg-card lg:grid-cols-[1.05fr_0.95fr]"
+      className={`${landingFontClassName} relative grid min-h-dvh bg-background font-landing lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:p-3`}
       id="main-content"
     >
-      <section className="relative hidden overflow-hidden bg-brand-950 px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_20%,#14968b_0,transparent_28%),radial-gradient(circle_at_85%_70%,#315e7c_0,transparent_32%)]" />
-        <svg
-          aria-hidden="true"
-          className="absolute inset-x-0 top-1/2 h-80 w-full -translate-y-1/2 opacity-60"
-          preserveAspectRatio="none"
-          viewBox="0 0 900 400"
-        >
-          <path
-            d="M-20 330 C120 210 240 345 375 220 S630 110 920 190"
-            fill="none"
-            stroke="#18314d"
-            strokeWidth="56"
-          />
-          <path
-            d="M-20 330 C120 210 240 345 375 220 S630 110 920 190"
-            fill="none"
-            stroke="#2bb6a8"
-            strokeLinecap="round"
-            strokeWidth="5"
-          />
-          <circle cx="374" cy="220" fill="#c5a03a" r="10" stroke="#fff" strokeWidth="4" />
-          <circle cx="710" cy="143" fill="#2bb6a8" r="10" stroke="#fff" strokeWidth="4" />
-        </svg>
-        <div className="relative flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-md bg-teal-400 text-base font-black text-brand-950">
-            M
-          </span>
-          <div>
-            <p className="font-semibold">City Rentals</p>
-            <p className="text-xs text-brand-100/65">Rental operations control</p>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(to_bottom,#DCE9F5,transparent)] lg:hidden"
+      />
+
+      <section className="relative flex min-h-dvh flex-col px-4 sm:px-8 lg:min-h-0 lg:px-12 xl:px-16">
+        <header className="flex h-20 items-center justify-between gap-4">
+          <Link aria-label="Zeke Car Rentals home" href="/">
+            <ZekeLogo />
+          </Link>
+          <Link
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-950/5 hover:text-brand-950"
+            href="/"
+          >
+            <ArrowLeft aria-hidden="true" className="size-4" />
+            <span>
+              Back<span className="max-sm:hidden"> to site</span>
+            </span>
+          </Link>
+        </header>
+
+        <div className="flex flex-1 items-center justify-center py-10 lg:py-12">
+          <div
+            className="focus-in w-full max-w-[26rem]"
+            style={enterDelay(80)}
+          >
+            {children}
           </div>
         </div>
-        <div className="relative max-w-xl">
-          <p className="text-xs font-semibold tracking-[0.18em] text-teal-400 uppercase">
-            Calm operations. Clear decisions.
-          </p>
-          <h1 className="mt-4 text-4xl leading-[1.12] font-bold tracking-[-0.035em] xl:text-5xl">
-            Know where every vehicle stands.
-          </h1>
-          <p className="mt-5 max-w-lg text-base leading-7 text-brand-100/75">
-            One operational view for live tracking, rentals, geofences, and the alerts that need your attention.
-          </p>
-          <div className="mt-10 grid grid-cols-3 gap-3">
-            {[
-              { icon: RadioTower, label: "Tracker health" },
-              { icon: MapPinned, label: "Fleet location" },
-              { icon: CheckCircle2, label: "Rental status" },
-            ].map((item) => (
-              <div
-                className="rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm"
-                key={item.label}
-              >
-                <item.icon className="size-5 text-teal-400" />
-                <p className="mt-3 text-xs font-medium text-brand-100">{item.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <p className="relative text-xs text-brand-100/45">
-          Location timestamps are displayed in Philippine Standard Time.
+
+        <p className="pb-6 text-center text-xs leading-5 text-muted-foreground lg:text-left">
+          Zeke Car Rentals, Cebu. DTI-registered.
         </p>
       </section>
-      <section className="flex items-center justify-center px-5 py-10 sm:px-10 lg:px-16">
-        <div className="w-full max-w-md">{children}</div>
-      </section>
+
+      <AuthScene />
     </main>
+  );
+}
+
+/** The landing hero, flattened: road photo, title lockup, car on the near lane. */
+function AuthScene() {
+  return (
+    <aside
+      aria-hidden="true"
+      className="sticky top-3 hidden self-start h-[calc(100dvh-1.5rem)] overflow-hidden rounded-3xl bg-[#DCE9F5] lg:block"
+    >
+      <Image
+        alt=""
+        className="object-cover object-[50%_62%]"
+        fill
+        priority
+        sizes="55vw"
+        src="/scene.jpeg"
+      />
+      {/* Haze over the sky so the lockup reads, and shade under the car. */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgb(241_246_251/0.7),rgb(241_246_251/0.15)_38%,transparent_55%,rgb(7_17_31/0.25))]" />
+
+      <div className="absolute inset-x-0 top-[9%] flex flex-col items-center text-center uppercase">
+        <p
+          className={`${heroTitleFont.className} focus-in pl-[0.24em] text-[clamp(1.5rem,2.6vw,2.5rem)] leading-none tracking-[0.24em] text-teal-600 drop-shadow-[0_2px_18px_rgb(241_246_251/0.55)]`}
+          style={enterDelay(300)}
+        >
+          Your Cebu
+        </p>
+        <p
+          className={`${heroTitleFont.className} focus-in -mt-[0.04em] bg-linear-to-b from-brand-800 from-25% to-[color-mix(in_oklab,var(--brand-500)_75%,#8fb2d4)] bg-clip-text pb-[0.04em] text-[clamp(6rem,13vw,12rem)] leading-[0.9] tracking-[0.01em] text-transparent drop-shadow-[0_2px_18px_rgb(241_246_251/0.55)]`}
+          style={enterDelay(450)}
+        >
+          Journey
+        </p>
+      </div>
+
+      {/* The car drives up the road from the horizon, as on the landing. */}
+      <div className="absolute bottom-[calc(1.5rem+9%)] left-1/2 w-[min(40%,24rem,46dvh)] -translate-x-1/2">
+        <div
+          className="rise-in relative"
+          style={
+            {
+              ...enterDelay(150),
+              "--rise-from": "translateY(-22%) scale(0.55)",
+            } as CSSProperties
+          }
+        >
+          {/* Contact shadow on the asphalt, so the car stands on the road. */}
+          <div className="absolute inset-x-[6%] -bottom-[3%] h-[12%] rounded-[50%] bg-[radial-gradient(closest-side,rgb(7_17_31/0.55),transparent)] blur-[2px]" />
+          <Image
+            alt=""
+            className="relative h-auto w-full drop-shadow-[0_18px_18px_rgb(7_17_31/0.35)]"
+            priority
+            sizes="24rem"
+            src={car}
+          />
+        </div>
+      </div>
+
+      <p
+        className="focus-in absolute inset-x-0 bottom-6 mx-auto w-fit rounded-full bg-white/80 px-5 py-1.5 text-sm font-medium text-brand-950 shadow-[0_10px_30px_-14px_rgb(7_17_31/0.45)] ring-1 ring-white/70 backdrop-blur-md"
+        style={enterDelay(900)}
+      >
+        Clear daily rates. Delivered anywhere in Cebu.
+      </p>
+    </aside>
   );
 }

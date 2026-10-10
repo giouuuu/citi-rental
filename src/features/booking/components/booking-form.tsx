@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, ClipboardCheck, Info, UserRoundCheck } from "lucide-react";
-import { useState, useTransition } from "react";
-import { type Resolver, useForm } from "react-hook-form";
+import { ArrowLeft, ClipboardCheck, Info } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
 import type { z } from "zod";
 
 import {
@@ -22,14 +22,11 @@ import { compressBookingPhoto } from "@/features/booking/lib/compress-booking-ph
 import { BookingVehicleSummary } from "@/features/booking/components/booking-vehicle-summary";
 import { DrivingModeToggle } from "@/features/booking/components/driving-mode-toggle";
 import type { DrivingMode } from "@/features/booking/lib/driving-mode";
-import type { ResolvedBookingContact } from "@/features/booking/lib/booking-contact";
-import {
-  publicBookingSchema,
-  returningBookingSchema,
-} from "@/features/booking/schemas/public-booking-schema";
+import { publicBookingSchema } from "@/features/booking/schemas/public-booking-schema";
 import type { PublicVehicleBookedRange } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import type { PublicFleetVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 import {
+  earliestManilaDateTimeInput,
   parseManilaDateTimeInput,
   toManilaDateTimeInput,
 } from "@/features/shared/lib/manila-time";
@@ -48,6 +45,10 @@ type BookingFormOutput = z.output<typeof publicBookingSchema>;
 type BookingFormProps = {
   vehicle: PublicFleetVehicle;
   bookedRanges?: PublicVehicleBookedRange[];
+  /** The car was just switched and its booked days are still on the way. */
+  bookedRangesLoading?: boolean;
+  /** Hears every change to the chosen dates, e.g. to check them against the car. */
+  onDatesChange?: (dates: { start: string; end: string }) => void;
   initialStartAt?: string;
   initialReturnAt?: string;
   initialPickupLocation?: string;
@@ -56,14 +57,12 @@ type BookingFormProps = {
   /** Settings → driver day rate; null means staff quote the driver. */
   driverDailyRate?: number | null;
   initialFullName?: string;
+  /** The signed-in account's email; the booking always uses it. */
   initialEmail?: string;
   /** Flat fee to hold the booking, from Settings. */
   reservationFee?: number | null;
   /** Settings → free-cancellation window; states the refund policy. */
   freeCancellationHours?: number | null;
-  /** Guest contact from the lookup step; absent for signed-in customers. */
-  contact?: ResolvedBookingContact;
-  onChangeContact?: () => void;
 };
 
 function toDateTimeLocalValue(value?: string) {
@@ -74,9 +73,17 @@ function toDateTimeLocalValue(value?: string) {
   return parseManilaDateTimeInput(local) ? local : "";
 }
 
+/** A pick-up carried in from the URL that has already passed moves to now. */
+function notBeforeNow(value: string) {
+  const earliest = earliestManilaDateTimeInput(new Date());
+  return value && value < earliest ? earliest : value;
+}
+
 export function BookingForm({
   vehicle,
   bookedRanges = [],
+  bookedRangesLoading = false,
+  onDatesChange,
   initialStartAt,
   initialReturnAt,
   initialPickupLocation,
@@ -86,40 +93,21 @@ export function BookingForm({
   initialEmail,
   reservationFee,
   freeCancellationHours,
-  contact,
-  onChangeContact,
 }: BookingFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<CreatePublicBookingResult>();
-  const returning = contact?.returning === true;
-  const lockedField =
-    contact?.kind === "email"
-      ? "email"
-      : contact?.kind === "phone"
-        ? "phoneNumber"
-        : null;
 
   const form = useForm<BookingFormValues, unknown, BookingFormOutput>({
-    // Same fields either way; the returning schema only relaxes identity
-    // fields, which that mode hides and the RPC fills from the record.
-    resolver: returning
-      ? (zodResolver(
-          returningBookingSchema,
-        ) as unknown as Resolver<
-          BookingFormValues,
-          unknown,
-          BookingFormOutput
-        >)
-      : zodResolver(publicBookingSchema),
+    resolver: zodResolver(publicBookingSchema),
     defaultValues: {
       vehicleId: vehicle.id,
       drivingMode: initialDrivingMode,
-      startAt: toDateTimeLocalValue(initialStartAt),
+      startAt: notBeforeNow(toDateTimeLocalValue(initialStartAt)),
       expectedReturnAt: toDateTimeLocalValue(initialReturnAt),
       fullName: initialFullName ?? "",
-      phoneNumber: contact?.kind === "phone" ? contact.value : "",
-      email: contact?.kind === "email" ? contact.value : (initialEmail ?? ""),
+      phoneNumber: "",
+      email: initialEmail ?? "",
       driversLicenseNumber: "",
       address: "",
       facebookAccount: "",
@@ -136,6 +124,10 @@ export function BookingForm({
   const drivingMode = form.watch("drivingMode") ?? "self-drive";
   const withDriver = drivingMode === "with-driver";
 
+  useEffect(() => {
+    onDatesChange?.({ start: startAt ?? "", end: expectedReturnAt ?? "" });
+  }, [onDatesChange, startAt, expectedReturnAt]);
+
   function onSubmit(values: BookingFormOutput) {
     setResult(undefined);
     startTransition(async () => {
@@ -149,15 +141,14 @@ export function BookingForm({
       } catch {
         setResult({
           success: false,
-          message: "We could not read one of your ID photos. Try a JPEG or PNG photo.",
+          message:
+            "We could not read one of your ID photos. Try a JPEG or PNG photo.",
         });
         return;
       }
       const next = await createPublicBookingAction(
-        valuesToFormData(
-          { ...values, ...photos },
-          returning ? { returning: "1" } : undefined,
-        ),
+        // The car can be switched above the form after it mounted.
+        valuesToFormData({ ...values, vehicleId: vehicle.id, ...photos }),
       );
       setResult(next);
       if (!next.success && next.fieldErrors) {
@@ -210,120 +201,72 @@ export function BookingForm({
       <BookingDateRangeCalendar
         bookedRanges={bookedRanges}
         control={form.control}
-        disabled={pending}
+        disabled={pending || bookedRangesLoading}
         returnName="expectedReturnAt"
         startName="startAt"
       />
 
-      {returning && contact ? (
-        <Alert>
-          <UserRoundCheck />
-          <AlertTitle>
-            Welcome back{contact.initial ? `, ${contact.initial}•••` : ""}
-          </AlertTitle>
-          <AlertDescription>
-            <p>
-              We found your details for{" "}
-              <span className="font-medium text-foreground">
-                {contact.value}
-              </span>
-              . We will use the name, phone, address, and license on file —
-              just add your trip details and ID photos.
-            </p>
-            {onChangeContact ? (
-              <Button
-                className="h-auto p-0"
-                disabled={pending}
-                onClick={onChangeContact}
-                type="button"
-                variant="link"
-              >
-                Not you? Use a different email or number
-              </Button>
-            ) : null}
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      {returning ? null : (
-        <FieldSet>
-          <FieldLegend>Your details</FieldLegend>
-          <FieldGroup className="grid items-start gap-4 sm:grid-cols-2">
-            <BookingTextField
-              autoComplete="name"
-              control={form.control}
-              disabled={pending}
-              label="Full name"
-              name="fullName"
-              placeholder="Alex Rivera"
-              required
-            />
-            <BookingTextField
-              autoComplete="tel"
-              control={form.control}
-              description={
-                lockedField === "phoneNumber" ? (
-                  <ChangeContactLink
-                    disabled={pending}
-                    onClick={onChangeContact}
-                  />
-                ) : undefined
-              }
-              disabled={pending}
-              label="Contact number"
-              name="phoneNumber"
-              placeholder="+63 917 000 0000"
-              readOnly={lockedField === "phoneNumber"}
-              required
-              type="tel"
-            />
-            <BookingTextField
-              autoComplete="street-address"
-              className="sm:col-span-2"
-              control={form.control}
-              disabled={pending}
-              label="Address"
-              name="address"
-              placeholder="House no., street, barangay, city"
-              required
-            />
-            <BookingTextField
-              control={form.control}
-              disabled={pending}
-              label="Facebook account"
-              name="facebookAccount"
-              placeholder="Name or facebook.com/… link"
-              required
-            />
-            <BookingTextField
-              autoComplete="email"
-              control={form.control}
-              description={
-                lockedField === "email" ? (
-                  <ChangeContactLink
-                    disabled={pending}
-                    onClick={onChangeContact}
-                  />
-                ) : undefined
-              }
-              disabled={pending}
-              label={lockedField === "email" ? "Email" : "Email (optional)"}
-              name="email"
-              placeholder="you@email.com"
-              readOnly={lockedField === "email"}
-              required={lockedField === "email"}
-              type="email"
-            />
-            <BookingTextField
-              control={form.control}
-              disabled={pending}
-              label="Driver's license number"
-              name="driversLicenseNumber"
-              required
-            />
-          </FieldGroup>
-        </FieldSet>
-      )}
+      <FieldSet>
+        <FieldLegend>Your details</FieldLegend>
+        <FieldGroup className="grid items-start gap-4 sm:grid-cols-2">
+          <BookingTextField
+            autoComplete="name"
+            control={form.control}
+            disabled={pending}
+            label="Full name"
+            name="fullName"
+            placeholder="Alex Rivera"
+            required
+          />
+          <BookingTextField
+            autoComplete="tel"
+            control={form.control}
+            disabled={pending}
+            label="Contact number"
+            name="phoneNumber"
+            placeholder="+63 917 000 0000"
+            required
+            type="tel"
+          />
+          <BookingTextField
+            autoComplete="street-address"
+            className="sm:col-span-2"
+            control={form.control}
+            disabled={pending}
+            label="Address"
+            name="address"
+            placeholder="House no., street, barangay, city"
+            required
+          />
+          <BookingTextField
+            control={form.control}
+            disabled={pending}
+            label="Facebook account"
+            name="facebookAccount"
+            placeholder="Name or facebook.com/… link"
+            required
+          />
+          <BookingTextField
+            autoComplete="email"
+            control={form.control}
+            description={initialEmail ? "From your account." : undefined}
+            disabled={pending}
+            label={initialEmail ? "Email" : "Email (optional)"}
+            name="email"
+            placeholder="you@email.com"
+            readOnly={Boolean(initialEmail)}
+            required={Boolean(initialEmail)}
+            type="email"
+          />
+          <BookingTextField
+            control={form.control}
+            disabled={pending}
+            label="Driver's license number"
+            name="driversLicenseNumber"
+            required
+          />
+        </FieldGroup>
+      </FieldSet>
 
       <FieldSet>
         <FieldLegend>Trip details</FieldLegend>
@@ -436,26 +379,5 @@ export function BookingForm({
         </Button>
       </div>
     </form>
-  );
-}
-
-function ChangeContactLink({
-  disabled,
-  onClick,
-}: {
-  disabled?: boolean;
-  onClick?: () => void;
-}) {
-  if (!onClick) return null;
-  return (
-    <Button
-      className="h-auto p-0 text-xs"
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-      variant="link"
-    >
-      Change
-    </Button>
   );
 }

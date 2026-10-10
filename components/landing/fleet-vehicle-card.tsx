@@ -64,7 +64,7 @@ function illustrationColor(category: string | null) {
 type FleetVehicleCardProps = {
   vehicle: PublicListedVehicle;
   bookingQuery?: string;
-  /** When true, skip sign-in/guest choice and go straight to the form. */
+  /** When true, skip the sign-in step and go straight to the form. */
   signedIn?: boolean;
   /** Flat fee to hold a booking, from Settings. */
   reservationFee?: number | null;

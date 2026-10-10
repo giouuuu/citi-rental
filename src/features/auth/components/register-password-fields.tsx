@@ -47,7 +47,7 @@ export function RegisterPasswordFields({
                 }
                 aria-invalid={fieldState.invalid}
                 autoComplete="new-password"
-                className="h-11"
+                className="h-11 rounded-xl"
                 disabled={pending}
                 id={name}
               />

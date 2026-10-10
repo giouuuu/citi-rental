@@ -42,7 +42,7 @@ export function isTrackedPath(pathname: string): boolean {
 }
 
 /**
- * Opening `/book/<car>` (or its sign-in-or-guest step) is a booking start for
+ * Opening `/book/<car>` (or its sign-in step) is a booking start for
  * that car; every other tracked page is a plain page view.
  */
 export function pageEventFor(pathname: string): {

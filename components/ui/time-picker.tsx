@@ -43,6 +43,17 @@ function toTimeValue({ hour, minute, period }: TimeParts) {
   return `${pad((hour % 12) + (period === "PM" ? 12 : 0))}:${pad(minute)}`
 }
 
+/** `HH:mm` rounded up onto the minute step; undefined past the last slot. */
+function ceilToStep(value: string | undefined, step: number) {
+  const parts = parseTime(value)
+  if (!parts) return undefined
+  const [hours, minutes] = toTimeValue(parts).split(":").map(Number)
+  const total = Math.ceil((hours * 60 + minutes) / step) * step
+  return total < 24 * 60
+    ? `${pad(Math.floor(total / 60))}:${pad(total % 60)}`
+    : undefined
+}
+
 function formatParts({ hour, minute, period }: TimeParts) {
   return `${hour}:${pad(minute)} ${period}`
 }
@@ -84,12 +95,15 @@ function WheelColumn<T extends string | number>({
   options,
   value,
   onValueChange,
+  isDisabled,
 }: {
   id: string
   label: string
   options: WheelOption<T>[]
   value: T
   onValueChange: (value: T) => void
+  /** Rows that can't be picked: shown faded, and the wheel springs back off them. */
+  isDisabled?: (value: T) => boolean
 }) {
   const scrollerRef = React.useRef<HTMLDivElement>(null)
   const settleTimer = React.useRef<number | undefined>(undefined)
@@ -112,6 +126,14 @@ function WheelColumn<T extends string | number>({
     if (scroller) scroller.scrollTop = selectedIndex * ITEM_HEIGHT
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only where it opens
   }, [])
+
+  // The value can be pulled back from outside (a minimum time); follow it.
+  React.useEffect(() => {
+    const scroller = scrollerRef.current
+    if (scroller && Math.round(scroller.scrollTop / ITEM_HEIGHT) !== selectedIndex) {
+      scrollToIndex(selectedIndex)
+    }
+  }, [selectedIndex])
 
   React.useEffect(
     () => () => {
@@ -189,12 +211,15 @@ function WheelColumn<T extends string | number>({
           Math.min(3, (index * ITEM_HEIGHT - scrollTop) / ITEM_HEIGHT)
         )
         const selected = index === selectedIndex
+        const unavailable = !selected && isDisabled?.(option.value)
         return (
           <div
+            aria-disabled={unavailable || undefined}
             aria-selected={selected}
             className={cn(
               "flex cursor-pointer snap-center items-center justify-center text-base tabular-nums select-none",
-              selected ? "font-semibold text-foreground" : "text-muted-foreground"
+              selected ? "font-semibold text-foreground" : "text-muted-foreground",
+              unavailable && "text-muted-foreground/40 line-through"
             )}
             id={`${id}-${index}`}
             key={String(option.value)}
@@ -221,6 +246,8 @@ type TimePickerProps = {
   onValueChange?: (value: string) => void
   /** Spacing of the minute wheel. */
   minuteStep?: number
+  /** Earliest `HH:mm` that can be picked, e.g. now on today's date. */
+  min?: string
   placeholder?: string
   /** Submits the `HH:mm` value with a native form. */
   name?: string
@@ -245,6 +272,7 @@ function TimePicker({
   defaultValue,
   onValueChange,
   minuteStep = 5,
+  min,
   placeholder = "Pick a time",
   name,
   id,
@@ -260,8 +288,14 @@ function TimePicker({
   const [uncontrolled, setUncontrolled] = React.useState(defaultValue ?? "")
   const current = value ?? uncontrolled
   const selected = parseTime(current)
-  const [draft, setDraft] = React.useState<TimeParts>(
-    () => selected ?? parseTime(FALLBACK_TIME)!
+  const floor = ceilToStep(min, minuteStep)
+  const beforeFloor = (parts: TimeParts) =>
+    Boolean(floor && toTimeValue(parts) < floor)
+  /** Pulls a time below `min` up to it. */
+  const atLeastFloor = (parts: TimeParts) =>
+    beforeFloor(parts) ? parseTime(floor)! : parts
+  const [draft, setDraft] = React.useState<TimeParts>(() =>
+    atLeastFloor(selected ?? parseTime(FALLBACK_TIME)!)
   )
   // Fixed per opening, so the wheel's rows don't shift under the finger.
   const [keptMinute, setKeptMinute] = React.useState(selected?.minute)
@@ -278,7 +312,7 @@ function TimePicker({
 
   // Wheels apply as they settle, so tapping away keeps what was turned to.
   function turn(next: Partial<TimeParts>) {
-    const parts = { ...draft, ...next }
+    const parts = atLeastFloor({ ...draft, ...next })
     setDraft(parts)
     commit(toTimeValue(parts))
   }
@@ -289,7 +323,7 @@ function TimePicker({
       modal
       onOpenChange={(next) => {
         if (next) {
-          setDraft(selected ?? parseTime(FALLBACK_TIME)!)
+          setDraft(atLeastFloor(selected ?? parseTime(FALLBACK_TIME)!))
           setKeptMinute(selected?.minute)
         }
         setOpen(next)
@@ -340,6 +374,8 @@ function TimePicker({
           />
           <WheelColumn
             id={`${baseId}-hour`}
+            // An hour is out when even its last minute is before `min`.
+            isDisabled={(hour) => beforeFloor({ ...draft, hour, minute: 59 })}
             label="Hour"
             onValueChange={(hour) => turn({ hour })}
             options={HOURS}
@@ -353,6 +389,7 @@ function TimePicker({
           </span>
           <WheelColumn
             id={`${baseId}-minute`}
+            isDisabled={(minute) => beforeFloor({ ...draft, minute })}
             label="Minute"
             onValueChange={(minute) => turn({ minute })}
             options={minutes}
@@ -360,6 +397,9 @@ function TimePicker({
           />
           <WheelColumn
             id={`${baseId}-period`}
+            isDisabled={(period) =>
+              beforeFloor({ hour: 11, minute: 59, period })
+            }
             label="AM or PM"
             onValueChange={(period) => turn({ period })}
             options={PERIODS}

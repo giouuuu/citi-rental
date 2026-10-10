@@ -25,7 +25,7 @@ export const landingSteps: Array<{
     icon: CalendarCheck,
     number: "03",
     title: "Reserve online",
-    description: "Book as a guest or with Google. We confirm pickup with you.",
+    description: "Sign in with Google and book. We confirm pickup with you.",
   },
   {
     icon: KeyRound,

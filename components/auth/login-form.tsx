@@ -9,7 +9,6 @@ import { Controller, useForm } from "react-hook-form";
 import { loginAction } from "@/app/(auth)/actions";
 import { LoginFormFooter } from "@/components/auth/login-form-footer";
 import { PasswordInput } from "@/components/auth/password-input";
-import { ZekeMark } from "@/components/brand/zeke-mark";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +20,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
+import {
+  CAPTCHA_LOAD_ERROR,
+  useAuthCaptcha,
+} from "@/features/auth/components/use-auth-captcha";
 import {
   isBookingNextPath,
   sanitizeNextPath,
@@ -48,6 +51,7 @@ export function LoginForm({
   const [message, setMessage] = useState<string>();
   const safeNext = sanitizeNextPath(nextPath);
   const isBookingReturn = isBookingNextPath(safeNext);
+  const captcha = useAuthCaptcha();
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -55,12 +59,14 @@ export function LoginForm({
   });
 
   function onSubmit(values: LoginInput) {
+    if (!captcha.ready) return;
     setMessage(undefined);
-    const formData = valuesToFormData(values);
+    const formData = valuesToFormData(values, { captchaToken: captcha.token ?? "" });
     if (safeNext) formData.set("next", safeNext);
 
     startTransition(async () => {
       const result = await loginAction(formData);
+      captcha.reset();
       if (result.errors) {
         applyServerFieldErrors(form.setError, result.errors);
       }
@@ -71,32 +77,20 @@ export function LoginForm({
   return (
     <div>
       {embedded ? null : (
-        <div className="mb-8 lg:hidden">
-          {isBookingReturn ? (
-            <ZekeMark className="size-10" variant="navy" />
-          ) : (
-            <span className="flex size-10 items-center justify-center rounded-md bg-brand-900 text-sm font-black text-white">
-              M
-            </span>
-          )}
-        </div>
-      )}
-      {embedded ? null : (
         <>
-          <p className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
-            {isBookingReturn ? "Customer access" : "Secure staff access"}
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-[-0.03em]">Welcome back</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          <h1 className="font-display text-[2rem] leading-tight font-semibold tracking-[-0.03em] text-brand-950 sm:text-4xl">
+            Welcome back
+          </h1>
+          <p className="mt-2 leading-7 text-muted-foreground">
             {isBookingReturn
-              ? "Sign in to continue your reservation with saved account details."
-              : "Sign in to manage rentals and monitor fleet activity."}
+              ? "Sign in to finish your reservation. Your trip details are saved."
+              : "Sign in to reserve a car and keep track of your bookings."}
           </p>
         </>
       )}
 
       {resetComplete ? (
-        <Alert className="mt-6 border-success/20 bg-success-surface">
+        <Alert className="mt-6 rounded-xl border-success/20 bg-success-surface">
           <AlertDescription className="text-success">
             Your password was updated. You can now sign in.
           </AlertDescription>
@@ -109,7 +103,7 @@ export function LoginForm({
         />
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <div className="h-px flex-1 bg-border" />
-          or continue with email
+          or sign in with email
           <div className="h-px flex-1 bg-border" />
         </div>
       </div>
@@ -130,8 +124,9 @@ export function LoginForm({
                   {...field}
                   aria-invalid={fieldState.invalid}
                   autoComplete="email"
+                  className="h-11 rounded-xl"
                   id="email"
-                  placeholder="you@company.com"
+                  placeholder="you@example.com"
                   type="email"
                 />
                 {fieldState.invalid ? (
@@ -148,7 +143,7 @@ export function LoginForm({
                 <div className="flex items-center justify-between gap-4">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                   <Link
-                    className="text-xs font-medium text-primary hover:underline"
+                    className="text-xs font-medium text-teal-700 underline-offset-4 hover:underline"
                     href="/forgot-password"
                   >
                     Forgot password?
@@ -158,6 +153,7 @@ export function LoginForm({
                   {...field}
                   aria-invalid={fieldState.invalid}
                   autoComplete="current-password"
+                  className="h-11 rounded-xl"
                   id="password"
                 />
                 {fieldState.invalid ? (
@@ -167,25 +163,34 @@ export function LoginForm({
             )}
           />
         </FieldGroup>
-        {message ? (
+        {captcha.widget}
+        {message || captcha.failed ? (
           <div
-            className="flex gap-2 rounded-md border border-warning/20 bg-warning-surface p-3 text-sm leading-5 text-warning"
+            className="flex gap-2 rounded-xl border border-warning/20 bg-warning-surface p-3 text-sm leading-5 text-warning"
             role="alert"
           >
             <Info className="mt-0.5 size-4 shrink-0" />
-            <span>{message}</span>
+            <span>{message ?? CAPTCHA_LOAD_ERROR}</span>
           </div>
         ) : null}
-        <Button className="w-full" disabled={pending} size="lg" type="submit">
-          {pending ? <Spinner /> : null}
-          {pending ? "Signing in..." : "Sign in"}
+        <Button
+          className="h-12 w-full rounded-xl text-base active:scale-[0.99]"
+          disabled={pending || !captcha.ready}
+          size="lg"
+          type="submit"
+        >
+          {pending || !captcha.ready ? <Spinner /> : null}
+          {pending
+            ? "Signing in..."
+            : captcha.ready
+              ? "Sign in"
+              : captcha.pendingLabel}
         </Button>
       </form>
 
       <LoginFormFooter
         embedded={embedded}
         isBookingReturn={isBookingReturn}
-        safeNext={safeNext}
       />
     </div>
   );

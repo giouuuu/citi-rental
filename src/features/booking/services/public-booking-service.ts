@@ -4,10 +4,7 @@ import { cache } from "react";
 
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
-import type {
-  PublicBookingInput,
-  ReturningBookingInput,
-} from "@/features/booking/schemas/public-booking-schema";
+import type { PublicBookingInput } from "@/features/booking/schemas/public-booking-schema";
 import type {
   BookingPaymentDetails,
   PublicBookingResult,
@@ -156,7 +153,7 @@ export const getPublicVehicle = cache(async function getPublicVehicle(
 });
 
 export async function createPublicBooking(
-  input: PublicBookingInput | ReturningBookingInput,
+  input: PublicBookingInput,
 ): Promise<PublicBookingResult> {
   if (!isSupabaseConfigured()) {
     throw new Error("Booking is unavailable until Supabase is configured.");

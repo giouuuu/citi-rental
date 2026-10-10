@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  earliestManilaDateTimeInput,
   addDaysToKey,
   daysBetweenKeys,
   formatDateKey,
@@ -72,5 +73,29 @@ describe("Manila picker values", () => {
     expect(parseManilaTimestamp("2026-10-08T00:00")?.toISOString()).toBe("2026-10-07T16:00:00.000Z");
     expect(parseManilaTimestamp("2026-10-07T16:00:00+00:00")?.toISOString()).toBe("2026-10-07T16:00:00.000Z");
     expect(parseManilaTimestamp("nope")).toBeNull();
+  });
+});
+
+describe("earliestManilaDateTimeInput", () => {
+  it("keeps a time already on the step", () => {
+    // 07:00 Manila
+    expect(earliestManilaDateTimeInput(new Date("2026-10-10T23:00:00Z"))).toBe(
+      "2026-10-11T07:00",
+    );
+  });
+
+  it("rounds a time just past the step up, never back", () => {
+    expect(earliestManilaDateTimeInput(new Date("2026-10-10T23:00:30Z"))).toBe(
+      "2026-10-11T07:05",
+    );
+    expect(earliestManilaDateTimeInput(new Date("2026-10-10T22:59:00Z"))).toBe(
+      "2026-10-11T07:00",
+    );
+  });
+
+  it("rolls into the next Manila day late at night", () => {
+    expect(earliestManilaDateTimeInput(new Date("2026-10-10T15:57:00Z"))).toBe(
+      "2026-10-11T00:00",
+    );
   });
 });

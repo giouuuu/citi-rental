@@ -116,33 +116,4 @@ function refineTripDates(
 
 export const publicBookingSchema = bookingFields.superRefine(refineTripDates);
 
-/**
- * Returning guest: the email or phone they looked up identifies them, and
- * create_public_booking fills name, phone, license, address and Facebook
- * from their record. Trip details and ID photos are still required.
- */
-export const returningBookingSchema = bookingFields
-  .extend({
-    fullName: bookingFields.shape.fullName.or(z.literal("")).optional(),
-    phoneNumber: bookingFields.shape.phoneNumber.or(z.literal("")).optional(),
-    driversLicenseNumber: bookingFields.shape.driversLicenseNumber
-      .or(z.literal(""))
-      .optional(),
-    address: bookingFields.shape.address.or(z.literal("")).optional(),
-    facebookAccount: bookingFields.shape.facebookAccount
-      .or(z.literal(""))
-      .optional(),
-  })
-  .superRefine((value, context) => {
-    refineTripDates(value, context);
-    if (!value.email && !value.phoneNumber) {
-      context.addIssue({
-        code: "custom",
-        path: ["email"],
-        message: "Enter the email or mobile number you booked with before.",
-      });
-    }
-  });
-
 export type PublicBookingInput = z.infer<typeof publicBookingSchema>;
-export type ReturningBookingInput = z.infer<typeof returningBookingSchema>;

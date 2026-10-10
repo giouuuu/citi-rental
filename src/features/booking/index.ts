@@ -2,9 +2,9 @@ export { createPublicBookingAction } from "./actions/create-public-booking-actio
 export { submitPaymentProofAction } from "./actions/submit-payment-proof-action";
 export { AccountBookingSection } from "./components/account-booking-section";
 export { AccountProfileSummary } from "./components/account-profile-summary";
-export { BookingContinueChoice } from "./components/booking-continue-choice";
 export { BookingForm } from "./components/booking-form";
 export { BookingPaymentForm } from "./components/booking-payment-form";
+export { BookingSignInStep } from "./components/booking-sign-in-step";
 export { RouteModal } from "./components/route-modal";
 export {
   bookingContinuePath,

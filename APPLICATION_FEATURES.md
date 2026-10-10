@@ -80,7 +80,7 @@ Authorization is always `profiles.role` + RLS/RPCs. Never authorize from JWT `us
 > routes are owner/admin only. Opening the ops app to staff is a tracked gap, not a bug.
 
 ### Customer
-- Browse available vehicles and submit a reservation (guest or signed in).
+- Browse available vehicles, sign in (Google creates the account), and submit a reservation. No guest booking.
 - No access to ops routes; customers hitting an ops URL go to
   `/access-disabled?reason=role`.
 
@@ -282,7 +282,7 @@ Business rules:
 
 ## 5.6 Public Booking (customer)
 
-Flow: pick dates and location → see available fleet → continue as guest or sign in → submit
+Flow: pick dates and location → see available fleet → sign in → submit
 reservation → confirmation.
 
 Features:
@@ -290,7 +290,7 @@ Features:
 - Availability search by date range.
 - Fleet listing showing only bookable vehicles for the selected dates.
 - Vehicle detail with photos, specs, and daily rate.
-- Booking form (guest or signed-in).
+- Booking form (signed-in customers only).
 - Confirmation page.
 - Owner notification when a booking arrives.
 
@@ -530,7 +530,7 @@ Design the codebase so tracking can be added back later without reworking the re
 ### Milestone 3: Public booking
 - Landing and availability search.
 - Public fleet listing and vehicle detail.
-- Guest and signed-in booking submission.
+- Signed-in booking submission (no guest booking).
 - Confirmation and owner notification.
 
 ### Milestone 4: Rental operations polish
@@ -562,7 +562,7 @@ complete the rental with return condition and odometer, see overdue rentals surf
 automatically, and export a rental report.
 
 **A customer** can open the public site, search dates, see only genuinely available vehicles,
-open a vehicle, submit a booking as a guest or signed in, and receive a confirmation — with
+open a vehicle, sign in and submit a booking, and receive a confirmation — with
 the booking appearing in the ops rentals list.
 
 ---

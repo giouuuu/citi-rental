@@ -22,6 +22,7 @@ import {
 import { formatDuration } from "@/features/shared/lib/format-duration";
 import {
   daysBetweenKeys,
+  earliestManilaDateTimeInput,
   manilaDateKey,
   parseManilaDateTimeInput,
 } from "@/features/shared/lib/manila-time";
@@ -111,7 +112,10 @@ type BookingRangeCalendarProps = {
   onChange: (next: { start: string; end: string }) => void;
   /** Existing bookings for this car. Their days can't be picked or crossed. */
   blocked?: BlockedRange[];
-  /** Earliest pickable day as `YYYY-MM-DD` (customers can't book the past). */
+  /**
+   * Earliest pickable day as `YYYY-MM-DD` (customers can't book the past).
+   * Setting it also blocks pick-up times already gone today.
+   */
   minDate?: string;
   startLabel?: string;
   endLabel?: string;
@@ -150,16 +154,28 @@ export function BookingRangeCalendar({
   const toKey = wallClockDateKey(end);
   const startTime = wallClockTime(start);
   const endTime = wallClockTime(end);
-  const todayKey = manilaDateKey(new Date());
+  const now = new Date();
+  const todayKey = manilaDateKey(now);
+  // Customers can't pick up in the past: not before now, on the minute step.
+  const earliest = minDate ? earliestManilaDateTimeInput(now) : null;
+  const earliestKey = earliest?.slice(0, 10);
+  const earliestTime = earliest?.slice(11);
+  // Late at night "now" rounds into tomorrow, and today has no slot left.
+  const firstDay =
+    minDate && earliestKey && earliestKey > minDate ? earliestKey : minDate;
   const [month, setMonth] = useState<Date | undefined>(
-    () => keyToDate(fromKey) ?? keyToDate(minDate) ?? new Date(),
+    () => keyToDate(fromKey) ?? keyToDate(firstDay) ?? new Date(),
   );
 
   const visibleErrors = errors.filter((error) => error?.message);
   const invalid = visibleErrors.length > 0;
 
   function emit(from: string, to: string | null, times = { start: startTime, end: endTime }) {
-    const nextStart = `${from}T${times.start || DEFAULT_START_TIME}`;
+    let pickup = times.start || DEFAULT_START_TIME;
+    if (from === earliestKey && earliestTime && pickup < earliestTime) {
+      pickup = earliestTime;
+    }
+    const nextStart = `${from}T${pickup}`;
     if (!to) {
       onChange({ start: nextStart, end: "" });
       return;
@@ -228,7 +244,7 @@ export function BookingRangeCalendar({
               disabled
                 ? true
                 : [
-                    ...(minDate && keyToDate(minDate) ? [{ before: keyToDate(minDate)! }] : []),
+                    ...(firstDay && keyToDate(firstDay) ? [{ before: keyToDate(firstDay)! }] : []),
                     (date: Date) => booked.has(dateToKey(date)),
                   ]
             }
@@ -277,6 +293,7 @@ export function BookingRangeCalendar({
               name: startLabel,
               dateKey: fromKey,
               time: startTime,
+              min: fromKey && fromKey === earliestKey ? earliestTime : undefined,
               onTime: (time: string) =>
                 fromKey && emit(fromKey, toKey, { start: time, end: endTime }),
             },
@@ -285,6 +302,7 @@ export function BookingRangeCalendar({
               name: endLabel,
               dateKey: toKey,
               time: endTime,
+              min: undefined,
               onTime: (time: string) =>
                 fromKey && toKey && emit(fromKey, toKey, { start: startTime, end: time }),
             },
@@ -310,6 +328,7 @@ export function BookingRangeCalendar({
               className="w-34 shrink-0"
               disabled={disabled || !side.dateKey}
               id={`${id}-${side.key}-time`}
+              min={side.min}
               onValueChange={side.onTime}
               placeholder="Time"
               required
