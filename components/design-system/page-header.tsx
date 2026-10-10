@@ -33,11 +33,13 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex flex-col gap-5 border-b border-border pb-6 md:flex-row md:items-end md:justify-between",
+        // Wraps instead of squeezing: actions drop below once the title would
+        // fall under its basis, rather than crushing it into a narrow column.
+        "flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border pb-6",
         className,
       )}
     >
-      <div className="min-w-0 space-y-2">
+      <div className="min-w-0 flex-[1_1_18rem] space-y-2">
         {breadcrumbs?.length ? (
           <nav aria-label="Breadcrumb">
             <ol className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
@@ -82,7 +84,9 @@ export function PageHeader({
         </div>
       </div>
       {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {actions}
+        </div>
       ) : null}
     </header>
   );

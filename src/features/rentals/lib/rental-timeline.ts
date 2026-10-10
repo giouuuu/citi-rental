@@ -33,11 +33,7 @@ export type RentalTimelineKind =
   | "upcoming";
 
 export type RentalTimelineTone =
-  | "default"
-  | "success"
-  | "warning"
-  | "danger"
-  | "muted";
+  "default" | "success" | "warning" | "danger" | "muted";
 
 export type RentalTimelineEvent = {
   id: string;
@@ -47,6 +43,8 @@ export type RentalTimelineEvent = {
   detail?: string;
   /** Who did it; null when automatic or unknown. */
   actor: string | null;
+  /** What did it when no staff member did, e.g. "By the customer". */
+  trigger?: string;
   tone: RentalTimelineTone;
   upcoming?: boolean;
 };
@@ -154,7 +152,9 @@ function paymentEvents(payment: RentalTimelinePayment): RentalTimelineEvent[] {
       ? (payment.chargeTypeName ?? PAYMENT_LABELS.penalty)
       : PAYMENT_LABELS[payment.paymentType];
   const amount = formatPhpExact(payment.amount);
-  const method = payment.method ? (METHOD_LABELS[payment.method] ?? payment.method) : null;
+  const method = payment.method
+    ? (METHOD_LABELS[payment.method] ?? payment.method)
+    : null;
   const events: RentalTimelineEvent[] = [];
 
   if (payment.paymentType === "penalty") {
@@ -185,6 +185,12 @@ function paymentEvents(payment: RentalTimelinePayment): RentalTimelineEvent[] {
         : `${label} recorded — ${amount}`,
       detail: joinDetail([method, payment.notes]),
       actor: awaitingReview ? null : payment.confirmedByName,
+      // Staff-recorded money is confirmed on the spot; this came from the customer.
+      trigger: awaitingReview
+        ? payment.method === "paymongo"
+          ? "By the customer, paying online"
+          : "By the customer"
+        : undefined,
       tone: awaitingReview ? "default" : isRefund ? "warning" : "success",
     });
 
@@ -239,7 +245,9 @@ function inspectionEvent(entry: RentalTimelineAuditEntry): RentalTimelineEvent {
       : "Car returned — rental completed",
     detail: joinDetail([
       `${isPickup ? "Pickup" : "Return"} inspection done`,
-      odometer != null ? `Odometer ${odometer.toLocaleString("en-PH")} km` : null,
+      odometer != null
+        ? `Odometer ${odometer.toLocaleString("en-PH")} km`
+        : null,
       fuel != null ? `Fuel ${fuel}%` : null,
     ]),
     actor: entry.actorName,
@@ -304,7 +312,9 @@ const STATUS_TITLES: Record<string, string> = {
   overdue: "Marked overdue",
 };
 
-function auditEvent(entry: RentalTimelineAuditEntry): RentalTimelineEvent | null {
+function auditEvent(
+  entry: RentalTimelineAuditEntry,
+): RentalTimelineEvent | null {
   const data = entry.newData ?? {};
   switch (entry.action) {
     case "rental.inspection_submitted":
@@ -320,6 +330,7 @@ function auditEvent(entry: RentalTimelineAuditEntry): RentalTimelineEvent | null
         title: "Marked overdue",
         detail: automatic ? "Return time passed without a return" : undefined,
         actor: automatic ? null : entry.actorName,
+        trigger: automatic ? "Automatically, by the overdue check" : undefined,
         tone: "warning",
       };
     }
@@ -340,7 +351,12 @@ function auditEvent(entry: RentalTimelineAuditEntry): RentalTimelineEvent | null
       return {
         id: entry.id,
         at: entry.createdAt,
-        kind: status === "reserved" ? "reserved" : status === "overdue" ? "overdue" : "status",
+        kind:
+          status === "reserved"
+            ? "reserved"
+            : status === "overdue"
+              ? "overdue"
+              : "status",
         title: STATUS_TITLES[status] ?? `Moved to ${status}`,
         actor: entry.actorName,
         tone:
@@ -360,8 +376,8 @@ const EMAIL_LABELS: Record<string, string> = {
   booking_confirmed: "Confirmation email",
   deposit_confirmed: "Reservation fee receipt",
   booking_reminder: "Pickup reminder",
-  rental_released: "Agreement & pickup report email",
-  rental_completed: "Return report email",
+  rental_released: "Rental agreement email",
+  rental_completed: "Thank-you and final bill email",
 };
 
 /** Matches the retry cap in claim_rental_notification(). */
@@ -371,7 +387,12 @@ function notificationEvent(
   note: RentalTimelineNotification,
 ): RentalTimelineEvent {
   const label = EMAIL_LABELS[note.kind] ?? "Email";
-  const base = { id: `email:${note.id}`, kind: "email" as const, actor: null };
+  const base = {
+    id: `email:${note.id}`,
+    kind: "email" as const,
+    actor: null,
+    trigger: "Automatically, by the system",
+  };
   switch (note.status) {
     case "sent":
       return {
@@ -395,7 +416,10 @@ function notificationEvent(
         ...base,
         at: note.lastAttemptAt ?? note.createdAt,
         title: retrying ? `${label} failed — retrying` : `${label} failed`,
-        detail: joinDetail([note.recipient ? `To ${note.recipient}` : null, note.lastError]),
+        detail: joinDetail([
+          note.recipient ? `To ${note.recipient}` : null,
+          note.lastError,
+        ]),
         tone: retrying ? "warning" : "danger",
       };
     }
@@ -428,7 +452,12 @@ export function buildRentalTimeline({
         rental.bookingSource === "public_web"
           ? "Booked online by the customer"
           : "Rental created",
-      actor: rental.bookingSource === "public_web" ? null : rental.createdByName,
+      actor:
+        rental.bookingSource === "public_web" ? null : rental.createdByName,
+      trigger:
+        rental.bookingSource === "public_web"
+          ? "By the customer, online"
+          : undefined,
       tone: "default",
     },
   ];
@@ -460,7 +489,8 @@ export function buildRentalTimeline({
 
   const upcoming: RentalTimelineEvent[] = [];
   if (OPEN_STATUSES.has(rental.status)) {
-    const notStarted = rental.status === "draft" || rental.status === "reserved";
+    const notStarted =
+      rental.status === "draft" || rental.status === "reserved";
     if (
       notStarted &&
       rental.startAt &&
@@ -493,4 +523,26 @@ export function buildRentalTimeline({
   }
 
   return [...past, ...upcoming];
+}
+
+/** Who or what made a step happen, as a short label. */
+export function rentalTimelineTrigger(event: RentalTimelineEvent): string {
+  if (event.upcoming) return "Scheduled";
+  if (event.actor) return `By ${event.actor}`;
+  return event.trigger ?? "Who did this wasn't recorded";
+}
+
+/**
+ * The few steps worth showing at a glance: the most recent things that
+ * happened, oldest first, plus the next upcoming step when there is one.
+ */
+export function previewRentalTimeline(
+  events: RentalTimelineEvent[],
+  size = 4,
+): RentalTimelineEvent[] {
+  const next = events.find((event) => event.upcoming);
+  const past = events.filter((event) => !event.upcoming);
+  const room = Math.max(size - (next ? 1 : 0), 0);
+  const latest = room > 0 ? past.slice(-room) : [];
+  return next ? [...latest, next] : latest;
 }

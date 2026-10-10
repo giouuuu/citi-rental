@@ -79,8 +79,12 @@ function FullScreenSignature({
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
     const ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.round(canvas.clientWidth * ratio);
-    canvas.height = Math.round(canvas.clientHeight * ratio);
+    const width = Math.round(canvas.clientWidth * ratio);
+    const height = Math.round(canvas.clientHeight * ratio);
+    if (canvas.width !== width) canvas.width = width;
+    if (canvas.height !== height) canvas.height = height;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, width, height);
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
@@ -185,10 +189,13 @@ function FullScreenSignature({
       </div>
 
       <div className="relative min-h-0 flex-1 p-3">
+        {/* Absolutely placed so its box comes from the container, never from
+            the backing-store size redraw() sets — otherwise tablets feed the
+            new height back through the ResizeObserver and the pad grows. */}
         <canvas
           ref={canvasRef}
           aria-label={label}
-          className="size-full touch-none rounded-lg border border-border bg-white"
+          className="absolute inset-3 block touch-none rounded-lg border border-border bg-white"
           onPointerCancel={end}
           onPointerDown={start}
           onPointerMove={move}

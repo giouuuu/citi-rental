@@ -4,16 +4,16 @@
 // Called by pg_net with { notification_id } and the x-booking-email-secret
 // header. Claims the outbox row, renders the email from live booking data,
 // sends it through Resend, and records the result. The release and return
-// emails carry a PDF of the signed agreement and condition report.
+// email carries a PDF of the signed agreement; the return email is a thank-you
+// with the final bill.
 //
 // Secrets: RESEND_API_KEY, BOOKING_EMAIL_SECRET; optional EMAIL_FROM, SITE_URL.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import {
-  type DocumentEmailKind,
   type EmailDocuments,
-  buildRentalPdf,
+  buildAgreementPdf,
   documentFilename,
   signaturePaths,
 } from "./documents.ts";
@@ -21,6 +21,7 @@ import {
   type BookingEmailBooking,
   type BookingEmailCompany,
   type BookingEmailKind,
+  type EmailBill,
   renderBookingEmail,
 } from "./templates.ts";
 
@@ -28,10 +29,6 @@ import {
 const DEFAULT_FROM = "Zeke Car Rental & Services <no-reply@zekecebucarrental.com>";
 const DEFAULT_SITE_URL = "https://www.zekecebucarrental.com";
 const SIGNATURE_BUCKET = "rental-inspection-photos";
-
-function isDocumentKind(kind: BookingEmailKind): kind is DocumentEmailKind {
-  return kind === "rental_released" || kind === "rental_completed";
-}
 
 function toBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -51,8 +48,10 @@ type Claim =
       recipient: string;
       booking: BookingEmailBooking;
       company: BookingEmailCompany;
-      /** Release and return emails only. */
+      /** Release email only: the signed agreement for the PDF. */
       documents?: EmailDocuments | null;
+      /** Return email only: the final bill. */
+      bill?: EmailBill | null;
       plateNumber?: string | null;
     };
 
@@ -139,13 +138,11 @@ Deno.serve(async (req) => {
 
   const siteUrl = (Deno.env.get("SITE_URL")?.trim() || DEFAULT_SITE_URL).replace(/\/$/, "");
   const attachments: Array<{ filename: string; content: string }> = [];
-  if (isDocumentKind(claim.kind)) {
-    if (!claim.documents) {
-      await finish({ sent: false, error: "No documents to attach.", retry: false });
-      return json({ error: "No documents" }, 500);
-    }
+  // Release: the signed agreement as a PDF. Without one there is nothing to attach.
+  const agreement = claim.kind === "rental_released" ? claim.documents?.agreement : null;
+  if (agreement) {
     const signatures = new Map<string, Uint8Array>();
-    for (const path of signaturePaths(claim.documents)) {
+    for (const path of signaturePaths(agreement)) {
       const { data: file, error } = await supabase.storage
         .from(SIGNATURE_BUCKET)
         .download(path);
@@ -159,15 +156,11 @@ Deno.serve(async (req) => {
       signatures.set(path, new Uint8Array(await file.arrayBuffer()));
     }
     try {
-      const pdf = await buildRentalPdf({
-        kind: claim.kind,
-        documents: claim.documents,
+      const pdf = await buildAgreementPdf({
+        agreement,
         referenceNumber: claim.booking.referenceNumber,
-        customerName: claim.booking.customerName,
         vehicleName: claim.booking.vehicleName,
         plateNumber: claim.plateNumber ?? null,
-        startAt: claim.booking.startAt,
-        returnAt: claim.booking.returnAt,
         company: {
           name: claim.company.name ?? null,
           phone: claim.company.phone,
@@ -176,10 +169,9 @@ Deno.serve(async (req) => {
           timezone: claim.company.timezone,
         },
         signatures,
-        reportUrl: `${siteUrl}/account/bookings/${encodeURIComponent(claim.booking.id)}/condition`,
       });
       attachments.push({
-        filename: documentFilename(claim.kind, claim.booking.referenceNumber),
+        filename: documentFilename(claim.booking.referenceNumber),
         content: toBase64(pdf),
       });
     } catch (error) {
@@ -196,6 +188,7 @@ Deno.serve(async (req) => {
       booking: claim.booking,
       company: claim.company,
       siteUrl,
+      bill: claim.bill ?? null,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

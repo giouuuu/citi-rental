@@ -9,8 +9,9 @@ export type BookingEmailKind =
   | "booking_confirmed"
   | "deposit_confirmed"
   | "booking_reminder"
-  // Sent with a PDF attached (documents.ts).
+  // Sent with the signed agreement as a PDF (documents.ts).
   | "rental_released"
+  // A thank-you with the final bill.
   | "rental_completed";
 
 export type BookingEmailBooking = {
@@ -41,11 +42,23 @@ export type BookingEmailCompany = {
   timezone: string | null;
 };
 
+/** The final bill, read from the payments ledger like the ops bill. */
+export type EmailBill = {
+  /** quoted_total: the car, and the driver on a with-driver rental. */
+  rent: number | string;
+  /** Confirmed charges in the order they were added; adjustments may be negative. */
+  charges: Array<{ label: string; amount: number | string }>;
+  /** Confirmed money in, less refunds. */
+  paid: number | string;
+};
+
 export type BookingEmailInput = {
   kind: BookingEmailKind;
   booking: BookingEmailBooking;
   company: BookingEmailCompany;
   siteUrl: string;
+  /** rental_completed only. */
+  bill?: EmailBill | null;
   now?: Date;
 };
 
@@ -134,6 +147,39 @@ export function pickupDayWord(startAt: string, now: Date, timeZone: string) {
     : "tomorrow";
 }
 
+function signedPeso(value: number): string {
+  return value < 0 ? `-${formatPeso(-value)}` : formatPeso(value);
+}
+
+const round = (value: number) => Math.round(value * 100) / 100;
+
+type BillSummary = {
+  lines: Row[];
+  total: number;
+  paid: number;
+  balance: number;
+};
+
+/** Rent plus charges, less what was paid: the same formula as the ops bill. */
+export function summarizeBill(bill: EmailBill, withDriver: boolean): BillSummary {
+  const rent = amount(bill.rent) ?? 0;
+  const charges = bill.charges.map((charge) => ({
+    label: charge.label,
+    value: amount(charge.amount) ?? 0,
+  }));
+  const total = round(rent + charges.reduce((sum, charge) => sum + charge.value, 0));
+  const paid = round(amount(bill.paid) ?? 0);
+  return {
+    lines: [
+      { label: withDriver ? "Car rental with driver" : "Car rental", value: formatPeso(rent) },
+      ...charges.map((charge) => ({ label: charge.label, value: signedPeso(charge.value) })),
+    ],
+    total,
+    paid,
+    balance: Math.max(0, round(total - paid)),
+  };
+}
+
 function firstName(name: string | null): string | null {
   const first = name?.trim().split(/\s+/)[0];
   return first ? first : null;
@@ -186,6 +232,9 @@ function detailRows(
     rows.push({ label: "Destination", value: booking.destination.trim() });
   }
 
+  // The thank-you email shows the money in its bill instead.
+  if (kind === "rental_completed") return rows;
+
   const total = amount(booking.total);
   const deposit = amount(booking.depositPaid);
   const balance = amount(booking.balanceDue);
@@ -195,10 +244,7 @@ function detailRows(
   }
   if (balance != null && balance > 0) {
     rows.push({
-      label:
-        kind === "rental_released" || kind === "rental_completed"
-          ? "Balance due"
-          : "Balance due at pickup",
+      label: kind === "rental_released" ? "Balance due" : "Balance due at pickup",
       value: formatPeso(balance),
     });
   }
@@ -222,6 +268,8 @@ type Copy = {
   heading: string;
   paragraphs: string[];
   showBring: boolean;
+  /** Paragraphs after the details (and the bill). */
+  closing?: string[];
 };
 
 function copyFor(input: BookingEmailInput, timeZone: string): Copy {
@@ -278,26 +326,42 @@ function copyFor(input: BookingEmailInput, timeZone: string): Copy {
     }
     case "rental_released":
       return {
-        subject: `Your rental agreement and pickup report: ${car}${ref}`,
-        preheader: `Your signed rental agreement and the pickup condition report for your ${car}.`,
+        subject: `Your rental agreement: ${car}${ref}`,
+        preheader: `Your signed rental agreement for your ${car}.`,
         heading: "Enjoy your trip",
         paragraphs: [
-          `Your ${car} has been released to you. Attached is a PDF of your signed rental agreement and the condition report from pickup.`,
+          `Your ${car} has been released to you. Attached is a PDF of your signed rental agreement.`,
           `Please return the car by ${formatWhen(booking.returnAt, timeZone)}. Keep this email for your records.`,
         ],
         showBring: false,
       };
-    case "rental_completed":
+    case "rental_completed": {
+      const bill = input.bill ? summarizeBill(input.bill, booking.withDriver) : null;
       return {
-        subject: `Your return condition report: ${car}${ref}`,
-        preheader: `The condition report comparing pickup and return for your ${car}.`,
-        heading: "Thanks for renting with us",
+        subject: `Thank you for renting with us: ${car}${ref}`,
+        preheader: bill
+          ? `Your rental is complete. Your final bill comes to ${formatPeso(bill.total)}.`
+          : "Your rental is complete.",
+        heading: "Thank you for renting with us",
         paragraphs: [
-          `Your ${car} has been returned and your rental is complete. Attached is a PDF of the condition report comparing pickup and return, with any charges.`,
-          "We hope to see you again soon.",
+          `Thank you for choosing ${BRAND_NAME}. Your ${car} has been returned and your rental is now complete.`,
+          bill
+            ? "Below is your final bill for your records."
+            : "You can view your final bill on your booking page.",
         ],
         showBring: false,
+        closing: [
+          ...(bill == null
+            ? []
+            : bill.balance > 0
+              ? [
+                  `A balance of ${formatPeso(bill.balance)} remains on your bill. Please settle it with our staff, or reply to this email if you have any questions about your charges.`,
+                ]
+              : ["Your bill has been paid in full. No further payment is needed."]),
+          "We truly appreciate your business and look forward to serving you on your next trip.",
+        ],
       };
+    }
   }
 }
 
@@ -306,6 +370,19 @@ export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
   const copy = copyFor(input, timeZone);
   const rows = detailRows(input.booking, timeZone, input.kind);
   const bring = copy.showBring ? bringList(input.booking) : [];
+  const bill =
+    input.kind === "rental_completed" && input.bill
+      ? summarizeBill(input.bill, input.booking.withDriver)
+      : null;
+  const billRows: Row[] = bill
+    ? [
+        ...bill.lines,
+        { label: "Total", value: formatPeso(bill.total) },
+        { label: "Amount paid", value: formatPeso(bill.paid) },
+        { label: "Balance due", value: formatPeso(bill.balance) },
+      ]
+    : [];
+  const closing = copy.closing ?? [];
   const name = firstName(input.booking.customerName);
   const greeting = name ? `Hi ${name},` : "Hi,";
   const bookingUrl = `${input.siteUrl.replace(/\/$/, "")}/account/bookings/${encodeURIComponent(input.booking.id)}`;
@@ -321,6 +398,10 @@ export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
     ...copy.paragraphs.flatMap((paragraph) => [paragraph, ""]),
     ...rows.map((row) => `${row.label}: ${row.value}`),
     "",
+    ...(billRows.length
+      ? ["Final bill", ...billRows.map((row) => `${row.label}: ${row.value}`), ""]
+      : []),
+    ...closing.flatMap((paragraph) => [paragraph, ""]),
     ...(bring.length
       ? ["Please bring:", ...bring.map((item) => `- ${item}`), ""]
       : []),
@@ -342,6 +423,34 @@ export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
           <td style="padding:10px 0;border-top:1px solid ${LINE};color:${MUTED};font-size:14px;width:42%;vertical-align:top;">${e(row.label)}</td>
           <td style="padding:10px 0;border-top:1px solid ${LINE};color:${INK};font-size:14px;font-weight:600;vertical-align:top;">${e(row.value)}</td>
         </tr>`,
+    )
+    .join("");
+  // Line items, then Total, Amount paid and Balance due set apart below a rule.
+  const totalsFrom = billRows.length - 3;
+  const billHtml = billRows.length
+    ? `
+      <p style="margin:24px 0 8px;color:${INK};font-size:15px;font-weight:600;">Final bill</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid ${LINE};">
+        ${billRows
+          .map((row, index) => {
+            const isTotal = index === totalsFrom;
+            const isTotals = index >= totalsFrom;
+            const border = isTotal ? `2px solid ${INK}` : `1px solid ${LINE}`;
+            // Total and Balance due are the two figures that matter.
+            const strong = isTotal || index === billRows.length - 1;
+            return `
+        <tr>
+          <td style="padding:10px 0;border-top:${border};color:${isTotals ? INK : MUTED};font-size:14px;font-weight:${strong ? 700 : 400};vertical-align:top;">${e(row.label)}</td>
+          <td align="right" style="padding:10px 0;border-top:${border};color:${INK};font-size:14px;font-weight:${strong ? 700 : 600};vertical-align:top;white-space:nowrap;">${e(row.value)}</td>
+        </tr>`;
+          })
+          .join("")}
+      </table>`
+    : "";
+  const closingHtml = closing
+    .map(
+      (paragraph, index) =>
+        `<p style="margin:${index === 0 ? 20 : 0}px 0 12px;color:${INK};font-size:15px;line-height:1.6;">${e(paragraph)}</p>`,
     )
     .join("");
   const bringHtml = bring.length
@@ -381,6 +490,8 @@ export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;border-bottom:1px solid ${LINE};">
               ${rowHtml}
             </table>
+            ${billHtml}
+            ${closingHtml}
             ${bringHtml}
             <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:28px;">
               <tr>

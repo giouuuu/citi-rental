@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import type { ActionResult } from "@/features/shared/types/resource";
+import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
 import { submitBookingPaymentProof } from "@/features/booking/services/public-booking-service";
 import type { RentalPaymentStatus } from "@/features/booking/types/booking-payment";
 
@@ -27,6 +28,15 @@ export type SubmitPaymentProofResult = ActionResult<{
 export async function submitPaymentProofAction(
   formData: FormData,
 ): Promise<SubmitPaymentProofResult> {
+  // Only the booking's signed-in owner may pay; submit_booking_payment_proof
+  // and the payment-proofs bucket refuse guests too.
+  if (!(await isBookingUserSignedIn())) {
+    return {
+      success: false,
+      message: "Sign in to send your payment proof. Your session may have expired.",
+    };
+  }
+
   const parsed = schema.safeParse({
     rentalId: formData.get("rentalId"),
     referenceNumber: formData.get("referenceNumber"),

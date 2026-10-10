@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ActionResult } from "@/features/shared/types/resource";
+import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
 import { siteUrl } from "@/features/booking/lib/notify-owner-telegram";
 import {
   createCheckoutSession,
@@ -26,6 +27,14 @@ export type StartPaymongoCheckoutResult = ActionResult<{ checkoutUrl: string }>;
 export async function startPaymongoCheckoutAction(
   formData: FormData,
 ): Promise<StartPaymongoCheckoutResult> {
+  // The booking lookup below runs as the caller, so only its owner gets a session.
+  if (!(await isBookingUserSignedIn())) {
+    return {
+      success: false,
+      message: "Sign in to pay. Your session may have expired.",
+    };
+  }
+
   const parsed = schema.safeParse({
     rentalId: formData.get("rentalId"),
     referenceNumber: formData.get("referenceNumber"),

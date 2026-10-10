@@ -20,7 +20,7 @@ export function RentalDetailTabs({
   payments: ReactNode;
   inspections?: ReactNode;
   renterIds?: ReactNode;
-  /** Everything that happened on the rental, oldest first. */
+  /** The rental's latest steps, above the tabs on every tab. */
   timeline?: ReactNode;
   customerBookingLocked?: boolean;
 }) {
@@ -32,16 +32,21 @@ export function RentalDetailTabs({
           <AlertTitle>Customer online booking</AlertTitle>
           <AlertDescription>
             Booking details are locked because this rental was placed online by
-            a customer. Use workflow actions for status changes and the Bill &amp;
-            payments tab for charges, deposits, and balance updates.
+            a customer. Use workflow actions for status changes and the Bill
+            &amp; payments tab for charges, deposits, and balance updates.
           </AlertDescription>
         </Alert>
       ) : null}
       {alert ? <div>{alert}</div> : null}
+      {timeline}
       <SearchParamTabs
         tabs={[
           { value: "info", label: "Info", content: info },
-          { value: "payments", label: "Bill & payments", content: payments },
+          {
+            value: "payments",
+            label: "Bill & payments",
+            content: payments,
+          },
           ...(renterIds
             ? [{ value: "ids", label: "Renter IDs", content: renterIds }]
             : []),
@@ -53,9 +58,6 @@ export function RentalDetailTabs({
                   content: inspections,
                 },
               ]
-            : []),
-          ...(timeline
-            ? [{ value: "timeline", label: "Timeline", content: timeline }]
             : []),
         ]}
       />

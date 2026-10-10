@@ -22,7 +22,6 @@ const publicRoutes = [
   "/access-disabled",
   "/auth",
   "/book",
-  "/account",
   // Payment providers call these without a session; each handler verifies
   // its own signature.
   "/api/webhooks",
@@ -35,14 +34,26 @@ const publicRoutes = [
   ...SEO_PAGES.map((page) => page.path),
 ];
 
-function isPublicRoute(pathname: string) {
+// A booking belongs to its signed-in owner: guests may fill in /book, but the
+// account and pay pages show one customer's bookings and take their payments.
+const signedInOnlyRoutes = ["/account", "/book/pay"];
+
+function matchesRoute(pathname: string, routes: readonly string[]) {
+  return routes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}
+
+export function isPublicRoute(pathname: string) {
+  if (matchesRoute(pathname, signedInOnlyRoutes)) {
+    return false;
+  }
+
   if (pathname === "/") {
     return true;
   }
 
-  return publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
+  return matchesRoute(pathname, publicRoutes);
 }
 
 export async function updateSession(request: NextRequest) {
@@ -75,9 +86,9 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (!data?.claims && !isPublicRoute(pathname)) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", pathname);
+    // Keep the query in `next` (the pay page needs its ?ref=) and off /login.
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
   }
 

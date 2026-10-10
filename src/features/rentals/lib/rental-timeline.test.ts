@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildRentalTimeline,
+  previewRentalTimeline,
+  rentalTimelineTrigger,
+  type RentalTimelineEvent,
   type RentalTimelineInput,
   type RentalTimelineNotification,
   type RentalTimelinePayment,
@@ -19,7 +22,9 @@ const rental: RentalTimelineInput["rental"] = {
 
 const now = new Date("2026-10-05T00:00:00Z");
 
-function payment(overrides: Partial<RentalTimelinePayment>): RentalTimelinePayment {
+function payment(
+  overrides: Partial<RentalTimelinePayment>,
+): RentalTimelinePayment {
   return {
     id: "p1",
     paymentType: "deposit",
@@ -83,7 +88,10 @@ describe("buildRentalTimeline", () => {
         }),
       ],
     });
-    expect(events[0]).toMatchObject({ title: "Rental created", actor: "Admin" });
+    expect(events[0]).toMatchObject({
+      title: "Rental created",
+      actor: "Admin",
+    });
     expect(events[1]).toMatchObject({
       title: "Reservation fee recorded — ₱500.00",
       actor: "Owner",
@@ -147,7 +155,9 @@ describe("buildRentalTimeline", () => {
     });
     const extended = events.find((event) => event.kind === "rescheduled");
     expect(extended?.title).toBe("Rental extended");
-    expect(extended?.detail).toMatch(/^Return Oct 12, 2026, 9:00.AM → Oct 13, 2026, 9:00.AM$/);
+    expect(extended?.detail).toMatch(
+      /^Return Oct 12, 2026, 9:00.AM → Oct 13, 2026, 9:00.AM$/,
+    );
   });
 
   it("marks automatic overdue sweeps as having no actor", () => {
@@ -175,7 +185,11 @@ describe("buildRentalTimeline", () => {
 
   it("falls back to cancelled_at for rentals cancelled before audit logging", () => {
     const events = buildRentalTimeline({
-      rental: { ...rental, status: "cancelled", cancelledAt: "2026-10-02T00:00:00Z" },
+      rental: {
+        ...rental,
+        status: "cancelled",
+        cancelledAt: "2026-10-02T00:00:00Z",
+      },
       now,
       audit: [],
       payments: [],
@@ -241,6 +255,70 @@ describe("buildRentalTimeline", () => {
       ["Confirmation email sent", "default"],
     ]);
     expect(emails[3].detail).toBe("To maria@example.com");
-    expect(emails[2].detail).toBe("No email address on file for this customer.");
+    expect(emails[2].detail).toBe(
+      "No email address on file for this customer.",
+    );
+  });
+});
+
+describe("previewRentalTimeline", () => {
+  const event = (id: string, upcoming = false): RentalTimelineEvent => ({
+    id,
+    at: "2026-10-01T00:00:00Z",
+    kind: upcoming ? "upcoming" : "status",
+    title: id,
+    actor: null,
+    tone: upcoming ? "muted" : "default",
+    upcoming,
+  });
+
+  it("keeps the latest past steps and the next upcoming one", () => {
+    const events = [
+      event("a"),
+      event("b"),
+      event("c"),
+      event("d"),
+      event("e"),
+      event("pickup", true),
+      event("return", true),
+    ];
+    expect(previewRentalTimeline(events).map((e) => e.id)).toEqual([
+      "c",
+      "d",
+      "e",
+      "pickup",
+    ]);
+  });
+
+  it("shows the last four when nothing is coming up", () => {
+    const events = ["a", "b", "c", "d", "e"].map((id) => event(id));
+    expect(previewRentalTimeline(events).map((e) => e.id)).toEqual([
+      "b",
+      "c",
+      "d",
+      "e",
+    ]);
+  });
+
+  it("returns everything when the history is short", () => {
+    const events = [event("a"), event("pickup", true)];
+    expect(previewRentalTimeline(events)).toEqual(events);
+  });
+});
+
+describe("rentalTimelineTrigger", () => {
+  it("names staff, then the customer or system, then scheduled steps", () => {
+    const events = buildRentalTimeline({
+      rental,
+      audit: [],
+      payments: [payment({ status: "submitted", confirmedAt: null })],
+      now,
+    });
+    expect(events.map(rentalTimelineTrigger)).toEqual([
+      "By the customer, online",
+      "By the customer",
+      "Scheduled",
+      "Scheduled",
+    ]);
   });
 });

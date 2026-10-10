@@ -1,13 +1,10 @@
 /**
- * The PDF attached to the release and return emails:
+ * The PDF attached to the release email: the signed rental agreement and the
+ * cancellation policy.
  *
- *   rental_released   the signed rental agreement + the pickup condition report
- *   rental_completed  the condition report comparing pickup and return, with
- *                     the charges
- *
- * Mirrors the printable agreement and condition report in the ops app. Built
- * with pdf-lib so it runs in the Edge Function (Deno) and in vitest (Node,
- * through an alias for the npm: specifier).
+ * Mirrors the printable agreement in the ops app. Built with pdf-lib so it
+ * runs in the Edge Function (Deno) and in vitest (Node, through an alias for
+ * the npm: specifier).
  */
 
 import {
@@ -20,8 +17,6 @@ import {
 } from "npm:pdf-lib@1.17.1";
 
 import { BRAND_NAME, formatPeso, formatWhen } from "./templates.ts";
-
-export type DocumentEmailKind = "rental_released" | "rental_completed";
 
 /** The agreement terms as frozen on rental_agreements.terms. */
 export type AgreementTerms = {
@@ -61,46 +56,15 @@ export type EmailAgreement = {
   signedAt: string;
 };
 
-export type EmailInspectionItem = {
-  areaCode: string;
-  label: string;
-  status: string;
-  severity: number | null;
-  notes: string | null;
-};
-
-export type EmailInspection = {
-  type: "pickup" | "return";
-  inspectedAt: string;
-  odometer: number | string;
-  fuelLevel: number | string;
-  cleanliness: string;
-  odor: string;
-  notes: string | null;
-  fuelChargeAmount: number | string | null;
-  fuelChargeNote: string | null;
-  damageChargeAmount: number | string | null;
-  damageChargeNote: string | null;
-  customerSignaturePath: string | null;
-  customerAcknowledgedAt: string | null;
-  mediaCount: number;
-  items: EmailInspectionItem[];
-};
-
 export type EmailDocuments = {
   agreement: EmailAgreement | null;
-  inspections: EmailInspection[];
 };
 
 export type DocumentInput = {
-  kind: DocumentEmailKind;
-  documents: EmailDocuments;
+  agreement: EmailAgreement;
   referenceNumber: string | null;
-  customerName: string | null;
   vehicleName: string | null;
   plateNumber: string | null;
-  startAt: string;
-  returnAt: string;
   company: {
     name: string | null;
     phone: string | null;
@@ -110,64 +74,22 @@ export type DocumentInput = {
   };
   /** Signature PNGs by storage path; missing ones print as a blank line. */
   signatures: Map<string, Uint8Array>;
-  /** Where the customer can see the photos and videos. */
-  reportUrl: string;
 };
 
 /** Every storage path the PDF wants to draw. */
-export function signaturePaths(documents: EmailDocuments): string[] {
-  const paths = [
-    documents.agreement?.companySignaturePath,
-    documents.agreement?.renterSignaturePath,
-    ...documents.inspections.map((inspection) => inspection.customerSignaturePath),
-  ];
+export function signaturePaths(agreement: EmailAgreement): string[] {
+  const paths = [agreement.companySignaturePath, agreement.renterSignaturePath];
   return [...new Set(paths.filter((path): path is string => Boolean(path)))];
 }
 
-export function documentFilename(kind: DocumentEmailKind, reference: string | null) {
+export function documentFilename(reference: string | null) {
   const ref = (reference ?? "").replace(/[^A-Za-z0-9-]/g, "");
-  const name =
-    kind === "rental_released"
-      ? "Rental-agreement-and-pickup-report"
-      : "Return-condition-report";
-  return `${name}${ref ? `-${ref}` : ""}.pdf`;
+  return `Rental-agreement${ref ? `-${ref}` : ""}.pdf`;
 }
 
 // ---------------------------------------------------------------------------
 // Text helpers
 // ---------------------------------------------------------------------------
-
-const STATUS_LABELS: Record<string, string> = {
-  ok: "OK",
-  scratch: "Scratch",
-  dent: "Dent",
-  chip: "Chip",
-  crack: "Crack",
-  missing: "Missing",
-  dirty: "Dirty",
-  damaged: "Damaged",
-  other: "Other",
-};
-
-function statusLabel(status: string | null | undefined) {
-  if (!status) return "—";
-  return STATUS_LABELS[status] ?? status;
-}
-
-function words(value: string) {
-  const text = value.replaceAll("_", " ");
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-function amount(value: number | string | null | undefined): number | null {
-  if (value == null || value === "") return null;
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function km(value: number | string) {
-  return `${Number(value).toLocaleString("en-US")} km`;
-}
 
 // The standard PDF fonts only cover Windows-1252, which has no peso sign.
 const WIN_ANSI_EXTRAS = new Set(
@@ -591,11 +513,11 @@ function image(context: Context, path: string | null | undefined) {
 
 function companyHeader(context: Context) {
   const { layout, input } = context;
-  const agreement = input.documents.agreement;
-  const name = agreement?.companyName || input.company.name || BRAND_NAME;
-  const address = agreement?.companyAddress ?? input.company.address;
-  const phone = agreement?.companyPhone ?? input.company.phone;
-  const email = agreement?.companyEmail ?? input.company.email;
+  const { agreement } = input;
+  const name = agreement.companyName || input.company.name || BRAND_NAME;
+  const address = agreement.companyAddress ?? input.company.address;
+  const phone = agreement.companyPhone ?? input.company.phone;
+  const email = agreement.companyEmail ?? input.company.email;
   layout.text(name.toUpperCase(), { size: 15, font: "bold", align: "center", gap: 2 });
   for (const line of [
     address,
@@ -623,12 +545,6 @@ function titleRow(context: Context, title: string) {
     });
   }
   layout.rule(INK);
-}
-
-function vehicleLabel(input: DocumentInput) {
-  return [input.documents.agreement?.vehicleLabel ?? input.vehicleName, input.plateNumber]
-    .filter(Boolean)
-    .join(" · ") || "—";
 }
 
 function agreementSection(context: Context, agreement: EmailAgreement) {
@@ -714,226 +630,6 @@ function agreementSection(context: Context, agreement: EmailAgreement) {
   layout.text(terms.cancellation.closing);
 }
 
-function readingsFacts(context: Context, inspection: EmailInspection) {
-  context.layout.facts([
-    ["Vehicle", vehicleLabel(context.input)],
-    ["Inspected", when(context, inspection.inspectedAt)],
-    ["Odometer", km(inspection.odometer)],
-    ["Fuel level", `${Number(inspection.fuelLevel)}%`],
-    ["Cleanliness", words(inspection.cleanliness)],
-    ["Odor", words(inspection.odor)],
-  ]);
-}
-
-function mediaNote(context: Context, count: number) {
-  const { layout, input } = context;
-  // The note and the signature below it stay on one page.
-  layout.ensure(190);
-  layout.space(6);
-  layout.text(
-    count > 0
-      ? `${count} photo${count === 1 ? "" : "s"} and video${count === 1 ? "" : "s"} of the car are on file with this booking. View your condition report online: ${input.reportUrl}`
-      : `View your condition report online: ${input.reportUrl}`,
-    { size: 8.5, color: MUTED, gap: 8 },
-  );
-}
-
-function customerSignOff(context: Context, inspection: EmailInspection, renterName: string) {
-  const { layout } = context;
-  layout.signatures([
-    {
-      title: "Customer",
-      name: renterName,
-      image: image(context, inspection.customerSignaturePath),
-      placeholder: "Not signed",
-      details: [
-        [
-          "Acknowledged",
-          inspection.customerAcknowledgedAt
-            ? when(context, inspection.customerAcknowledgedAt)
-            : "Not acknowledged",
-        ],
-      ],
-    },
-  ]);
-}
-
-function pickupReportSection(context: Context, pickup: EmailInspection) {
-  const { layout, input } = context;
-  if (input.documents.agreement) layout.newPage();
-  else companyHeader(context);
-  titleRow(context, "Vehicle condition report — Pickup");
-  readingsFacts(context, pickup);
-
-  const issues = pickup.items.filter((item) => item.status !== "ok");
-  const ok = pickup.items.filter((item) => item.status === "ok");
-  layout.heading("Already marked at pickup");
-  if (issues.length === 0) {
-    layout.text("No marks: every checklist item was OK at pickup.");
-  } else {
-    layout.text("These were on the car before your rental. You are not charged for them.", {
-      size: 9,
-      color: MUTED,
-    });
-    layout.table(
-      [
-        { header: "Area", width: 3 },
-        { header: "Condition", width: 1.4 },
-        { header: "Notes", width: 3.6 },
-      ],
-      issues.map((item) => ({
-        cells: [
-          item.label,
-          statusLabel(item.status),
-          item.notes ?? "",
-        ],
-      })),
-    );
-  }
-  if (ok.length > 0) {
-    layout.heading("Checked and OK");
-    layout.text(ok.map((item) => item.label).join(", "), { size: 9 });
-  }
-
-  if (pickup.notes) {
-    layout.heading("Notes");
-    layout.text(pickup.notes);
-  }
-  mediaNote(context, pickup.mediaCount);
-  customerSignOff(
-    context,
-    pickup,
-    input.documents.agreement?.renterName ?? input.customerName ?? "",
-  );
-}
-
-function isNewDamage(pickup: EmailInspectionItem | undefined, item: EmailInspectionItem) {
-  if (item.status === "ok") return false;
-  return (
-    !pickup ||
-    pickup.status === "ok" ||
-    pickup.status !== item.status ||
-    (pickup.severity != null && item.severity != null && item.severity > pickup.severity)
-  );
-}
-
-function returnReportSection(
-  context: Context,
-  pickup: EmailInspection | undefined,
-  ret: EmailInspection,
-) {
-  const { layout, input } = context;
-  companyHeader(context);
-  titleRow(context, "Vehicle condition report — Return");
-  layout.facts([
-    ["Vehicle", vehicleLabel(input)],
-    ["Returned", when(context, ret.inspectedAt)],
-    ["Rental period", `${when(context, input.startAt)} – ${when(context, input.returnAt)}`],
-    ["Renter", input.customerName ?? "—"],
-  ]);
-
-  layout.heading("Readings");
-  const driven =
-    pickup != null ? Number(ret.odometer) - Number(pickup.odometer) : null;
-  layout.table(
-    [
-      { header: "Reading", width: 2 },
-      { header: "Pickup", width: 2 },
-      { header: "Return", width: 2 },
-    ],
-    [
-      {
-        cells: [
-          "Odometer",
-          pickup ? km(pickup.odometer) : "—",
-          `${km(ret.odometer)}${driven != null && driven >= 0 ? ` (+${driven.toLocaleString("en-US")} km)` : ""}`,
-        ],
-      },
-      {
-        cells: ["Fuel level", pickup ? `${Number(pickup.fuelLevel)}%` : "—", `${Number(ret.fuelLevel)}%`],
-        highlight: pickup != null && Number(ret.fuelLevel) < Number(pickup.fuelLevel),
-      },
-      { cells: ["Cleanliness", pickup ? words(pickup.cleanliness) : "—", words(ret.cleanliness)] },
-      { cells: ["Odor", pickup ? words(pickup.odor) : "—", words(ret.odor)] },
-    ],
-  );
-
-  const pickupByArea = new Map((pickup?.items ?? []).map((item) => [item.areaCode, item]));
-  const okBoth = ret.items.filter(
-    (item) => item.status === "ok" && (pickupByArea.get(item.areaCode)?.status ?? "ok") === "ok",
-  );
-  const marked = ret.items.filter((item) => !okBoth.includes(item));
-  const rows = marked.map((item) => {
-    const prior = pickupByArea.get(item.areaCode);
-    const fresh = isNewDamage(prior, item);
-    return {
-      fresh,
-      label: item.label,
-      cells: [
-        item.label,
-        statusLabel(prior?.status),
-        `${statusLabel(item.status)}${fresh ? " (new)" : ""}`,
-        item.notes ?? "",
-      ],
-    };
-  });
-  const newDamage = rows.filter((row) => row.fresh);
-
-  layout.heading("Checklist: pickup vs return");
-  layout.text(
-    newDamage.length === 0
-      ? "No new damage was found at return."
-      : `New damage at return (shaded): ${newDamage.map((row) => row.label).join(", ")}.`,
-    { size: 9, color: newDamage.length ? WARN : MUTED },
-  );
-  if (rows.length > 0) {
-    layout.table(
-      [
-        { header: "Area", width: 3 },
-        { header: "Pickup", width: 1.5 },
-        { header: "Return", width: 1.7 },
-        { header: "Notes", width: 3 },
-      ],
-      rows.map((row) => ({ cells: row.cells, highlight: row.fresh })),
-    );
-  }
-  if (okBoth.length > 0) {
-    layout.heading("OK at pickup and return");
-    layout.text(okBoth.map((item) => item.label).join(", "), { size: 9 });
-  }
-
-  const fuel = amount(ret.fuelChargeAmount);
-  const damage = amount(ret.damageChargeAmount);
-  layout.heading("Charges");
-  if (fuel == null && damage == null) {
-    layout.text("No fuel or damage charges.");
-  } else {
-    layout.table(
-      [
-        { header: "Charge", width: 2 },
-        { header: "Note", width: 4 },
-        { header: "Amount", width: 1.4, align: "right" },
-      ],
-      [
-        ...(fuel != null
-          ? [{ cells: ["Fuel shortfall", ret.fuelChargeNote ?? "", formatPeso(fuel)] }]
-          : []),
-        ...(damage != null
-          ? [{ cells: ["Damage penalty", ret.damageChargeNote ?? "", formatPeso(damage)] }]
-          : []),
-        { cells: ["Total", "", formatPeso((fuel ?? 0) + (damage ?? 0))], highlight: true },
-      ],
-    );
-  }
-
-  if (ret.notes) {
-    layout.heading("Notes");
-    layout.text(ret.notes);
-  }
-  mediaNote(context, ret.mediaCount + (pickup?.mediaCount ?? 0));
-  customerSignOff(context, ret, input.customerName ?? "");
-}
-
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
@@ -950,14 +646,10 @@ async function embedSignature(doc: PDFDocument, bytes: Uint8Array) {
   }
 }
 
-export async function buildRentalPdf(input: DocumentInput): Promise<Uint8Array> {
+export async function buildAgreementPdf(input: DocumentInput): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
-  const title =
-    input.kind === "rental_released"
-      ? "Rental agreement and pickup condition report"
-      : "Return condition report";
-  doc.setTitle(`${title}${input.referenceNumber ? ` — ${input.referenceNumber}` : ""}`);
-  doc.setAuthor(input.documents.agreement?.companyName ?? BRAND_NAME);
+  doc.setTitle(`Rental agreement${input.referenceNumber ? ` — ${input.referenceNumber}` : ""}`);
+  doc.setAuthor(input.agreement.companyName || BRAND_NAME);
   doc.setCreator(BRAND_NAME);
 
   const fonts: Fonts = {
@@ -977,15 +669,7 @@ export async function buildRentalPdf(input: DocumentInput): Promise<Uint8Array> 
     timeZone: input.company.timezone?.trim() || "Asia/Manila",
     images,
   };
-  const pickup = input.documents.inspections.find((row) => row.type === "pickup");
-  const ret = input.documents.inspections.find((row) => row.type === "return");
-
-  if (input.kind === "rental_released") {
-    if (input.documents.agreement) agreementSection(context, input.documents.agreement);
-    if (pickup) pickupReportSection(context, pickup);
-  } else if (ret) {
-    returnReportSection(context, pickup, ret);
-  }
+  agreementSection(context, input.agreement);
 
   context.layout.footer(
     [BRAND_NAME, input.referenceNumber ? `Ref. ${input.referenceNumber}` : null]
