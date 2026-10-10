@@ -59,9 +59,11 @@ const CAPTION_FADE_PX = 180;
 /**
  * Where the car stands: the near lane, just above the search card. On phones
  * the frame runs 4rem under the card, so the wheels clear its top edge.
+ * md+ also caps the width by screen height (58svh wide ≈ 45svh tall), so a
+ * short landscape tablet keeps the car under JOURNEY as a desktop does.
  */
 const CAR_SLOT =
-  "absolute bottom-[5.25rem] left-1/2 w-[66vw] max-w-[24rem] -translate-x-1/2 md:bottom-[20%] md:max-w-none md:w-[min(46vw,34rem)] lg:bottom-[19%] lg:w-[min(36vw,38rem)]";
+  "absolute bottom-[5.25rem] left-1/2 w-[66vw] max-w-[24rem] -translate-x-1/2 md:bottom-[20%] md:max-w-none md:w-[min(46vw,34rem,58svh)] lg:bottom-[19%] lg:w-[min(36vw,38rem,58svh)]";
 const CAR_SIZES = "(min-width: 1024px) 36vw, (min-width: 768px) 46vw, 66vw";
 const SETTLE_EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 const SCROLL_RATE = 0.35;
