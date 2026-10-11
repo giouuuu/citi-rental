@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { SiteHeader } from "@/components/landing/site-header";
+import { bookingPaymentStep } from "@/features/booking/lib/booking-payment-step";
 import { BookingPaymentForm } from "@/features/booking/components/booking-payment-form";
 import { CancelBookingButton } from "@/features/booking/components/cancel-booking-button";
 import { EditBookingDetailsDialog } from "@/features/booking/components/edit-booking-details-dialog";
@@ -19,6 +20,7 @@ import { isPaymongoEnabled } from "@/features/booking/lib/paymongo";
 import { getMyBooking } from "@/features/booking/services/get-my-booking";
 import {
   getBookingPaymentDetails,
+  getPublicBookingFees,
   getPublicFreeCancellationHours,
 } from "@/features/booking/services/public-booking-service";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
@@ -50,12 +52,15 @@ export default async function BookingPayPage({
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
-  const [booking, freeCancellationHours, myBooking] = await Promise.all([
-    getBookingPaymentDetails(rentalId, reference),
-    getPublicFreeCancellationHours(),
-    // Its details, for editing what was typed until the fee is paid.
-    getMyBooking(rentalId),
-  ]);
+  const [booking, freeCancellationHours, myBooking, bookingFees] =
+    await Promise.all([
+      getBookingPaymentDetails(rentalId, reference),
+      getPublicFreeCancellationHours(),
+      // Its details, for editing what was typed until the fee is paid.
+      getMyBooking(rentalId),
+      // Prices a pick-up or return change in that edit.
+      getPublicBookingFees(),
+    ]);
   if (!booking) notFound();
 
   if (booking.status === "cancelled") {
@@ -94,6 +99,28 @@ export default async function BookingPayPage({
 
   const cancellable =
     booking.status === "draft" || booking.status === "reserved";
+  const step = bookingPaymentStep(booking);
+  const heading =
+    step.kind === "open_bill" || step.kind === "open_bill_sent"
+      ? {
+          title: "Pay your balance",
+          description:
+            "Pay what is left on your bill, all at once or in parts. We check each payment, then it shows on your bill.",
+        }
+      : step.kind === "nothing_due"
+        ? {
+            title: "Your payment",
+            description: "Nothing is due on this booking right now.",
+          }
+        : booking.status === "reserved"
+          ? {
+              title: "Pay your reservation fee",
+              description: `Your car is reserved. Send the ${formatPhp(booking.depositAmount)} reservation fee; it counts toward your total.`,
+            }
+          : {
+              title: "Pay reservation fee to confirm",
+              description: `Send the ${formatPhp(booking.depositAmount)} reservation fee to hold these dates. The car is held for you as soon as your payment is in; we then confirm your booking.`,
+            };
   const hours = freeCancellationHours ?? DEFAULT_FREE_CANCELLATION_HOURS;
 
   const paymongoReturn: PaymongoReturn =
@@ -109,19 +136,18 @@ export default async function BookingPayPage({
 
       <div className="mx-auto max-w-lg px-4 py-12 sm:px-6">
         <h1 className="text-3xl font-bold tracking-tight text-brand-950">
-          Pay reservation fee to confirm
+          {heading.title}
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Send the {formatPhp(booking.depositAmount)} reservation fee to hold
-          these dates. The car is held for you as soon as your payment is in;
-          we then confirm your booking.
+          {heading.description}
         </p>
 
         <div className="mt-8">
           <BookingPaymentForm
             booking={booking}
             onlinePayment={
-              isPaymongoEnabled() ? (
+              // PayMongo takes the reservation fee on a draft only.
+              isPaymongoEnabled() && booking.status === "draft" ? (
                 <PaymongoCheckoutButton
                   amount={booking.depositAmount}
                   referenceNumber={booking.referenceNumber}
@@ -145,11 +171,15 @@ export default async function BookingPayPage({
               Typed something wrong?
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              You can edit your details and trip until you pay the reservation
-              fee.
+              You can edit your details, trip, and pick-up or delivery until
+              you pay the reservation fee.
             </p>
             <div className="mt-4">
-              <EditBookingDetailsDialog booking={myBooking} />
+              <EditBookingDetailsDialog
+                booking={myBooking}
+                deliveryFees={bookingFees.delivery}
+                officeAddress={bookingFees.officeAddress}
+              />
             </div>
           </section>
         ) : null}

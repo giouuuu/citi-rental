@@ -5,6 +5,14 @@ import {
   type RentRates,
 } from "@/features/rentals/lib/rent-pricing";
 import type { RentalPayment } from "@/features/rentals/types/rental-payment";
+import {
+  type BookingFeeLine,
+  bookingFeesTotal,
+} from "@/features/booking/lib/booking-fees";
+import {
+  handoverBillLine,
+  type HandoverMethod,
+} from "@/features/booking/lib/handover";
 import { formatPhpExact } from "@/features/shared/lib/money";
 
 export type RentalBillRent = {
@@ -24,9 +32,27 @@ export type RentalBillDriver = {
   days: number | null;
 };
 
+/** How the car changes hands at each end; fees are inside `quoted_total`. */
+export type RentalBillHandover = {
+  pickupMethod: HandoverMethod | null;
+  returnMethod: HandoverMethod | null;
+  pickupFee: number;
+  returnFee: number;
+};
+
+export type RentalBillHandoverLine = {
+  label: string;
+  detail: string;
+  fee: number;
+};
+
 export type RentalBill = {
   rent: RentalBillRent;
   driver: RentalBillDriver | null;
+  /** Pick-up then return; legs with no method recorded are left out. */
+  handover: RentalBillHandoverLine[];
+  /** Fees added to every online booking, as booked; inside `quoted_total`. */
+  bookingFees: BookingFeeLine[];
   /** Confirmed charges (penalty rows): car wash, delivery, extension, fuel, bill adjustments, … */
   charges: RentalPayment[];
   total: number;
@@ -51,6 +77,8 @@ export function buildRentalBill({
   quotedHours = null,
   quotedTotal,
   driver = null,
+  handover = null,
+  bookingFees = [],
   payments,
 }: {
   quotedRates: RentRates | null;
@@ -58,6 +86,8 @@ export function buildRentalBill({
   quotedHours?: number | null;
   quotedTotal: number | null;
   driver?: RentalBillDriver | null;
+  handover?: RentalBillHandover | null;
+  bookingFees?: BookingFeeLine[];
   payments: RentalPayment[];
 }): RentalBill {
   // A bill reads in the order things happened; the ledger arrives newest first.
@@ -67,8 +97,20 @@ export function buildRentalBill({
   const received = payments.filter((payment) => payment.paymentType !== "penalty");
 
   const quoted = quotedTotal ?? 0;
-  // quoted_total holds the car and the driver; the bill shows them apart.
-  const rentTotal = round(quoted - (driver?.fee ?? 0));
+  const handoverLines = handover
+    ? [
+        handoverBillLine("pickup", handover.pickupMethod, handover.pickupFee),
+        handoverBillLine("return", handover.returnMethod, handover.returnFee),
+      ].filter((line) => line !== null)
+    : [];
+  // quoted_total holds the car, the driver, delivery and the booking fees;
+  // the bill shows them apart.
+  const rentTotal = round(
+    quoted -
+      (driver?.fee ?? 0) -
+      (handover ? handover.pickupFee + handover.returnFee : 0) -
+      bookingFeesTotal(bookingFees),
+  );
   const total = round(quoted + charges.reduce((sum, charge) => sum + charge.amount, 0));
   const paid = round(
     received.reduce((sum, payment) => {
@@ -82,6 +124,8 @@ export function buildRentalBill({
   return {
     rent: { rates: quotedRates, days: quotedDays, hours: quotedHours, total: rentTotal },
     driver,
+    handover: handoverLines,
+    bookingFees,
     charges,
     total,
     paid,

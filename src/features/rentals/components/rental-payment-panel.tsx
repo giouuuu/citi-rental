@@ -30,10 +30,12 @@ import { AdjustRentalBillForm } from "@/features/rentals/components/adjust-renta
 import { RecordRentalPaymentForm } from "@/features/rentals/components/record-rental-payment-form";
 import { RentalPaymentHistoryList } from "@/features/rentals/components/rental-payment-history-list";
 import { SetChargeCostForm } from "@/features/rentals/components/set-charge-cost-form";
+import type { BookingFeeLine } from "@/features/booking/lib/booking-fees";
 import {
   buildRentalBill,
   describeRentLine,
   type RentalBillDriver,
+  type RentalBillHandover,
   rentalBillStatus,
   summarizeChargeCosts,
 } from "@/features/rentals/lib/rental-bill";
@@ -60,6 +62,10 @@ type RentalPaymentPanelProps = {
   quotedTotal?: number | null;
   /** With-driver rentals: the driver line inside the quoted total. */
   driver?: RentalBillDriver | null;
+  /** Online bookings: pick-up and return, their fees inside the quoted total. */
+  handover?: RentalBillHandover | null;
+  /** Online bookings: fees added to every booking, inside the quoted total. */
+  bookingFees?: BookingFeeLine[];
   depositAmount?: number | null;
   depositPercent?: number | null;
   payments: RentalPayment[];
@@ -123,6 +129,8 @@ export function RentalPaymentPanel({
   quotedHours = null,
   quotedTotal = null,
   driver = null,
+  handover = null,
+  bookingFees = [],
   depositAmount,
   depositPercent,
   payments,
@@ -145,6 +153,8 @@ export function RentalPaymentPanel({
     quotedHours,
     quotedTotal,
     driver,
+    handover,
+    bookingFees,
     payments,
   });
   const canAddCharges = rentalStatus !== "cancelled";
@@ -292,6 +302,22 @@ export function RentalPaymentPanel({
               label="Driver"
             />
           ) : null}
+          {bill.handover.map((line) => (
+            <BillLine
+              amount={formatPhpExact(line.fee)}
+              detail={line.detail}
+              key={line.label}
+              label={line.label}
+            />
+          ))}
+          {bill.bookingFees.map((fee) => (
+            <BillLine
+              amount={formatPhpExact(fee.amount)}
+              detail="Added to every online booking"
+              key={fee.name}
+              label={fee.name}
+            />
+          ))}
           {bill.charges.map((charge) => {
             const isAdjustment = charge.chargeTypeCode === BILL_ADJUSTMENT_CODE;
             const name =

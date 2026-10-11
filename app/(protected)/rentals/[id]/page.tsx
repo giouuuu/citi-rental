@@ -9,6 +9,7 @@ import { RentalWorkflowActions } from "@/features/rentals";
 import type { RentalCancellationContext } from "@/features/rentals/components/rental-workflow-actions";
 import { DEFAULT_FREE_CANCELLATION_HOURS } from "@/features/rentals/lib/cancellation-policy";
 import { ConfirmDepositCard } from "@/features/rentals/components/confirm-deposit-card";
+import { PendingCustomerPaymentsCard } from "@/features/rentals/components/pending-customer-payments-card";
 import { RentalDetailTabs } from "@/features/rentals/components/rental-detail-tabs";
 import { RentalMileageSummary } from "@/features/rentals/components/rental-mileage-summary";
 import { RentalPaymentPanel } from "@/features/rentals/components/rental-payment-panel";
@@ -37,8 +38,14 @@ import { getAgreementDraft } from "@/features/agreements/services/get-agreement-
 import { getRentalAgreement } from "@/features/agreements/services/get-rental-agreement";
 import type { AgreementDraft } from "@/features/agreements/types";
 import {
+  type BookingFeeLine,
+  parseBookingFees,
+} from "@/features/booking/lib/booking-fees";
+import { parseHandoverMethod } from "@/features/booking/lib/handover";
+import {
   buildRentalBill,
   type RentalBillDriver,
+  type RentalBillHandover,
 } from "@/features/rentals/lib/rental-bill";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -56,6 +63,8 @@ export default async function Page({
   let paymentStatus: string | null = null;
   let quotedTotal: number | null = null;
   let driver: RentalBillDriver | null = null;
+  let handover: RentalBillHandover | null = null;
+  let bookingFees: BookingFeeLine[] = [];
   let quotedRates: RentRates | null = null;
   let quotedDays: number | null = null;
   let quotedHours: number | null = null;
@@ -110,6 +119,11 @@ export default async function Page({
           driver_daily_rate,
           driver_days,
           driver_fee,
+          pickup_method,
+          return_method,
+          pickup_delivery_fee,
+          return_delivery_fee,
+          booking_fees,
           start_at,
           expected_return_at,
           deposit_amount,
@@ -157,6 +171,15 @@ export default async function Page({
           days: data.driver_days != null ? Number(data.driver_days) : null,
         }
       : null;
+    handover = data
+      ? {
+          pickupMethod: parseHandoverMethod(data.pickup_method),
+          returnMethod: parseHandoverMethod(data.return_method),
+          pickupFee: Number(data.pickup_delivery_fee ?? 0),
+          returnFee: Number(data.return_delivery_fee ?? 0),
+        }
+      : null;
+    bookingFees = parseBookingFees(data?.booking_fees);
     const rate = (value: unknown) => (value != null ? Number(value) : null);
     quotedDays = rate(data?.quoted_days);
     quotedHours = rate(data?.quoted_hours);
@@ -281,6 +304,8 @@ export default async function Page({
     quotedHours,
     quotedTotal,
     driver,
+    handover,
+    bookingFees,
     payments,
   });
   const showConfirmCard = needsDepositConfirmation({
@@ -288,6 +313,11 @@ export default async function Page({
     paymentStatus,
     payments,
   });
+  // Bill payments the customer sent from the pay page.
+  const pendingCustomerPayments = payments.filter(
+    (payment) =>
+      payment.paymentType === "balance" && payment.status === "submitted",
+  );
 
   return (
     <ResourceDetailScreen
@@ -317,17 +347,28 @@ export default async function Page({
       {({ form, row }) => (
         <RentalDetailTabs
           alert={
-            showConfirmCard ? (
-              <ConfirmDepositCard
-                customerLabel={customerLabel}
-                depositAmount={depositAmount}
-                paymentReference={
-                  pendingDeposit?.externalReference ?? paymentReference
-                }
-                paidOnline={pendingDeposit?.method === "paymongo"}
-                proofUrl={pendingDeposit?.proofUrl ?? null}
-                rentalId={id}
-              />
+            showConfirmCard || pendingCustomerPayments.length > 0 ? (
+              <div className="space-y-3">
+                {showConfirmCard ? (
+                  <ConfirmDepositCard
+                    customerLabel={customerLabel}
+                    depositAmount={depositAmount}
+                    paymentReference={
+                      pendingDeposit?.externalReference ?? paymentReference
+                    }
+                    paidOnline={pendingDeposit?.method === "paymongo"}
+                    proofUrl={pendingDeposit?.proofUrl ?? null}
+                    rentalId={id}
+                    reserved={status === "reserved"}
+                  />
+                ) : null}
+                {pendingCustomerPayments.length > 0 ? (
+                  <PendingCustomerPaymentsCard
+                    balance={bill.balance}
+                    payments={pendingCustomerPayments}
+                  />
+                ) : null}
+              </div>
             ) : null
           }
           customerBookingLocked={isPublicCustomerBooking(row)}
@@ -360,6 +401,8 @@ export default async function Page({
               bookingPaymentFailed={query.payment === "failed"}
               quotedTotal={quotedTotal}
               driver={driver}
+              bookingFees={bookingFees}
+              handover={handover}
               rentalId={id}
               rentalStatus={status}
             />

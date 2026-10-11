@@ -305,6 +305,21 @@ Features:
 - Fleet listing showing only bookable vehicles for the selected dates.
 - Vehicle detail with photos, specs, and daily rate.
 - Booking form (signed-in customers only).
+- Pick-up and return: for each end of the trip the customer picks our office (free), or
+  delivery / collection within or outside Cebu City at the per-way fee in Settings. The fee
+  is in the booking total, shown on the pay page bill, and re-priced if they change it
+  before paying. No rate in Settings means staff quote it.
+- Pay page shows the car wash fee (Settings → Charge types → Car wash) as charged only if
+  the car comes back unwashed.
+- Fees on every booking: a charge type ticked "Add to every online booking" (with a default
+  amount) is added to each new online booking. The customer sees it in the booking total
+  and as its own line on the pay page and booking bill. Each booking keeps the fees it was
+  made with; bookings staff create in the ops app are not affected.
+- Pay page keeps working after the booking is reserved: a booking staff reserved before any
+  money came in still takes the reservation fee; after that, while the bill has a balance
+  (reserved, active, overdue or completed), the customer can send any amount up to the open
+  balance with a proof. Staff confirm or reject each one on the rental (and it shows under
+  "Proof to check"). PayMongo stays reservation-fee-on-a-draft only.
 - Confirmation page.
 - Owner notification when a booking arrives.
 

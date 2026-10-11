@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { DRIVING_MODES } from "@/features/booking/lib/driving-mode";
+import { HANDOVER_METHODS } from "@/features/booking/lib/handover";
 import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
 
 /** A picked image file; the server re-checks size and type before upload. */
@@ -80,16 +81,20 @@ const bookingFields = z.object({
     .trim()
     .min(2, "Enter your Facebook name or profile link.")
     .max(200, "Facebook account must be 200 characters or fewer."),
+  pickupMethod: z.enum(HANDOVER_METHODS, "Choose where you get the car."),
+  returnMethod: z.enum(HANDOVER_METHODS, "Choose where you return the car."),
+  // Required for a delivery only; see refineHandover. At the office the
+  // database fills in the office address.
   pickupLocation: z
     .string()
     .trim()
-    .min(1, "Enter the pick-up or delivery location.")
-    .max(200, "Pick-up location must be 200 characters or fewer."),
+    .max(200, "Delivery address must be 200 characters or fewer.")
+    .default(""),
   returnLocation: z
     .string()
     .trim()
-    .min(1, "Enter the return location.")
-    .max(200, "Return location must be 200 characters or fewer."),
+    .max(200, "Collection address must be 200 characters or fewer.")
+    .default(""),
   destination: z
     .string()
     .trim()
@@ -195,16 +200,57 @@ function refineRenterIds(
   }
 }
 
+/**
+ * A delivered or collected car needs the address; the office does not. Runs
+ * with the other refinements (see `when`), so the value may be partly invalid.
+ */
+function refineHandover(
+  value: {
+    pickupMethod?: unknown;
+    returnMethod?: unknown;
+    pickupLocation?: unknown;
+    returnLocation?: unknown;
+  },
+  context: z.RefinementCtx,
+) {
+  const blank = (location: unknown) =>
+    typeof location !== "string" || !location.trim();
+  if (
+    typeof value.pickupMethod === "string" &&
+    value.pickupMethod !== "office" &&
+    blank(value.pickupLocation)
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["pickupLocation"],
+      message: "Enter the delivery address.",
+    });
+  }
+  if (
+    typeof value.returnMethod === "string" &&
+    value.returnMethod !== "office" &&
+    blank(value.returnLocation)
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["returnLocation"],
+      message: "Enter where we collect the car.",
+    });
+  }
+}
+
 export const publicBookingSchema = bookingFields
   .superRefine(refineTripDates)
-  .superRefine(refineRenterIds, { when: () => true });
+  .superRefine(refineRenterIds, { when: () => true })
+  .superRefine(refineHandover, { when: () => true });
 
 export type PublicBookingInput = z.infer<typeof publicBookingSchema>;
 
 /**
  * What the renter can still change on an unpaid booking: their details and
- * the trip details. Car, dates and driving mode set the price and the hold,
- * so they stay as booked; `drivingMode` only says whether a license is needed.
+ * the trip details, pick-up and return included (re-priced). Car, dates and
+ * driving mode set the price and the hold, so they stay as booked;
+ * `drivingMode` only says whether a license is needed.
  */
 export const bookingDetailsSchema = bookingFields
   .pick({
@@ -214,12 +260,15 @@ export const bookingDetailsSchema = bookingFields
     address: true,
     facebookAccount: true,
     driversLicenseNumber: true,
+    pickupMethod: true,
+    returnMethod: true,
     pickupLocation: true,
     returnLocation: true,
     destination: true,
     passengerCount: true,
   })
   .extend({ rentalId: z.uuid("Invalid booking.") })
+  .superRefine(refineHandover, { when: () => true })
   .superRefine((value, context) => {
     const license = value.driversLicenseNumber?.trim() ?? "";
     if (value.drivingMode !== "with-driver" && license.length < 3) {

@@ -33,6 +33,8 @@ function tripInstants(start?: string | null, end?: string | null) {
   return startAt && returnAt ? { startAt, returnAt } : null;
 }
 
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
 /** Customers are quoted per started 24 hours, so only the daily rate counts. */
 type CustomerRates = Pick<RentRates, "daily">;
 
@@ -54,31 +56,44 @@ export type TripQuote = {
   rent: RentQuote;
   /** Present when the trip has a driver. */
   driver: { days: number; rate: number | null; fee: number } | null;
-  /** Rent plus the driver fee. */
+  /** Delivery plus collection; 0 when the car changes hands at the office. */
+  delivery: number;
+  /** Fees added to every online booking. */
+  fees: number;
+  /** Rent plus the driver, delivery and booking fees. */
   total: number;
 };
 
 /**
  * The whole trip as `create_public_booking` will price it: the car's rent,
- * plus the driver's day rate when the customer wants a driver. A driver with
- * no rate set adds nothing here; staff quote it when they confirm.
+ * plus the driver's day rate when the customer wants a driver, plus delivery
+ * and collection (already summed per way), plus the fees added to every
+ * booking (already summed). A driver with no rate set adds
+ * nothing here; staff quote it when they confirm.
  */
 export function quoteTrip(
   rates: CustomerRates,
   start?: string | null,
   end?: string | null,
   withDriver?: { rate: number | null } | null,
+  delivery = 0,
+  fees = 0,
 ): TripQuote | null {
   const trip = tripInstants(start, end);
   const rent = trip ? quoteDayRent(trip.startAt, trip.returnAt, rates.daily) : null;
   if (!trip || !rent) return null;
-  if (!withDriver) return { rent, driver: null, total: rent.total };
-  const days = driverDays(trip.startAt, trip.returnAt);
-  const fee = Math.round((withDriver.rate ?? 0) * days * 100) / 100;
+  const driver = withDriver
+    ? (() => {
+        const days = driverDays(trip.startAt, trip.returnAt);
+        return { days, rate: withDriver.rate, fee: round2((withDriver.rate ?? 0) * days) };
+      })()
+    : null;
   return {
     rent,
-    driver: { days, rate: withDriver.rate, fee },
-    total: rent.total + fee,
+    driver,
+    delivery,
+    fees,
+    total: round2(rent.total + (driver?.fee ?? 0) + delivery + fees),
   };
 }
 

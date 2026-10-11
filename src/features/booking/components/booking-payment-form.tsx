@@ -3,17 +3,28 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState, useTransition } from "react";
 import { Info, Upload } from "lucide-react";
+import { toast } from "sonner";
 
 import { submitPaymentProofAction } from "@/features/booking/actions/submit-payment-proof-action";
+import { bookingPaymentStep } from "@/features/booking/lib/booking-payment-step";
 import { compressPaymentProof } from "@/features/booking/lib/compress-payment-proof";
 import type { BookingPaymentDetails } from "@/features/booking/types/booking-payment";
 import { ImageDropzone } from "@/features/shared/components/image-dropzone";
 import { formatManila } from "@/features/shared/lib/manila-time";
-import { describeRentLine } from "@/features/rentals/lib/rental-bill";
+import { formatPhpExact } from "@/features/shared/lib/money";
+import {
+  buildRentalBill,
+  describeRentLine,
+} from "@/features/rentals/lib/rental-bill";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -32,18 +43,37 @@ export function BookingPaymentForm({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const step = bookingPaymentStep(booking);
+  const canPay = step.kind === "reservation_fee" || step.kind === "open_bill";
+  // Once staff took it past the fee, the summary shows the running bill.
+  const showRunningBill =
+    booking.status !== "draft" &&
+    step.kind !== "reservation_fee" &&
+    step.kind !== "reservation_fee_sent";
+  const extraCharges = Math.round((booking.billTotal - booking.quotedTotal) * 100) / 100;
+  const [amount, setAmount] = useState(
+    step.kind === "open_bill" ? String(step.payable) : "",
+  );
   const [paymentReference, setPaymentReference] = useState(
     booking.paymentReference ?? "",
   );
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-
-  const alreadySubmitted =
-    booking.paymentStatus === "proof_submitted" ||
-    booking.paymentStatus === "deposit_paid" ||
-    booking.paymentStatus === "paid_in_full" ||
-    booking.status !== "draft";
+  // The trip total split into car, driver and delivery; payments stay off
+  // this summary, which shows the fee due and what is left at pick-up.
+  const bill = buildRentalBill({
+    quotedRates: { daily: booking.quotedDailyRate },
+    quotedDays: booking.quotedDays,
+    quotedHours: booking.quotedHours,
+    quotedTotal: booking.quotedTotal,
+    driver: booking.driver,
+    handover: booking.handover,
+    bookingFees: booking.bookingFees,
+    payments: [],
+  });
+  const itemized =
+    bill.driver !== null || bill.handover.length > 0 || bill.bookingFees.length > 0;
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -72,6 +102,8 @@ export function BookingPaymentForm({
         setFieldErrors(result.fieldErrors ?? {});
         return;
       }
+      setProofFile(null);
+      toast.success(result.data?.message ?? "Payment proof sent.");
       router.refresh();
     });
   }
@@ -92,44 +124,148 @@ export function BookingPaymentForm({
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Pick-up</dt>
-            <dd className="font-medium text-brand-950">
+            <dd className="text-right font-medium text-brand-950">
               {formatWhen(booking.startAt)}
+              {booking.pickupLocation ? (
+                <span className="block text-xs font-normal text-muted-foreground">
+                  {booking.pickupLocation}
+                </span>
+              ) : null}
             </dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Return</dt>
-            <dd className="font-medium text-brand-950">
+            <dd className="text-right font-medium text-brand-950">
               {formatWhen(booking.expectedReturnAt)}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">
-              {describeRentLine({
-                rates: { daily: booking.quotedDailyRate },
-                days: booking.quotedDays,
-                hours: booking.quotedHours,
-                total: booking.quotedTotal,
-              })}
-            </dt>
-            <dd className="font-medium text-brand-950">
-              {formatPhp(booking.quotedTotal)}
+              {booking.returnLocation ? (
+                <span className="block text-xs font-normal text-muted-foreground">
+                  {booking.returnLocation}
+                </span>
+              ) : null}
             </dd>
           </div>
           <div className="flex justify-between gap-4 border-t border-border pt-3">
-            <dt className="font-semibold text-brand-950">
-              Reservation fee due
+            <dt className="text-muted-foreground">
+              {itemized ? "Car rental" : null}
+              <span className={itemized ? "block text-xs" : undefined}>
+                {describeRentLine(bill.rent)}
+              </span>
             </dt>
-            <dd className="font-bold text-brand-950">
-              {formatPhp(booking.depositAmount)}
+            <dd className="font-medium text-brand-950 tabular-nums">
+              {formatPhp(bill.rent.total)}
             </dd>
           </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">Balance at pick-up</dt>
-            <dd className="font-medium text-brand-950">
-              {formatPhp(booking.balanceDue)}
-            </dd>
-          </div>
+          {bill.driver ? (
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">
+                Driver
+                <span className="block text-xs">
+                  {bill.driver.rate != null && bill.driver.days != null
+                    ? `${formatPhp(bill.driver.rate)} × ${bill.driver.days} ${bill.driver.days === 1 ? "day" : "days"}`
+                    : "Fee confirmed by staff"}
+                </span>
+              </dt>
+              <dd className="font-medium text-brand-950 tabular-nums">
+                {formatPhp(bill.driver.fee)}
+              </dd>
+            </div>
+          ) : null}
+          {bill.handover.map((line) => (
+            <div className="flex justify-between gap-4" key={line.label}>
+              <dt className="text-muted-foreground">
+                {line.label}
+                <span className="block text-xs">{line.detail}</span>
+              </dt>
+              <dd className="font-medium text-brand-950 tabular-nums">
+                {line.fee > 0 ? formatPhp(line.fee) : "Free"}
+              </dd>
+            </div>
+          ))}
+          {bill.bookingFees.map((fee) => (
+            <div className="flex justify-between gap-4" key={fee.name}>
+              <dt className="text-muted-foreground">{fee.name}</dt>
+              <dd className="font-medium text-brand-950 tabular-nums">
+                {formatPhp(fee.amount)}
+              </dd>
+            </div>
+          ))}
+          {itemized ? (
+            <div className="flex justify-between gap-4">
+              <dt className="font-medium text-brand-950">Trip total</dt>
+              <dd className="font-semibold text-brand-950 tabular-nums">
+                {formatPhp(booking.quotedTotal)}
+              </dd>
+            </div>
+          ) : null}
+          {showRunningBill ? (
+            <>
+              {extraCharges !== 0 ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Extra charges</dt>
+                  <dd className="font-medium text-brand-950 tabular-nums">
+                    {extraCharges < 0 ? "− " : ""}
+                    {formatPhpExact(Math.abs(extraCharges))}
+                  </dd>
+                </div>
+              ) : null}
+              <div className="flex justify-between gap-4 border-t border-border pt-3">
+                <dt className="font-medium text-brand-950">Total bill</dt>
+                <dd className="font-semibold text-brand-950 tabular-nums">
+                  {formatPhpExact(booking.billTotal)}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">You paid</dt>
+                <dd className="font-medium text-brand-950 tabular-nums">
+                  {booking.amountPaid > 0 ? "− " : ""}
+                  {formatPhpExact(booking.amountPaid)}
+                </dd>
+              </div>
+              {booking.pendingPaymentAmount > 0 ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Being checked</dt>
+                  <dd className="font-medium text-brand-950 tabular-nums">
+                    {formatPhpExact(booking.pendingPaymentAmount)}
+                  </dd>
+                </div>
+              ) : null}
+              <div className="flex justify-between gap-4 border-t border-border pt-3">
+                <dt className="font-semibold text-brand-950">Open balance</dt>
+                <dd className="font-bold text-brand-950 tabular-nums">
+                  {formatPhpExact(
+                    Math.max(0, booking.billTotal - booking.amountPaid),
+                  )}
+                </dd>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between gap-4 border-t border-border pt-3">
+                <dt className="font-semibold text-brand-950">
+                  Reservation fee due
+                </dt>
+                <dd className="font-bold text-brand-950">
+                  {formatPhp(booking.depositAmount)}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Balance at pick-up</dt>
+                <dd className="font-medium text-brand-950">
+                  {formatPhp(booking.balanceDue)}
+                </dd>
+              </div>
+            </>
+          )}
         </dl>
+        {booking.carWashFee ? (
+          <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+            Return the car washed, or a{" "}
+            <span className="font-medium text-brand-950 tabular-nums">
+              {formatPhp(booking.carWashFee)}
+            </span>{" "}
+            car wash fee is added at return.
+          </p>
+        ) : null}
       </div>
 
       {booking.datesTaken ? (
@@ -143,20 +279,33 @@ export function BookingPaymentForm({
         </Alert>
       ) : (
         <>
-      {alreadySubmitted ? null : onlinePayment}
+      {step.kind === "reservation_fee" ? onlinePayment : null}
 
+      {canPay ? (
       <div className="rounded-xl border border-border bg-card p-5 text-left">
         <h2 className="text-base font-semibold text-brand-950">
-          {onlinePayment && !alreadySubmitted
+          {onlinePayment && step.kind === "reservation_fee"
             ? "Or pay by QR and upload proof"
             : "How to pay"}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Send exactly{" "}
-          <span className="font-semibold text-brand-950">
-            {formatPhp(booking.depositAmount)}
-          </span>{" "}
-          and put{" "}
+          {step.kind === "open_bill" ? (
+            <>
+              Send up to{" "}
+              <span className="font-semibold text-brand-950">
+                {formatPhpExact(step.payable)}
+              </span>{" "}
+              — the whole balance or part of it — and put{" "}
+            </>
+          ) : (
+            <>
+              Send exactly{" "}
+              <span className="font-semibold text-brand-950">
+                {formatPhp(booking.depositAmount)}
+              </span>{" "}
+              and put{" "}
+            </>
+          )}
           <span className="font-semibold text-brand-950">
             {booking.referenceNumber}
           </span>{" "}
@@ -181,16 +330,22 @@ export function BookingPaymentForm({
           </p>
         ) : null}
       </div>
+      ) : null}
 
-      {alreadySubmitted ? (
+      {!canPay ? (
         <Alert className="border-success/20 bg-success-surface text-left">
           <Info />
           <AlertDescription>
-            {booking.paymentStatus === "deposit_paid" ||
-            booking.status === "reserved"
-              ? "Reservation fee confirmed. Your car is reserved."
-              : "Payment received — these dates are now held for you. We will confirm your reservation shortly."}
-            {booking.paymentReference
+            {step.kind === "reservation_fee_sent"
+              ? booking.status === "reserved"
+                ? "Payment received. We will confirm your reservation fee shortly."
+                : "Payment received — these dates are now held for you. We will confirm your reservation shortly."
+              : step.kind === "open_bill_sent"
+                ? `Your ${formatPhpExact(step.pending)} payment is being checked. We will update your bill once it is confirmed.`
+                : booking.paymentStatus === "paid_in_full"
+                  ? "Your bill is fully paid. Thank you!"
+                  : "Reservation fee confirmed. Your car is reserved."}
+            {step.kind === "reservation_fee_sent" && booking.paymentReference
               ? ` Payment ref: ${booking.paymentReference}.`
               : null}
           </AlertDescription>
@@ -206,6 +361,31 @@ export function BookingPaymentForm({
           <h2 className="text-base font-semibold text-brand-950">
             Upload payment proof
           </h2>
+          {step.kind === "open_bill" ? (
+            <Field data-invalid={Boolean(fieldErrors.amount)}>
+              <FieldLabel htmlFor="amount">Amount you sent</FieldLabel>
+              <Input
+                id="amount"
+                inputMode="decimal"
+                max={step.payable}
+                min={0.01}
+                name="amount"
+                onChange={(event) => setAmount(event.target.value)}
+                step={0.01}
+                type="number"
+                value={amount}
+              />
+              <FieldDescription>
+                Up to {formatPhpExact(step.payable)}
+                {step.pending > 0
+                  ? ` — ${formatPhpExact(step.pending)} you sent earlier is still being checked.`
+                  : "."}
+              </FieldDescription>
+              {fieldErrors.amount ? (
+                <FieldError>{fieldErrors.amount[0]}</FieldError>
+              ) : null}
+            </Field>
+          ) : null}
           <Field data-invalid={Boolean(fieldErrors.paymentReference)}>
             <FieldLabel htmlFor="paymentReference">
               GCash / Maya / bank reference no.

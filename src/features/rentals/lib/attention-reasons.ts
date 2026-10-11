@@ -41,7 +41,7 @@ export const ATTENTION_REASONS: Record<
   proof_to_check: {
     label: "Proof to check",
     tone: "pending",
-    action: "Confirm or reject the reservation fee proof.",
+    action: "Confirm or reject the customer's payment proof.",
   },
   late_pickup: {
     label: "Late pickup",

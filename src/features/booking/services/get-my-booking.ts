@@ -8,6 +8,8 @@ import type {
   CustomerBookingDetail,
   CustomerBookingReview,
 } from "@/features/booking/types/customer-booking-detail";
+import { parseBookingFees } from "@/features/booking/lib/booking-fees";
+import { parseHandoverMethod } from "@/features/booking/lib/handover";
 import { buildRentalBill } from "@/features/rentals/lib/rental-bill";
 import type {
   PaymentEntryStatus,
@@ -88,6 +90,10 @@ export async function getMyBooking(rentalId: string): Promise<CustomerBookingDet
   );
   const daily = num(row.quoted_daily_rate);
   const withDriver = row.with_driver === true;
+  const pickupMethod = parseHandoverMethod(row.pickup_method);
+  const returnMethod = parseHandoverMethod(row.return_method);
+  const pickupDeliveryFee = num(row.pickup_delivery_fee) ?? 0;
+  const returnDeliveryFee = num(row.return_delivery_fee) ?? 0;
 
   return {
     id,
@@ -101,6 +107,11 @@ export async function getMyBooking(rentalId: string): Promise<CustomerBookingDet
     actualReturnAt: text(row.actual_return_at),
     pickupLocation: text(row.pickup_location),
     returnLocation: text(row.return_location),
+    pickupMethod,
+    returnMethod,
+    pickupDeliveryFee,
+    returnDeliveryFee,
+    quotedTotal: num(row.quoted_total) ?? 0,
     destination: text(row.destination),
     passengerCount: num(row.passenger_count),
     withDriver,
@@ -145,6 +156,13 @@ export async function getMyBooking(rentalId: string): Promise<CustomerBookingDet
             days: num(row.driver_days),
           }
         : null,
+      handover: {
+        pickupMethod,
+        returnMethod,
+        pickupFee: pickupDeliveryFee,
+        returnFee: returnDeliveryFee,
+      },
+      bookingFees: parseBookingFees(row.booking_fees),
       payments,
     }),
     payments,

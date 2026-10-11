@@ -11,6 +11,7 @@ import { parseDrivingMode } from "@/features/booking/lib/driving-mode";
 import { listPublicVehicleBookedRanges } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import {
   getPublicAgreementTemplate,
+  getPublicBookingFees,
   getPublicDriverDailyRate,
   getPublicFreeCancellationHours,
   getPublicReservationFee,
@@ -86,6 +87,7 @@ export default async function BookVehiclePage({
     freeCancellationHours,
     driverDailyRate,
     agreementTemplate,
+    bookingFees,
   ] = await Promise.all([
     listPublicVehicleBookedRanges(vehicleId),
     listPublicAvailableVehicles(),
@@ -93,6 +95,7 @@ export default async function BookVehiclePage({
     getPublicFreeCancellationHours(),
     getPublicDriverDailyRate(),
     getPublicAgreementTemplate(),
+    getPublicBookingFees(),
   ]);
   const agreementTerms = buildAgreementTerms({
     freeCancellationHours:
@@ -148,6 +151,9 @@ export default async function BookVehiclePage({
       <BookingWorkspace
         agreementTerms={agreementTerms}
         bookedRanges={bookedRanges}
+        bookingFees={bookingFees.bookingFees}
+        carWashFee={bookingFees.carWashFee}
+        deliveryFees={bookingFees.delivery}
         driverDailyRate={driverDailyRate}
         fleet={fleet}
         freeCancellationHours={freeCancellationHours}
@@ -158,6 +164,7 @@ export default async function BookVehiclePage({
         initialPickupLocation={query.pickup}
         initialReturnAt={query.end}
         initialStartAt={query.start}
+        officeAddress={bookingFees.officeAddress}
         query={bookingQuery}
         reservationFee={reservationFee}
         signedIn={signedIn}

@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/landing/site-header";
 import { Button } from "@/components/ui/button";
 import { AccountBookingDetail } from "@/features/booking/components/account-booking-detail";
 import { getMyBooking } from "@/features/booking/services/get-my-booking";
+import { getPublicBookingFees } from "@/features/booking/services/public-booking-service";
 import { getPublicReviewLinks } from "@/features/settings/services/get-public-review-links";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -33,7 +34,11 @@ export default async function AccountBookingPage({
   // get_my_booking returns nothing for a booking this account does not own.
   const booking = /^[0-9a-f-]{36}$/i.test(id) ? await getMyBooking(id) : null;
   if (!booking) notFound();
-  const reviewLinks = booking.status === "completed" ? await getPublicReviewLinks() : null;
+  const [reviewLinks, bookingFees] = await Promise.all([
+    booking.status === "completed" ? getPublicReviewLinks() : null,
+    // Prices a pick-up or return change while the booking is still editable.
+    booking.detailsEditable ? getPublicBookingFees() : null,
+  ]);
 
   return (
     <main className="min-h-screen bg-background" id="main-content">
@@ -52,7 +57,11 @@ export default async function AccountBookingPage({
         </div>
       </div>
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <AccountBookingDetail booking={booking} reviewLinks={reviewLinks} />
+        <AccountBookingDetail
+          booking={booking}
+          bookingFees={bookingFees}
+          reviewLinks={reviewLinks}
+        />
       </div>
     </main>
   );

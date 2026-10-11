@@ -71,6 +71,8 @@ export async function saveSettingsAction(
       .update({
         reservation_fee: parsed.data.reservation_fee,
         driver_daily_rate: parsed.data.driver_daily_rate,
+        delivery_fee_within_city: parsed.data.delivery_fee_within_city,
+        delivery_fee_outside_city: parsed.data.delivery_fee_outside_city,
         free_cancellation_hours: parsed.data.free_cancellation_hours,
         payment_instructions: parsed.data.payment_instructions?.trim() || null,
         operating_address: parsed.data.operating_address?.trim() || null,
@@ -92,6 +94,8 @@ export async function saveSettingsAction(
     // The landing page's contact button reads these channels. Page scope:
     // layout scope on "/" would drop every cached route.
     revalidatePath("/");
+    // Booking pages price delivery from these fees.
+    revalidatePath("/book/[vehicleId]", "page");
     return { success: true };
   } catch (error) {
     return {

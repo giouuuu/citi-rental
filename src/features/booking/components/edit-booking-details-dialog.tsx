@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Info, PencilLine } from "lucide-react";
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { type DefaultValues, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 
@@ -23,14 +23,24 @@ import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { updateMyBookingDetailsAction } from "@/features/booking/actions/update-my-booking-details-action";
 import { BookingTextField } from "@/features/booking/components/booking-form-fields";
+import { HandoverField } from "@/features/booking/components/handover-field";
+import {
+  type DeliveryFees,
+  deliveryFee,
+  type HandoverMethod,
+  parseHandoverMethod,
+} from "@/features/booking/lib/handover";
 import { bookingDetailsSchema } from "@/features/booking/schemas/public-booking-schema";
 import type { CustomerBookingDetail } from "@/features/booking/types/customer-booking-detail";
 import { applyServerFieldErrors } from "@/features/shared/lib/form-utils";
+import { formatPhp } from "@/features/shared/lib/money";
 
 type DetailsValues = z.input<typeof bookingDetailsSchema>;
 type DetailsOutput = z.output<typeof bookingDetailsSchema>;
 
-function defaultsFor(booking: CustomerBookingDetail): DetailsValues {
+function defaultsFor(
+  booking: CustomerBookingDetail,
+): DefaultValues<DetailsValues> {
   return {
     rentalId: booking.id,
     drivingMode: booking.withDriver ? "with-driver" : "self-drive",
@@ -39,8 +49,14 @@ function defaultsFor(booking: CustomerBookingDetail): DetailsValues {
     address: booking.customer.address ?? "",
     facebookAccount: booking.customer.facebookAccount ?? "",
     driversLicenseNumber: booking.customer.driversLicenseNumber ?? "",
-    pickupLocation: booking.pickupLocation ?? "",
-    returnLocation: booking.returnLocation ?? "",
+    // A booking from before the choice has no method: the renter picks one.
+    pickupMethod: booking.pickupMethod ?? undefined,
+    returnMethod: booking.returnMethod ?? undefined,
+    // At the office the saved location is the office address, not theirs.
+    pickupLocation:
+      booking.pickupMethod === "office" ? "" : (booking.pickupLocation ?? ""),
+    returnLocation:
+      booking.returnMethod === "office" ? "" : (booking.returnLocation ?? ""),
     destination: booking.destination ?? "",
     passengerCount:
       booking.passengerCount != null ? String(booking.passengerCount) : "",
@@ -48,14 +64,48 @@ function defaultsFor(booking: CustomerBookingDetail): DetailsValues {
 }
 
 /**
- * Fix what was typed into the booking form while the booking is unpaid. The
- * car, dates and driving mode set the price and hold, so changing those means
+ * The total after a pick-up or return change, as update_my_booking_details
+ * prices it: an unchanged leg keeps its booked fee, a changed one takes
+ * today's rate. Null when nothing changes.
+ */
+function repricedTotal(
+  booking: CustomerBookingDetail,
+  fees: DeliveryFees | null,
+  pickupMethod: HandoverMethod | null,
+  returnMethod: HandoverMethod | null,
+): number | null {
+  const leg = (
+    method: HandoverMethod | null,
+    bookedMethod: HandoverMethod | null,
+    bookedFee: number,
+  ) => (method === bookedMethod ? bookedFee : deliveryFee(method, fees));
+  const next =
+    Math.round(
+      (booking.quotedTotal -
+        booking.pickupDeliveryFee -
+        booking.returnDeliveryFee +
+        leg(pickupMethod, booking.pickupMethod, booking.pickupDeliveryFee) +
+        leg(returnMethod, booking.returnMethod, booking.returnDeliveryFee)) *
+        100,
+    ) / 100;
+  return next === booking.quotedTotal ? null : next;
+}
+
+/**
+ * Fix what was typed into the booking form while the booking is unpaid,
+ * including where the car is picked up and returned (re-priced). The car,
+ * dates and driving mode set the price and hold, so changing those means
  * cancelling and booking again.
  */
 export function EditBookingDetailsDialog({
   booking,
+  deliveryFees = null,
+  officeAddress,
 }: {
   booking: CustomerBookingDetail;
+  /** Settings → per-way delivery fees, to price a changed pick-up or return. */
+  deliveryFees?: DeliveryFees | null;
+  officeAddress?: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -68,6 +118,14 @@ export function EditBookingDetailsDialog({
     resolver: zodResolver(bookingDetailsSchema),
     defaultValues: defaultsFor(booking),
   });
+
+  const pickupMethod = parseHandoverMethod(
+    useWatch({ control: form.control, name: "pickupMethod" }),
+  );
+  const returnMethod = parseHandoverMethod(
+    useWatch({ control: form.control, name: "returnMethod" }),
+  );
+  const newTotal = repricedTotal(booking, deliveryFees, pickupMethod, returnMethod);
 
   function onOpenChange(next: boolean) {
     if (pending) return;
@@ -174,21 +232,23 @@ export function EditBookingDetailsDialog({
           <FieldSet>
             <FieldLegend>Trip details</FieldLegend>
             <FieldGroup className="grid items-start gap-4 sm:grid-cols-2">
-              <BookingTextField
+              <HandoverField
                 control={form.control}
                 disabled={pending}
-                label="Pick-up / delivery location"
-                name="pickupLocation"
-                placeholder="Airport, hotel, or address"
-                required
+                fees={deliveryFees}
+                leg="pickup"
+                locationName="pickupLocation"
+                methodName="pickupMethod"
+                officeAddress={officeAddress}
               />
-              <BookingTextField
+              <HandoverField
                 control={form.control}
                 disabled={pending}
-                label="Return location"
-                name="returnLocation"
-                placeholder="Where we collect the car"
-                required
+                fees={deliveryFees}
+                leg="return"
+                locationName="returnLocation"
+                methodName="returnMethod"
+                officeAddress={officeAddress}
               />
               <BookingTextField
                 control={form.control}
@@ -216,6 +276,19 @@ export function EditBookingDetailsDialog({
               />
             </FieldGroup>
           </FieldSet>
+
+          {newTotal != null ? (
+            <Alert>
+              <Info />
+              <AlertDescription>
+                Your new trip total will be{" "}
+                <span className="font-semibold text-brand-950 tabular-nums">
+                  {formatPhp(newTotal)}
+                </span>
+                .
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
           {error ? (
             <Alert variant="destructive">

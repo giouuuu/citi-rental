@@ -107,6 +107,12 @@ describe("quoteTrip", () => {
     ).toMatchObject({ driver: { days: 2, fee: 0 }, total: 4000 });
   });
 
+  it("adds delivery and collection on top of the car and driver", () => {
+    expect(
+      quoteTrip(rates, "2026-07-27", "2026-07-29", { rate: 1000 }, 700),
+    ).toMatchObject({ delivery: 700, driver: { fee: 2000 }, total: 6700 });
+  });
+
   it("is null without both dates", () => {
     expect(quoteTrip(rates, "2026-07-27", "", { rate: 1000 })).toBeNull();
   });

@@ -5,10 +5,10 @@ import { ChevronRight, MapPin, Star } from "lucide-react";
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { RENTAL_STATUS_LABELS } from "@/features/rentals/lib/rental-status-counts";
 import { Button } from "@/components/ui/button";
+import { customerPaymentKind } from "@/features/booking/lib/booking-payment-step";
 import { customerPaymentLabel } from "@/features/booking/lib/customer-booking-labels";
 import {
   canReviewBooking,
-  isAwaitingPayment,
   type CustomerBooking,
 } from "@/features/booking/types/customer-booking";
 import { formatManila } from "@/features/shared/lib/manila-time";
@@ -30,7 +30,16 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
     "Vehicle";
   const location = booking.pickupLocation || booking.returnLocation;
   const payHref = `/book/pay/${booking.id}?ref=${encodeURIComponent(booking.referenceNumber)}`;
-  const awaiting = isAwaitingPayment(booking);
+  // The list carries balance_due, not the ledger; the pay page has the exact bill.
+  const balance = Math.max(0, booking.balanceDue ?? 0);
+  const paid = Math.max(0, (booking.quotedTotal ?? 0) - balance);
+  const paymentKind = customerPaymentKind({
+    status: booking.status,
+    paymentStatus: booking.paymentStatus,
+    depositAmount: booking.depositAmount,
+    billTotal: paid + balance,
+    amountPaid: paid,
+  });
   const payment = customerPaymentLabel(booking.status, booking.paymentStatus);
   const detailHref = `/account/bookings/${booking.id}`;
   const completed = booking.status === "completed";
@@ -124,12 +133,14 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
                 </Link>
               </Button>
             ) : null}
-            {awaiting ? (
+            {paymentKind ? (
               <Button asChild className="w-full sm:w-auto" size="sm">
                 <Link href={payHref}>
-                  {booking.paymentStatus === "proof_submitted"
-                    ? "View payment status"
-                    : "Pay reservation fee"}
+                  {paymentKind === "open_bill"
+                    ? "Pay balance"
+                    : booking.paymentStatus === "proof_submitted"
+                      ? "View payment status"
+                      : "Pay reservation fee"}
                 </Link>
               </Button>
             ) : null}

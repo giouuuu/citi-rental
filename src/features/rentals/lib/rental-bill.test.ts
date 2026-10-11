@@ -46,6 +46,57 @@ describe("buildRentalBill", () => {
     expect(bill.balance).toBe(6500);
   });
 
+  it("shows delivery and collection apart from the rent", () => {
+    const bill = buildRentalBill({
+      quotedRates: { daily: 2500 },
+      quotedDays: 2,
+      quotedTotal: 5700,
+      handover: {
+        pickupMethod: "within_city",
+        returnMethod: "outside_city",
+        pickupFee: 300,
+        returnFee: 400,
+      },
+      payments: [],
+    });
+
+    expect(bill.rent.total).toBe(5000);
+    expect(bill.handover.map((line) => [line.label, line.fee])).toEqual([
+      ["Delivery", 300],
+      ["Collection", 400],
+    ]);
+    expect(bill.total).toBe(5700);
+  });
+
+  it("shows every-booking fees apart from the rent", () => {
+    const bill = buildRentalBill({
+      quotedRates: { daily: 2500 },
+      quotedDays: 1,
+      quotedTotal: 2700,
+      bookingFees: [{ name: "Booking fee", amount: 200 }],
+      payments: [],
+    });
+
+    expect(bill.rent.total).toBe(2500);
+    expect(bill.bookingFees).toEqual([{ name: "Booking fee", amount: 200 }]);
+    expect(bill.total).toBe(2700);
+  });
+
+  it("lists an office pick-up as free and skips a leg with no method", () => {
+    const bill = buildRentalBill({
+      quotedRates: { daily: 2500 },
+      quotedDays: 1,
+      quotedTotal: 2500,
+      handover: { pickupMethod: "office", returnMethod: null, pickupFee: 0, returnFee: 0 },
+      payments: [],
+    });
+
+    expect(bill.handover).toEqual([
+      { label: "Pick-up at office", detail: "At our office", fee: 0 },
+    ]);
+    expect(bill.rent.total).toBe(2500);
+  });
+
   it("adds charges to the rent and subtracts what was paid", () => {
     const bill = buildRentalBill({
       quotedRates: { daily: 2500 },

@@ -21,12 +21,22 @@ import {
 import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { uploadPaymentProof } from "@/features/booking/lib/upload-payment-proof";
+import { bookingPaymentStep } from "@/features/booking/lib/booking-payment-step";
 import { uploadBookingIdPhotos } from "@/features/booking/lib/upload-booking-id-photos";
 import {
   type AgreementTemplate,
   AGREEMENT_TEMPLATE_VERSION,
 } from "@/features/agreements/lib/agreement-template";
 import { parseAgreementTemplate } from "@/features/agreements/schemas/agreement-template-schema";
+import {
+  type BookingFeeLine,
+  parseBookingFees,
+} from "@/features/booking/lib/booking-fees";
+import {
+  type DeliveryFees,
+  handoverBillLine,
+  parseHandoverMethod,
+} from "@/features/booking/lib/handover";
 
 function toTimestamptz(value: string) {
   const date = parseManilaTimestamp(value);
@@ -48,6 +58,7 @@ function optionalNum(value: unknown) {
 function mapPaymentDetails(
   row: Record<string, unknown>,
 ): BookingPaymentDetails {
+  const withDriver = row.with_driver === true;
   return {
     rentalId: String(row.rental_id),
     referenceNumber: String(row.reference_number),
@@ -58,9 +69,35 @@ function mapPaymentDetails(
     quotedDays: num(row.quoted_days, 1),
     quotedHours: optionalNum(row.quoted_hours),
     quotedTotal: num(row.quoted_total),
+    driver: withDriver
+      ? {
+          fee: num(row.driver_fee),
+          rate: optionalNum(row.driver_daily_rate),
+          days: optionalNum(row.driver_days),
+        }
+      : null,
+    handover: {
+      pickupMethod: parseHandoverMethod(row.pickup_method),
+      returnMethod: parseHandoverMethod(row.return_method),
+      pickupFee: num(row.pickup_delivery_fee),
+      returnFee: num(row.return_delivery_fee),
+    },
+    bookingFees: parseBookingFees(row.booking_fees),
+    pickupLocation:
+      typeof row.pickup_location === "string" ? row.pickup_location : null,
+    returnLocation:
+      typeof row.return_location === "string" ? row.return_location : null,
+    carWashFee: optionalNum(row.car_wash_fee),
     depositAmount: num(row.deposit_amount),
     balanceDue: num(row.balance_due),
     paymentStatus: (row.payment_status as RentalPaymentStatus) || "unpaid",
+    paymentKind:
+      row.payment_kind === "reservation_fee" || row.payment_kind === "open_bill"
+        ? row.payment_kind
+        : null,
+    billTotal: num(row.bill_total, num(row.quoted_total)),
+    amountPaid: num(row.amount_paid),
+    pendingPaymentAmount: num(row.pending_payment_amount),
     paymentReference:
       typeof row.payment_reference === "string" ? row.payment_reference : null,
     hasPaymentProof: Boolean(row.has_payment_proof),
@@ -115,6 +152,49 @@ export async function getPublicDriverDailyRate(): Promise<number | null> {
   const rate = Number(data);
   return data != null && Number.isFinite(rate) && rate > 0 ? rate : null;
 }
+
+export type PublicBookingFees = {
+  /** Settings → per-way delivery fees. */
+  delivery: DeliveryFees;
+  /** Settings → operating address, where office pick-ups happen. */
+  officeAddress: string | null;
+  /** Charge types → Car wash default amount; charged if returned unwashed. */
+  carWashFee: number | null;
+  /** Charge types ticked "Add to every online booking". */
+  bookingFees: BookingFeeLine[];
+};
+
+const NO_BOOKING_FEES: PublicBookingFees = {
+  delivery: { withinCity: null, outsideCity: null },
+  officeAddress: null,
+  carWashFee: null,
+  bookingFees: [],
+};
+
+/** The fees a customer sees while booking. Cached per request. */
+export const getPublicBookingFees = cache(
+  async function getPublicBookingFees(): Promise<PublicBookingFees> {
+    if (!isSupabaseConfigured()) return NO_BOOKING_FEES;
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("get_public_booking_fees");
+    if (error || !data) {
+      if (error) console.error("get_public_booking_fees failed", error.message);
+      return NO_BOOKING_FEES;
+    }
+    const row = data as Record<string, unknown>;
+    return {
+      delivery: {
+        withinCity: optionalNum(row.delivery_fee_within_city),
+        outsideCity: optionalNum(row.delivery_fee_outside_city),
+      },
+      officeAddress:
+        typeof row.office_address === "string" ? row.office_address : null,
+      carWashFee: optionalNum(row.car_wash_fee),
+      bookingFees: parseBookingFees(row.booking_fees),
+    };
+  },
+);
 
 /** Hours before pickup a booking can be cancelled with the fee refunded. */
 export async function getPublicFreeCancellationHours(): Promise<number | null> {
@@ -220,8 +300,13 @@ export async function createPublicBooking(
       input.drivingMode === "with-driver"
         ? null
         : input.driversLicenseNumber || null,
-    p_pickup_location: input.pickupLocation,
-    p_return_location: input.returnLocation,
+    // At the office the database fills in the office address.
+    p_pickup_location:
+      input.pickupMethod === "office" ? null : input.pickupLocation,
+    p_return_location:
+      input.returnMethod === "office" ? null : input.returnLocation,
+    p_pickup_method: input.pickupMethod,
+    p_return_method: input.returnMethod,
     p_notes: input.notes || null,
     p_address: input.address || null,
     p_facebook_account: input.facebookAccount || null,
@@ -263,6 +348,17 @@ export async function createPublicBooking(
     quotedTotal: num(payload.quoted_total),
     withDriver: payload.with_driver === true,
     driverFee: num(payload.driver_fee),
+    pickupLocation:
+      typeof payload.pickup_location === "string"
+        ? payload.pickup_location
+        : input.pickupLocation,
+    handover: {
+      pickupMethod: parseHandoverMethod(payload.pickup_method),
+      returnMethod: parseHandoverMethod(payload.return_method),
+      pickupFee: num(payload.pickup_delivery_fee),
+      returnFee: num(payload.return_delivery_fee),
+    },
+    bookingFees: parseBookingFees(payload.booking_fees),
     depositAmount: num(payload.deposit_amount),
     balanceDue: num(payload.balance_due),
     paymentStatus: (payload.payment_status as RentalPaymentStatus) || "unpaid",
@@ -283,7 +379,9 @@ export async function createPublicBooking(
       result.withDriver
         ? `WITH DRIVER: ${result.driverFee > 0 ? `${formatPhp(result.driverFee)} included` : "fee to quote"}`
         : "Self-drive",
-      `Trip: ${input.pickupLocation} → ${input.destination} · ${input.passengerCount} pax`,
+      ...handoverTelegramLines(result.handover),
+      ...result.bookingFees.map((fee) => `${fee.name}: ${formatPhp(fee.amount)}`),
+      `Trip: ${input.pickupMethod === "office" ? "Office pick-up" : input.pickupLocation} → ${input.destination} · ${input.passengerCount} pax`,
       input.fullName
         ? `Customer: ${input.fullName} · ${input.phoneNumber || input.email}`
         : `Returning customer: ${input.email || input.phoneNumber}`,
@@ -303,6 +401,18 @@ export async function createPublicBooking(
   });
 
   return result;
+}
+
+/** "Delivery: Within Cebu City · ₱300" lines for the owner's alert. */
+function handoverTelegramLines(handover: PublicBookingResult["handover"]) {
+  return [
+    handoverBillLine("pickup", handover.pickupMethod, handover.pickupFee),
+    handoverBillLine("return", handover.returnMethod, handover.returnFee),
+  ].flatMap((line) =>
+    line
+      ? [`${line.label}: ${line.detail}${line.fee > 0 ? ` · ${formatPhp(line.fee)}` : ""}`]
+      : [],
+  );
 }
 
 export async function getBookingPaymentDetails(
@@ -330,6 +440,8 @@ export async function submitBookingPaymentProof(input: {
   referenceNumber: string;
   paymentReference: string;
   proof: File;
+  /** Bill payments: what the renter sent. The reservation fee ignores it. */
+  amount?: number;
 }): Promise<{
   rentalId: string;
   referenceNumber: string;
@@ -349,8 +461,18 @@ export async function submitBookingPaymentProof(input: {
   if (!details) {
     throw new Error("Booking not found. Check your reference number.");
   }
-  if (details.status !== "draft") {
-    throw new Error("This booking is already confirmed or closed.");
+  const step = bookingPaymentStep(details);
+  if (step.kind === "nothing_due") {
+    throw new Error(
+      details.status === "cancelled"
+        ? "This booking is cancelled."
+        : "Nothing is left to pay on this booking.",
+    );
+  }
+  if (step.kind === "open_bill_sent") {
+    throw new Error(
+      "Your last payment is still being checked. It covers the open balance.",
+    );
   }
   const supabase = await createClient();
   const path = await uploadPaymentProof({
@@ -364,6 +486,7 @@ export async function submitBookingPaymentProof(input: {
     p_reference_number: input.referenceNumber,
     p_payment_reference: input.paymentReference,
     p_proof_path: path,
+    p_amount: input.amount ?? null,
   });
 
   if (error) {
@@ -375,14 +498,21 @@ export async function submitBookingPaymentProof(input: {
     throw new Error("We could not save your payment proof. Please try again.");
   }
 
+  const billPayment = payload.payment_kind === "open_bill";
   void notifyOwnerTelegram({
     text: [
-      payload.dates_taken
-        ? "Payment proof submitted, but another booking already holds these dates — move dates or refund"
-        : "Payment proof submitted — dates held, please verify",
+      billPayment
+        ? "Bill payment proof submitted — please verify"
+        : payload.dates_taken
+          ? "Payment proof submitted, but another booking already holds these dates — move dates or refund"
+          : details.status === "reserved"
+            ? "Reservation fee proof submitted on a reserved booking — please verify"
+            : "Payment proof submitted — dates held, please verify",
       `Ref: ${payload.reference_number}`,
       `Car: ${payload.vehicle_name ?? details.vehicleName}`,
-      `Deposit: ${formatPhp(num(payload.deposit_amount, details.depositAmount))}`,
+      billPayment
+        ? `Amount: ${formatPhp(num(payload.amount))}`
+        : `Deposit: ${formatPhp(num(payload.deposit_amount, details.depositAmount))}`,
       `Pay ref: ${payload.payment_reference ?? input.paymentReference}`,
       `Customer: ${payload.customer_name ?? "—"} · ${payload.customer_phone ?? "—"}`,
     ].join("\n"),
@@ -492,10 +622,14 @@ export async function updateMyBookingDetails(
     p_address: input.address,
     p_facebook_account: input.facebookAccount,
     p_drivers_license_number: input.driversLicenseNumber || null,
-    p_pickup_location: input.pickupLocation,
-    p_return_location: input.returnLocation,
+    p_pickup_location:
+      input.pickupMethod === "office" ? null : input.pickupLocation,
+    p_return_location:
+      input.returnMethod === "office" ? null : input.returnLocation,
     p_destination: input.destination,
     p_passenger_count: input.passengerCount,
+    p_pickup_method: input.pickupMethod,
+    p_return_method: input.returnMethod,
   });
 
   if (error) {
@@ -518,7 +652,10 @@ export async function updateMyBookingDetails(
       `Ref: ${result.referenceNumber}`,
       `Car: ${payload.vehicle_name ?? "—"}`,
       `Customer: ${payload.customer_name ?? "—"} · ${payload.customer_phone ?? "—"}`,
-      `Trip: ${input.pickupLocation} → ${input.destination} · ${input.passengerCount} pax`,
+      `Trip: ${payload.pickup_location ?? input.pickupLocation} → ${input.destination} · ${input.passengerCount} pax`,
+      ...(payload.price_changed === true
+        ? [`Pick-up/return changed — new total ${formatPhp(num(payload.quoted_total))}`]
+        : []),
     ].join("\n"),
     buttons: [{ text: "Open rental", url: `${siteUrl()}/rentals/${result.rentalId}` }],
   }).then((notify) => {

@@ -80,6 +80,8 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
       gps_provider: settings.gps_provider as SettingsInput["gps_provider"],
       reservation_fee: settings.reservation_fee,
       driver_daily_rate: settings.driver_daily_rate,
+      delivery_fee_within_city: settings.delivery_fee_within_city,
+      delivery_fee_outside_city: settings.delivery_fee_outside_city,
       free_cancellation_hours: settings.free_cancellation_hours,
       payment_instructions: settings.payment_instructions,
       operating_address: settings.operating_address,
@@ -320,6 +322,84 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                   <FieldDescription>
                     Added to with-driver bookings for every started 24 hours.
                     Leave empty to quote the driver yourself.
+                  </FieldDescription>
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="delivery_fee_within_city"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="delivery_fee_within_city">
+                    Delivery fee within Cebu City (₱ per way)
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    disabled={isPending}
+                    id="delivery_fee_within_city"
+                    min={0}
+                    step="0.01"
+                    onChange={(event) =>
+                      field.onChange(
+                        event.target.value === ""
+                          ? null
+                          : event.target.valueAsNumber,
+                      )
+                    }
+                    placeholder="Staff quote it"
+                    type="number"
+                    value={
+                      field.value === undefined || field.value === null
+                        ? ""
+                        : String(field.value)
+                    }
+                  />
+                  <FieldDescription>
+                    Added when a customer has the car delivered or collected within Cebu City. Charged each way.
+                  </FieldDescription>
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="delivery_fee_outside_city"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="delivery_fee_outside_city">
+                    Delivery fee outside Cebu City (₱ per way)
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    disabled={isPending}
+                    id="delivery_fee_outside_city"
+                    min={0}
+                    step="0.01"
+                    onChange={(event) =>
+                      field.onChange(
+                        event.target.value === ""
+                          ? null
+                          : event.target.valueAsNumber,
+                      )
+                    }
+                    placeholder="Staff quote it"
+                    type="number"
+                    value={
+                      field.value === undefined || field.value === null
+                        ? ""
+                        : String(field.value)
+                    }
+                  />
+                  <FieldDescription>
+                    Added when a customer has the car delivered or collected outside Cebu City. Picking up or returning at the office is free.
                   </FieldDescription>
                   {fieldState.invalid ? (
                     <FieldError errors={[fieldState.error]} />

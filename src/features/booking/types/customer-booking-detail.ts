@@ -2,6 +2,7 @@ import type {
   CustomerBookingStatus,
   RentalPaymentStatus,
 } from "@/features/booking/types/customer-booking";
+import type { HandoverMethod } from "@/features/booking/lib/handover";
 import type { RentalBill } from "@/features/rentals/lib/rental-bill";
 import type { RentalPayment } from "@/features/rentals/types/rental-payment";
 
@@ -29,6 +30,14 @@ export type CustomerBookingDetail = {
   actualReturnAt: string | null;
   pickupLocation: string | null;
   returnLocation: string | null;
+  /** Office or delivery at each end; null on bookings from before the choice. */
+  pickupMethod: HandoverMethod | null;
+  returnMethod: HandoverMethod | null;
+  /** Each leg's delivery fee, inside `quotedTotal`. */
+  pickupDeliveryFee: number;
+  returnDeliveryFee: number;
+  /** Rent, driver and delivery as booked. */
+  quotedTotal: number;
   destination: string | null;
   passengerCount: number | null;
   withDriver: boolean;

@@ -1,11 +1,18 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
 import { chargeTypeDefinition } from "@/features/rentals/schemas/charge-type-definition";
 import { revalidateResource } from "@/features/shared/lib/revalidate-resource";
+
+/** Booking pages show the every-booking fees and the car wash amount. */
+function revalidateBookingPages() {
+  revalidatePath("/book/[vehicleId]", "page");
+}
 
 export async function saveChargeTypeAction(
   formData: FormData,
@@ -19,6 +26,7 @@ export async function saveChargeTypeAction(
   const values = Object.fromEntries(
     chargeTypeDefinition.fields.map((field) => {
       const raw = formData.get(field.name);
+      if (field.type === "checkbox") return [field.name, raw === "on" || raw === "true"];
       return [field.name, raw === null || raw === "" ? undefined : raw];
     }),
   );
@@ -55,6 +63,7 @@ export async function saveChargeTypeAction(
       name: parsed.data.name,
       // A cleared amount means "type it each time", so store null.
       default_amount: parsed.data.default_amount ?? null,
+      add_to_bookings: parsed.data.add_to_bookings,
     };
     if (parsed.data.sort_order !== undefined)
       payload.sort_order = parsed.data.sort_order;
@@ -69,6 +78,7 @@ export async function saveChargeTypeAction(
       if (error) throw error;
       if (!data) throw new Error("The charge type was not found.");
       revalidateResource(chargeTypeDefinition.route);
+      revalidateBookingPages();
       return {
         success: true,
         data: { id, href: `${chargeTypeDefinition.route}/${id}` },
@@ -84,6 +94,7 @@ export async function saveChargeTypeAction(
 
     const savedId = String(data.id);
     revalidateResource(chargeTypeDefinition.route);
+    revalidateBookingPages();
     return {
       success: true,
       data: { id: savedId, href: `${chargeTypeDefinition.route}/${savedId}` },

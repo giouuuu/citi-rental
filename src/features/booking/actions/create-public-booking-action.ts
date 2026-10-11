@@ -32,6 +32,8 @@ export async function createPublicBookingAction(
     driversLicenseNumber: formData.get("driversLicenseNumber") ?? "",
     address: formData.get("address") ?? "",
     facebookAccount: formData.get("facebookAccount") ?? "",
+    pickupMethod: formData.get("pickupMethod") || undefined,
+    returnMethod: formData.get("returnMethod") || undefined,
     pickupLocation: formData.get("pickupLocation") ?? "",
     returnLocation: formData.get("returnLocation") ?? "",
     destination: formData.get("destination") ?? "",

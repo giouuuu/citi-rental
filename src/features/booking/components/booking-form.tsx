@@ -29,6 +29,13 @@ import { BookingTermsField } from "@/features/booking/components/booking-terms-f
 import type { AgreementTerms } from "@/features/agreements/lib/agreement-template";
 import { BookingVehicleSummary } from "@/features/booking/components/booking-vehicle-summary";
 import { DrivingModeToggle } from "@/features/booking/components/driving-mode-toggle";
+import { HandoverField } from "@/features/booking/components/handover-field";
+import type { BookingFeeLine } from "@/features/booking/lib/booking-fees";
+import {
+  type DeliveryFees,
+  deliveryFee,
+  parseHandoverMethod,
+} from "@/features/booking/lib/handover";
 import type { DrivingMode } from "@/features/booking/lib/driving-mode";
 import {
   idPhotoCopy,
@@ -41,6 +48,7 @@ import {
   parseManilaDateTimeInput,
   toManilaDateTimeInput,
 } from "@/features/shared/lib/manila-time";
+import { formatPhp } from "@/features/shared/lib/money";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,6 +87,14 @@ type BookingFormProps = {
   initialDrivingMode?: DrivingMode;
   /** Settings → driver day rate; null means staff quote the driver. */
   driverDailyRate?: number | null;
+  /** Settings → per-way delivery fees, priced into the total as picked. */
+  deliveryFees?: DeliveryFees | null;
+  /** Settings → operating address, shown for an office pick-up or return. */
+  officeAddress?: string | null;
+  /** Charge types → Car wash; named in the requirements. */
+  carWashFee?: number | null;
+  /** Charge types added to every online booking; in the total. */
+  bookingFees?: BookingFeeLine[];
   initialFullName?: string;
   /** The signed-in account's email; the booking always uses it. */
   initialEmail?: string;
@@ -115,6 +131,10 @@ export function BookingForm({
   initialPickupLocation,
   initialDrivingMode = "self-drive",
   driverDailyRate,
+  deliveryFees = null,
+  officeAddress,
+  carWashFee,
+  bookingFees,
   initialFullName,
   initialEmail,
   reservationFee,
@@ -144,6 +164,9 @@ export function BookingForm({
       driversLicenseNumber: "",
       address: "",
       facebookAccount: "",
+      // No default: office or delivery is the renter's call, and what it costs.
+      pickupMethod: undefined,
+      returnMethod: undefined,
       pickupLocation: initialPickupLocation ?? "",
       returnLocation: initialPickupLocation ?? "",
       destination: "",
@@ -158,6 +181,9 @@ export function BookingForm({
   const drivingMode = form.watch("drivingMode") ?? "self-drive";
   const withDriver = drivingMode === "with-driver";
   const idCopy = idPhotoCopy[drivingMode];
+  const delivery =
+    deliveryFee(parseHandoverMethod(form.watch("pickupMethod")), deliveryFees) +
+    deliveryFee(parseHandoverMethod(form.watch("returnMethod")), deliveryFees);
 
   useEffect(() => {
     onDatesChange?.({ start: startAt ?? "", end: expectedReturnAt ?? "" });
@@ -242,6 +268,8 @@ export function BookingForm({
       >
         <input type="hidden" {...form.register("vehicleId")} />
         <BookingVehicleSummary
+          bookingFees={bookingFees}
+          delivery={delivery}
           expectedReturnAt={expectedReturnAt}
           freeCancellationHours={freeCancellationHours}
           reservationFee={reservationFee}
@@ -359,21 +387,23 @@ export function BookingForm({
         <FieldSet>
           <FieldLegend>Trip details</FieldLegend>
           <FieldGroup className="grid items-start gap-4 sm:grid-cols-2">
-            <BookingTextField
+            <HandoverField
               control={form.control}
               disabled={pending}
-              label="Pick-up / delivery location"
-              name="pickupLocation"
-              placeholder="Airport, hotel, or address"
-              required
+              fees={deliveryFees}
+              leg="pickup"
+              locationName="pickupLocation"
+              methodName="pickupMethod"
+              officeAddress={officeAddress}
             />
-            <BookingTextField
+            <HandoverField
               control={form.control}
               disabled={pending}
-              label="Return location"
-              name="returnLocation"
-              placeholder="Where we collect the car"
-              required
+              fees={deliveryFees}
+              leg="return"
+              locationName="returnLocation"
+              methodName="returnMethod"
+              officeAddress={officeAddress}
             />
             <BookingTextField
               control={form.control}
@@ -442,12 +472,12 @@ export function BookingForm({
                   ? "Bring the government ID shown in your selfie."
                   : "Bring the driver's license shown in your selfie."}
               </li>
-              <li>Return the car washed, or pay the wash rate.</li>
-              <li>Return the car with the same fuel level.</li>
               <li>
-                Delivery and pick-up are charged per way, depending on the
-                location.
+                {carWashFee
+                  ? `Return the car washed, or pay the ${formatPhp(carWashFee)} car wash fee.`
+                  : "Return the car washed, or pay the wash rate."}
               </li>
+              <li>Return the car with the same fuel level.</li>
             </ul>
           </AlertDescription>
         </Alert>

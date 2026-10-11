@@ -146,7 +146,7 @@ export async function saveRentalAction(
       const { data: existing, error: existingError } = await supabase
         .from("rentals")
         .select(
-          "id, status, reference_number, start_at, expected_return_at, quoted_daily_rate, quoted_half_day_rate, quoted_hourly_rate, quoted_days, quoted_hours, with_driver, driver_daily_rate, driver_fee",
+          "id, status, reference_number, start_at, expected_return_at, quoted_daily_rate, quoted_half_day_rate, quoted_hourly_rate, quoted_days, quoted_hours, with_driver, driver_daily_rate, driver_fee, pickup_delivery_fee, return_delivery_fee, booking_fees_total",
         )
         .eq("id", id)
         .maybeSingle();
@@ -220,19 +220,28 @@ export async function saveRentalAction(
               );
         if (quote) {
           Object.assign(payload, quote);
-          // quoted_total carries the driver too: re-price the driver on new
-          // dates, otherwise keep the booked driver fee.
-          if (existing.with_driver) {
-            const driver = datesChanged
+          // quoted_total carries the driver, delivery and booking fees too:
+          // re-price the driver on new dates, otherwise keep the booked
+          // driver fee; keep the booked delivery and booking fees either way.
+          const driver = existing.with_driver
+            ? datesChanged
               ? driverCharge(
                   new Date(startAt),
                   new Date(expectedReturnAt),
                   optionalRate(existing.driver_daily_rate),
                 )
-              : { driver_fee: Number(existing.driver_fee ?? 0) };
+              : { driver_fee: Number(existing.driver_fee ?? 0) }
+            : null;
+          const delivery =
+            Number(existing.pickup_delivery_fee ?? 0) +
+            Number(existing.return_delivery_fee ?? 0) +
+            Number(existing.booking_fees_total ?? 0);
+          if (driver || delivery > 0) {
             Object.assign(payload, driver, {
               quoted_total:
-                Math.round((quote.quoted_total + driver.driver_fee) * 100) / 100,
+                Math.round(
+                  (quote.quoted_total + (driver?.driver_fee ?? 0) + delivery) * 100,
+                ) / 100,
             });
           }
         }

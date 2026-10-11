@@ -1,4 +1,8 @@
 import { cn } from "@/lib/utils";
+import {
+  type BookingFeeLine,
+  bookingFeesTotal,
+} from "@/features/booking/lib/booking-fees";
 import { describeBilledTime, type RentRates } from "@/features/rentals/lib/rent-pricing";
 import {
   formatPhp,
@@ -15,6 +19,10 @@ type VehicleRateQuoteProps = {
   reservationFee?: number | null;
   /** Set when the trip has a driver: the owner's driver day rate, if any. */
   withDriver?: { rate: number | null } | null;
+  /** Delivery plus collection fees, already summed. */
+  delivery?: number;
+  /** Fees added to every online booking, named in the breakdown. */
+  bookingFees?: BookingFeeLine[];
   className?: string;
   /** Extra classes for the daily price figure, e.g. a larger display size. */
   priceClassName?: string;
@@ -26,10 +34,29 @@ export function VehicleRateQuote({
   end,
   reservationFee,
   withDriver,
+  delivery = 0,
+  bookingFees = [],
   className,
   priceClassName,
 }: VehicleRateQuoteProps) {
-  const quote = quoteTrip(rates, start, end, withDriver);
+  const quote = quoteTrip(
+    rates,
+    start,
+    end,
+    withDriver,
+    delivery,
+    bookingFeesTotal(bookingFees),
+  );
+  const parts = quote
+    ? [
+        `Car ${formatPhp(quote.rent.total)}`,
+        quote.driver?.rate != null
+          ? `driver ${formatPhp(quote.driver.rate)} × ${quote.driver.days} ${quote.driver.days === 1 ? "day" : "days"}`
+          : null,
+        quote.delivery > 0 ? `delivery ${formatPhp(quote.delivery)}` : null,
+        ...bookingFees.map((fee) => `${fee.name.toLowerCase()} ${formatPhp(fee.amount)}`),
+      ].filter(Boolean)
+    : [];
   const deposit =
     quote && reservationFee
       ? quoteReservationFee(quote.total, reservationFee)
@@ -53,11 +80,14 @@ export function VehicleRateQuote({
           </span>
         </p>
       ) : null}
-      {quote?.driver ? (
+      {parts.length > 1 ? (
         <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-          {quote.driver.rate != null
-            ? `Car ${formatPhp(quote.rent.total)} + driver ${formatPhp(quote.driver.rate)} × ${quote.driver.days} ${quote.driver.days === 1 ? "day" : "days"}`
-            : "Driver fee confirmed by staff"}
+          {parts.join(" + ")}
+        </p>
+      ) : null}
+      {quote?.driver && quote.driver.rate == null ? (
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Driver fee confirmed by staff
         </p>
       ) : null}
       {deposit ? (

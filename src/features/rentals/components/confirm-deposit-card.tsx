@@ -28,6 +28,8 @@ type ConfirmDepositCardProps = {
   /** The deposit was paid through PayMongo, which verified the money. */
   paidOnline?: boolean;
   customerLabel?: string | null;
+  /** Staff reserved the booking before the fee came in. */
+  reserved?: boolean;
 };
 
 export function ConfirmDepositCard({
@@ -37,6 +39,7 @@ export function ConfirmDepositCard({
   proofUrl,
   paidOnline = false,
   customerLabel,
+  reserved = false,
 }: ConfirmDepositCardProps) {
   const [error, setError] = useState("");
   const { isPending, runMutation } = useMutationCoordinator();
@@ -69,7 +72,9 @@ export function ConfirmDepositCard({
               Deposit needs confirmation
             </CardTitle>
             <CardDescription className="text-amber-950/70">
-              Review the payment proof, then confirm to reserve this booking.
+              {reserved
+                ? "The booking is already reserved. Review the payment proof, then confirm the fee was received."
+                : "Review the payment proof, then confirm to reserve this booking."}
             </CardDescription>
           </div>
         </div>
@@ -127,7 +132,9 @@ export function ConfirmDepositCard({
           confirmLabel="Confirm deposit"
           description={`Confirm the deposit${
             depositAmount != null ? ` of ${formatPhp(Number(depositAmount))}` : ""
-          } was received. This reserves the car for the booked dates.`}
+          } was received.${
+            reserved ? "" : " This reserves the car for the booked dates."
+          }`}
           icon={CheckCircle2}
           title="Confirm the deposit was received?"
           trigger={
@@ -137,7 +144,7 @@ export function ConfirmDepositCard({
               ) : (
                 <CheckCircle2 />
               )}
-              Confirm deposit → reserve
+              {reserved ? "Confirm deposit" : "Confirm deposit → reserve"}
             </Button>
           }
           variant="default"

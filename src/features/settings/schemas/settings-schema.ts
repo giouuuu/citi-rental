@@ -9,6 +9,14 @@ const phoneChannel = z
   )
   .optional();
 const handleChannel = z.string().trim().max(200).optional();
+/** An optional peso amount: empty means staff quote it. */
+const optionalFee = (negative: string) =>
+  z.preprocess(
+    (value) =>
+      value === "" || value == null || Number.isNaN(value) ? null : value,
+    z.coerce.number().min(0, negative).max(1_000_000).nullable(),
+  );
+
 const reviewLink = z
   .string()
   .trim()
@@ -41,6 +49,9 @@ export const settingsSchema = z
         .max(1_000_000)
         .nullable(),
     ),
+    // Per way. Empty: deliveries go through and staff quote the fee.
+    delivery_fee_within_city: optionalFee("The delivery fee cannot be negative."),
+    delivery_fee_outside_city: optionalFee("The delivery fee cannot be negative."),
     free_cancellation_hours: z.coerce
       .number()
       .int("Use whole hours.")

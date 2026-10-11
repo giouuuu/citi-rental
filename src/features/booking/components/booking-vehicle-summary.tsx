@@ -1,5 +1,6 @@
 import { CarFront } from "lucide-react";
 
+import type { BookingFeeLine } from "@/features/booking/lib/booking-fees";
 import { VehicleRateQuote } from "@/features/vehicles/components/vehicle-rate-quote";
 import { vehicleModelLine } from "@/features/vehicles/lib/vehicle-model-line";
 import type { PublicFleetVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
@@ -12,6 +13,10 @@ type BookingVehicleSummaryProps = {
   freeCancellationHours?: number | null;
   /** Set for a with-driver trip: the owner's driver day rate, if any. */
   withDriver?: { rate: number | null } | null;
+  /** Delivery plus collection fees for the pick-up and return picked. */
+  delivery?: number;
+  /** Fees added to every online booking. */
+  bookingFees?: BookingFeeLine[];
 };
 
 export function BookingVehicleSummary({
@@ -21,6 +26,8 @@ export function BookingVehicleSummary({
   reservationFee,
   freeCancellationHours,
   withDriver,
+  delivery,
+  bookingFees,
 }: BookingVehicleSummaryProps) {
   const modelLine = vehicleModelLine(vehicle);
 
@@ -39,7 +46,9 @@ export function BookingVehicleSummary({
             <p className="text-sm text-muted-foreground tabular-nums">{modelLine}</p>
           ) : null}
           <VehicleRateQuote
+            bookingFees={bookingFees}
             className="mt-3"
+            delivery={delivery}
             rates={{ daily: vehicle.daily_rate }}
             end={expectedReturnAt}
             reservationFee={reservationFee}

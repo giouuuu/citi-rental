@@ -17,6 +17,8 @@ const valid = {
   driversLicenseNumber: "N01-23-456789",
   address: "Lahug, Cebu City",
   facebookAccount: "facebook.com/alex.rivera",
+  pickupMethod: "outside_city",
+  returnMethod: "within_city",
   pickupLocation: "Mactan Airport",
   returnLocation: "IT Park",
   destination: "Moalboal",
@@ -64,8 +66,8 @@ describe("publicBookingSchema", () => {
   it.each([
     ["address", "Enter your complete address."],
     ["facebookAccount", "Enter your Facebook name or profile link."],
-    ["pickupLocation", "Enter the pick-up or delivery location."],
-    ["returnLocation", "Enter the return location."],
+    ["pickupLocation", "Enter the delivery address."],
+    ["returnLocation", "Enter where we collect the car."],
     ["destination", "Enter your destination."],
     ["passengerCount", "Enter how many passengers."],
   ])("requires %s", (field, message) => {
@@ -128,6 +130,27 @@ describe("publicBookingSchema", () => {
     ]);
   });
 
+  it("needs where the car is picked up and returned", () => {
+    const errors = errorsFor({
+      ...valid,
+      pickupMethod: undefined,
+      returnMethod: "airport",
+    });
+    expect(errors.pickupMethod).toEqual(["Choose where you get the car."]);
+    expect(errors.returnMethod).toEqual(["Choose where you return the car."]);
+  });
+
+  it("needs no address when the car changes hands at the office", () => {
+    const result = publicBookingSchema.safeParse({
+      ...valid,
+      pickupMethod: "office",
+      returnMethod: "office",
+      pickupLocation: "",
+      returnLocation: undefined,
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects a fractional or zero passenger count", () => {
     expect(errorsFor({ ...valid, passengerCount: "2.5" }).passengerCount).toEqual([
       "Enter a whole number.",
@@ -146,8 +169,10 @@ describe("bookingDetailsSchema", () => {
     driversLicenseNumber: "N01-23-456789",
     address: "Lahug, Cebu City",
     facebookAccount: "facebook.com/alex.rivera",
+    pickupMethod: "within_city",
+    returnMethod: "office",
     pickupLocation: "Mactan Airport",
-    returnLocation: "IT Park",
+    returnLocation: "",
     destination: "Moalboal",
     passengerCount: "3",
   };
@@ -170,6 +195,12 @@ describe("bookingDetailsSchema", () => {
       bookingDetailsSchema.safeParse({ ...noLicense, drivingMode: "with-driver" })
         .success,
     ).toBe(true);
+  });
+
+  it("needs the delivery address when switching to delivery", () => {
+    expect(
+      detailErrors({ ...details, returnMethod: "outside_city" }).returnLocation,
+    ).toEqual(["Enter where we collect the car."]);
   });
 
   it("still requires the renter and trip fields", () => {

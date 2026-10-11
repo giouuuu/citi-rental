@@ -23,6 +23,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { BookingReviewForm } from "@/features/booking/components/booking-review-form";
 import { CancelBookingButton } from "@/features/booking/components/cancel-booking-button";
 import { EditBookingDetailsDialog } from "@/features/booking/components/edit-booking-details-dialog";
+import type { PublicBookingFees } from "@/features/booking/services/public-booking-service";
 import {
   customerCancellationLabel,
   customerPaymentLabel,
@@ -30,6 +31,7 @@ import {
   customerPaymentTitle,
   paymentMethodLabel,
 } from "@/features/booking/lib/customer-booking-labels";
+import { customerPaymentKind } from "@/features/booking/lib/booking-payment-step";
 import type { CustomerBookingDetail } from "@/features/booking/types/customer-booking-detail";
 import { describeRentLine, rentalBillStatus } from "@/features/rentals/lib/rental-bill";
 import { formatDuration } from "@/features/shared/lib/format-duration";
@@ -164,9 +166,12 @@ function ThankYouCard({ links }: { links: ReviewLinks }) {
  */
 export function AccountBookingDetail({
   booking,
+  bookingFees = null,
   reviewLinks = null,
 }: {
   booking: CustomerBookingDetail;
+  /** Delivery fees and office address, for editing pick-up and return. */
+  bookingFees?: PublicBookingFees | null;
   /** Completed rentals only. */
   reviewLinks?: ReviewLinks | null;
 }) {
@@ -178,9 +183,15 @@ export function AccountBookingDetail({
     booking.status === "draft" || booking.status === "cancelled"
       ? customerPaymentLabel(booking.status, booking.paymentStatus)
       : rentalBillStatus(bill, booking.paymentStatus);
-  const awaiting =
-    booking.status === "draft" &&
-    (booking.paymentStatus === "unpaid" || booking.paymentStatus === "proof_submitted");
+  const paymentKind = customerPaymentKind({
+    status: booking.status,
+    paymentStatus: booking.paymentStatus,
+    depositAmount: booking.depositAmount ?? null,
+    billTotal: bill.total,
+    amountPaid: bill.paid,
+  });
+  const awaiting = paymentKind === "reservation_fee";
+  const proofBeingChecked = bill.received.some((entry) => entry.status === "submitted");
   const cancellable = booking.status === "draft" || booking.status === "reserved";
   const hasConditionReport =
     booking.status === "active" || booking.status === "completed" || booking.status === "overdue";
@@ -241,18 +252,26 @@ export function AccountBookingDetail({
               <Detail label="Driving">{booking.withDriver ? "With driver" : "Self-drive"}</Detail>
             </dl>
 
-            {awaiting || booking.detailsEditable || cancellable || hasConditionReport ? (
+            {paymentKind || booking.detailsEditable || cancellable || hasConditionReport ? (
               <div className="flex flex-wrap gap-2">
-                {awaiting ? (
+                {paymentKind ? (
                   <Button asChild size="sm">
                     <Link href={payHref}>
-                      {booking.paymentStatus === "proof_submitted"
+                      {proofBeingChecked
                         ? "View payment status"
-                        : "Pay reservation fee"}
+                        : awaiting
+                          ? "Pay reservation fee"
+                          : "Pay balance"}
                     </Link>
                   </Button>
                 ) : null}
-                {booking.detailsEditable ? <EditBookingDetailsDialog booking={booking} /> : null}
+                {booking.detailsEditable ? (
+                  <EditBookingDetailsDialog
+                    booking={booking}
+                    deliveryFees={bookingFees?.delivery}
+                    officeAddress={bookingFees?.officeAddress}
+                  />
+                ) : null}
                 {hasConditionReport ? (
                   <Button asChild size="sm" variant="outline">
                     <Link href={`/account/bookings/${booking.id}/condition`}>
@@ -311,12 +330,30 @@ export function AccountBookingDetail({
               ) : null}
             </Detail>
             {booking.pickupLocation ? (
-              <Detail icon={MapPin} label="Pick-up or delivery">
+              <Detail
+                icon={MapPin}
+                label={
+                  booking.pickupMethod === "office"
+                    ? "Pick-up at our office"
+                    : booking.pickupMethod
+                      ? "Delivery address"
+                      : "Pick-up or delivery"
+                }
+              >
                 {booking.pickupLocation}
               </Detail>
             ) : null}
             {booking.returnLocation ? (
-              <Detail icon={MapPin} label="Return location">
+              <Detail
+                icon={MapPin}
+                label={
+                  booking.returnMethod === "office"
+                    ? "Return at our office"
+                    : booking.returnMethod
+                      ? "Collection address"
+                      : "Return location"
+                }
+              >
                 {booking.returnLocation}
               </Detail>
             ) : null}
@@ -359,6 +396,17 @@ export function AccountBookingDetail({
                   label="Driver"
                 />
               ) : null}
+              {bill.handover.map((line) => (
+                <BillLine
+                  amount={line.fee}
+                  detail={line.detail}
+                  key={line.label}
+                  label={line.label}
+                />
+              ))}
+              {bill.bookingFees.map((fee) => (
+                <BillLine amount={fee.amount} key={fee.name} label={fee.name} />
+              ))}
               {bill.charges.map((charge) => (
                 <BillLine
                   amount={charge.amount}
@@ -373,7 +421,11 @@ export function AccountBookingDetail({
                 <BillLine
                   amount={bill.balance}
                   detail={
-                    bill.balance > 0 ? "Settle the rest at pickup, or as agreed with us." : null
+                    bill.balance > 0
+                      ? paymentKind === "open_bill"
+                        ? "Pay it online with Pay balance, or in person."
+                        : "Settle the rest at pickup, or as agreed with us."
+                      : null
                   }
                   label="Balance"
                   strong

@@ -16,6 +16,14 @@ const schema = z.object({
     .trim()
     .min(3, "Enter the payment reference from GCash/Maya/bank.")
     .max(120),
+  // Bill payments only; the reservation fee is a set amount.
+  amount: z.preprocess(
+    (value) => (value == null || value === "" ? undefined : value),
+    z.coerce
+      .number("Enter the amount you sent.")
+      .positive("Enter the amount you sent.")
+      .optional(),
+  ),
 });
 
 export type SubmitPaymentProofResult = ActionResult<{
@@ -41,6 +49,7 @@ export async function submitPaymentProofAction(
     rentalId: formData.get("rentalId"),
     referenceNumber: formData.get("referenceNumber"),
     paymentReference: formData.get("paymentReference"),
+    amount: formData.get("amount"),
   });
 
   if (!parsed.success) {
