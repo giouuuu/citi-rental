@@ -92,7 +92,14 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (data?.claims && (pathname === "/login" || pathname === "/register")) {
+  // Page visits only. A Server Action POSTs to the page it runs on, and the
+  // email-code form signs in mid-page: redirecting its finish call would
+  // drop it and show an error to someone who is in fact signed in.
+  if (
+    data?.claims &&
+    request.method === "GET" &&
+    (pathname === "/login" || pathname === "/register")
+  ) {
     const safeNext = sanitizeNextPath(request.nextUrl.searchParams.get("next"));
 
     if (isBookingNextPath(safeNext)) {
