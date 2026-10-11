@@ -248,6 +248,7 @@ export default async function Page({
             overview={
               configured ? (
                 <VehicleOverviewPanel
+                  currentOdometer={currentOdometer}
                   books={isOwner && books ? { loan: activeLoan, asset: books.asset } : null}
                   periodOptions={financePeriodOptions(settings.fiscalYearStartMonth, now)}
                   vehicleId={id}

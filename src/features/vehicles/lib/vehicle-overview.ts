@@ -1,3 +1,4 @@
+import type { MileageSummary } from "@/features/rentals/lib/mileage";
 import { toMoney } from "@/features/shared/lib/money";
 
 export type VehicleActivityKind = "rental" | "payment" | "expense" | "loan_payment";
@@ -33,6 +34,8 @@ export type VehicleOverview = {
   categories: { categoryId: string; name: string; amount: number; entries: number; share: number }[];
   monthly: { month: string; income: number; expenses: number | null; profit: number | null; rentedDays: number }[];
   activity: VehicleActivity[];
+  /** Km on trips returned in the window (return odometer less release odometer). */
+  mileage: MileageSummary;
 };
 
 type Payload = {
@@ -46,7 +49,7 @@ type Payload = {
 const round = (value: number) => Math.round(value * 100) / 100;
 const optionalMoney = (value: unknown) => (value === null || value === undefined ? null : toMoney(value));
 
-export function parseVehicleOverview(payload: Payload): VehicleOverview {
+export function parseVehicleOverview(payload: Payload): Omit<VehicleOverview, "mileage"> {
   const summary = payload.summary ?? {};
   const financeVisible = Boolean(payload.finance_visible);
   const windowDays = Number(summary.window_days ?? 0);

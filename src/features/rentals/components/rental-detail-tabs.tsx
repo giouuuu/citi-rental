@@ -13,6 +13,7 @@ export function RentalDetailTabs({
   inspections,
   renterIds,
   timeline,
+  mileage,
   customerBookingLocked = false,
 }: {
   alert?: ReactNode;
@@ -22,6 +23,8 @@ export function RentalDetailTabs({
   renterIds?: ReactNode;
   /** The rental's latest steps, above the tabs on every tab. */
   timeline?: ReactNode;
+  /** Release → return odometer, above the tabs once the car is out. */
+  mileage?: ReactNode;
   customerBookingLocked?: boolean;
 }) {
   return (
@@ -38,6 +41,7 @@ export function RentalDetailTabs({
         </Alert>
       ) : null}
       {alert ? <div>{alert}</div> : null}
+      {mileage}
       {timeline}
       <SearchParamTabs
         tabs={[

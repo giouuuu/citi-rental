@@ -10,6 +10,7 @@ import type { RentalCancellationContext } from "@/features/rentals/components/re
 import { DEFAULT_FREE_CANCELLATION_HOURS } from "@/features/rentals/lib/cancellation-policy";
 import { ConfirmDepositCard } from "@/features/rentals/components/confirm-deposit-card";
 import { RentalDetailTabs } from "@/features/rentals/components/rental-detail-tabs";
+import { RentalMileageSummary } from "@/features/rentals/components/rental-mileage-summary";
 import { RentalPaymentPanel } from "@/features/rentals/components/rental-payment-panel";
 import { RentalTimeline } from "@/features/rentals/components/rental-timeline";
 import {
@@ -71,6 +72,7 @@ export default async function Page({
   let customerLabel: string | null = null;
   let vehicleId: string | null = null;
   let startingOdometer: number | null = null;
+  let endingOdometer: number | null = null;
   let payments: Awaited<ReturnType<typeof listRentalPayments>> = [];
   let inspections: Awaited<ReturnType<typeof listRentalInspections>> = [];
   let checklist: Awaited<ReturnType<typeof getInspectionChecklistForRental>> =
@@ -115,6 +117,7 @@ export default async function Page({
           payment_reference,
           vehicle_id,
           starting_odometer,
+          ending_odometer,
           renter_license_selfie_path,
           renter_government_id_path,
           cancellation_reason,
@@ -199,6 +202,8 @@ export default async function Page({
     vehicleId = typeof data?.vehicle_id === "string" ? data.vehicle_id : null;
     startingOdometer =
       data?.starting_odometer != null ? Number(data.starting_odometer) : null;
+    endingOdometer =
+      data?.ending_odometer != null ? Number(data.ending_odometer) : null;
 
     cancellation = {
       startAt: data?.start_at ? String(data.start_at) : null,
@@ -326,6 +331,12 @@ export default async function Page({
             ) : null
           }
           customerBookingLocked={isPublicCustomerBooking(row)}
+          mileage={
+            <RentalMileageSummary
+              endingOdometer={endingOdometer}
+              startingOdometer={startingOdometer}
+            />
+          }
           info={form}
           inspections={
             <RentalInspectionsTab

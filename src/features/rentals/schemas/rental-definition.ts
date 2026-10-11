@@ -342,6 +342,16 @@ export const rentalDefinition: ResourceDefinition = {
       format: "money",
       secondary: [{ key: "bill_balance", label: "Balance", format: "money", prefix: "Balance" }],
     },
+    // Generated column (rental_km_driven migration): return odometer less release.
+    {
+      key: "km_driven",
+      label: "Km driven",
+      format: "number",
+      secondary: [
+        { key: "starting_odometer", label: "Release odometer (km)", format: "number", prefix: "From" },
+        { key: "ending_odometer", label: "Return odometer (km)", format: "number", prefix: "to" },
+      ],
+    },
     { key: "amount_paid", label: "Paid", format: "money", exportOnly: true },
     { key: "updated_at", label: "Updated", format: "datetime", exportOnly: true },
   ],

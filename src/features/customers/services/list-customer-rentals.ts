@@ -18,6 +18,7 @@ type RentalRow = {
   expected_return_at: string;
   actual_return_at: string | null;
   quoted_total: number | string | null;
+  km_driven: number | string | null;
   vehicles: { plate_number: string | null; name: string | null } | { plate_number: string | null; name: string | null }[] | null;
 };
 
@@ -57,6 +58,7 @@ function demoRentals(customerId: string): CustomerRental[] {
         expectedReturnAt: rental.expectedReturnAt,
         actualReturnAt: rental.actualReturnAt,
         quotedTotal: rental.quotedTotal,
+        kmDriven: null,
         ...tally(rental.id, payments),
       };
     });
@@ -75,7 +77,7 @@ export async function listCustomerRentals(customerId: string): Promise<CustomerR
     const { data, error } = await supabase
       .from("rentals")
       .select(
-        "id, reference_number, status, start_at, expected_return_at, actual_return_at, quoted_total, vehicles ( plate_number, name )",
+        "id, reference_number, status, start_at, expected_return_at, actual_return_at, quoted_total, km_driven, vehicles ( plate_number, name )",
       )
       .eq("customer_id", customerId)
       .order("start_at", { ascending: false })
@@ -105,6 +107,7 @@ export async function listCustomerRentals(customerId: string): Promise<CustomerR
         expectedReturnAt: row.expected_return_at,
         actualReturnAt: row.actual_return_at,
         quotedTotal: toMoney(row.quoted_total),
+        kmDriven: row.km_driven == null ? null : Number(row.km_driven),
         ...tally(row.id, payments),
       };
     });

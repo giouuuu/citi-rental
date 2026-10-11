@@ -10,6 +10,8 @@ export type CustomerRental = {
   quotedTotal: number;
   collected: number;
   penalties: number;
+  /** Return odometer less release odometer; null until both are read. */
+  kmDriven: number | null;
 };
 
 export type CustomerRentalSummary = {
@@ -19,6 +21,8 @@ export type CustomerRentalSummary = {
   outstanding: number;
   lateReturns: number;
   averageDays: number | null;
+  /** Km across trips with both odometer readings. */
+  totalKm: number;
   firstRentalAt: string | null;
   lastRentalAt: string | null;
 };

@@ -17,6 +17,7 @@ import type { CustomerRental } from "@/features/customers/types/customer-rental"
 import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/shared/lib/money";
+import { formatKm } from "@/features/rentals/lib/mileage";
 
 export function CustomerRentalHistory({ rentals }: { rentals: CustomerRental[] }) {
   if (!rentals.length) {
@@ -45,12 +46,13 @@ export function CustomerRentalHistory({ rentals }: { rentals: CustomerRental[] }
     { label: "Owes", value: formatPhp(summary.outstanding), alert: summary.outstanding > 0 },
     { label: "Late returns", value: String(summary.lateReturns), alert: summary.lateReturns > 0 },
     { label: "Average rental", value: summary.averageDays === null ? "—" : `${summary.averageDays} days` },
+    { label: "Km driven", value: summary.totalKm > 0 ? formatKm(summary.totalKm) : "—" },
     { label: "Customer since", value: summary.firstRentalAt ? formatManila(summary.firstRentalAt, "date") : "—" },
   ];
 
   return (
     <div className="space-y-4">
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
         {figures.map((figure) => (
           <div className="rounded-lg border bg-card p-4" key={figure.label}>
             <dt className="text-xs text-muted-foreground">{figure.label}</dt>
@@ -80,6 +82,7 @@ export function CustomerRentalHistory({ rentals }: { rentals: CustomerRental[] }
                     { key: "startAt", header: "Start", format: "datetime" },
                     { key: "endAt", header: "Return", format: "datetime" },
                     { key: "late", header: "Returned late" },
+                    { key: "km", header: "Km driven", format: "number" },
                     { key: "status", header: "Status" },
                     { key: "quoted", header: "Quoted", format: "money" },
                     { key: "collected", header: "Collected", format: "money" },
@@ -92,6 +95,7 @@ export function CustomerRentalHistory({ rentals }: { rentals: CustomerRental[] }
                     startAt: rental.startAt,
                     endAt: rental.actualReturnAt ?? rental.expectedReturnAt,
                     late: isLateReturn(rental) ? "Yes" : "No",
+                    km: rental.kmDriven,
                     status: rentalStatusLabel(rental.status),
                     quoted: rental.quotedTotal,
                     collected: rental.collected,
@@ -109,6 +113,7 @@ export function CustomerRentalHistory({ rentals }: { rentals: CustomerRental[] }
                 <TableHead>Reference</TableHead>
                 <TableHead>Car</TableHead>
                 <TableHead>Dates</TableHead>
+                <TableHead className="text-right">Km driven</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Quoted</TableHead>
                 <TableHead className="text-right">Collected</TableHead>
@@ -133,6 +138,7 @@ export function CustomerRentalHistory({ rentals }: { rentals: CustomerRental[] }
                       {formatManila(rental.startAt)} → {formatManila(rental.actualReturnAt ?? rental.expectedReturnAt)}
                       {isLateReturn(rental) ? <span className="block font-medium text-destructive">Returned late</span> : null}
                     </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatKm(rental.kmDriven)}</TableCell>
                     <TableCell>
                       <StatusBadge label={rentalStatusLabel(rental.status)} status={rental.status} />
                     </TableCell>

@@ -176,6 +176,8 @@ function CellValue({
         {column.label}
       </Badge>
     ) : null;
+  // An empty line under a value is left out rather than printed as "—".
+  if (secondary && (value === null || value === undefined || value === "")) return null;
   if (column.format === "image")
     return value ? (
       // eslint-disable-next-line @next/next/no-img-element

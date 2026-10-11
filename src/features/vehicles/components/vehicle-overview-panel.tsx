@@ -22,6 +22,7 @@ import { ProfitChart } from "@/features/finance/components/profit-chart";
 import { MoneyCell } from "@/features/finance/components/statement-lines";
 import { depreciationBetween, depreciationSchedule, type FixedAsset } from "@/features/finance/lib/depreciation";
 import type { FinancePeriodOption, FinanceWindow } from "@/features/finance/lib/finance-period";
+import { formatKm } from "@/features/rentals/lib/mileage";
 import { ExportRowsButton } from "@/features/shared/components/export-rows-button";
 import { formatDateKey, formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhp, formatPhpExact } from "@/features/shared/lib/money";
@@ -50,12 +51,15 @@ export function VehicleOverviewPanel({
   window,
   periodOptions,
   books,
+  currentOdometer,
 }: {
   vehicleId: string;
   window: FinanceWindow;
   periodOptions: FinancePeriodOption[];
   /** Null for viewers without the books (admins). */
   books: Books | null;
+  /** The last odometer reading on the car, from its latest inspection or service. */
+  currentOdometer: number | null;
 }) {
   return (
     <FinanceFrame
@@ -70,7 +74,12 @@ export function VehicleOverviewPanel({
       {/* Unkeyed on purpose: a period change re-renders inside a transition, so
           the previous figures stay up, dimmed, instead of flashing the skeleton. */}
       <Suspense fallback={<FinanceStatementSkeleton />}>
-        <OverviewBody books={books} vehicleId={vehicleId} window={window} />
+        <OverviewBody
+          books={books}
+          currentOdometer={currentOdometer}
+          vehicleId={vehicleId}
+          window={window}
+        />
       </Suspense>
     </FinanceFrame>
   );
@@ -80,10 +89,12 @@ async function OverviewBody({
   vehicleId,
   window,
   books,
+  currentOdometer,
 }: {
   vehicleId: string;
   window: FinanceWindow;
   books: Books | null;
+  currentOdometer: number | null;
 }) {
   const result = await getVehicleOverview(vehicleId, window);
   if (!result.ok) return <PanelError message={result.message} title="Vehicle overview" />;
@@ -161,6 +172,28 @@ async function OverviewBody({
         ) : (
           <KpiTile label="Collected" note="Cash received, VAT included" value={formatPhp(o.collected)} />
         )}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <KpiTile
+          label="Km driven on rentals"
+          note={
+            o.mileage.trips === 0
+              ? "No trips returned with both odometer readings this period"
+              : `${o.mileage.trips} ${o.mileage.trips === 1 ? "trip" : "trips"} returned this period, release to return odometer`
+          }
+          value={formatKm(o.mileage.trips ? o.mileage.totalKm : null)}
+        />
+        <KpiTile
+          label="Average per trip"
+          note="Km driven divided by trips"
+          value={formatKm(o.mileage.averageKm)}
+        />
+        <KpiTile
+          label="Odometer now"
+          note="Last reading, from the latest inspection or service"
+          value={formatKm(currentOdometer)}
+        />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-5">

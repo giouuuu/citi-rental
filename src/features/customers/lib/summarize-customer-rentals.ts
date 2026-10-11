@@ -1,3 +1,4 @@
+import { summarizeMileage } from "@/features/rentals/lib/mileage";
 import type {
   CustomerRental,
   CustomerRentalSummary,
@@ -53,6 +54,7 @@ export function summarizeCustomerRentals(rentals: CustomerRental[]): CustomerRen
     averageDays: durations.length
       ? Math.round((durations.reduce((a, b) => a + b, 0) / durations.length) * 10) / 10
       : null,
+    totalKm: summarizeMileage(rentals.map((rental) => rental.kmDriven)).totalKm,
     firstRentalAt: starts[0] ?? null,
     lastRentalAt: starts.at(-1) ?? null,
   };

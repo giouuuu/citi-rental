@@ -17,6 +17,7 @@ function rental(overrides: Partial<CustomerRental>): CustomerRental {
     quotedTotal: 4000,
     collected: 4000,
     penalties: 0,
+    kmDriven: null,
     ...overrides,
   };
 }
