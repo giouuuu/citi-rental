@@ -215,7 +215,7 @@ export function bookingFunnel(summary: BookingSummary): BreakdownItem[] {
 export const BOOKING_STATUS_LABELS: Record<BookingRow["status"], string> = {
   draft: "Awaiting payment",
   reserved: "Reserved",
-  active: "On rent",
+  active: "Released",
   overdue: "Overdue",
   completed: "Completed",
   cancelled: "Cancelled",

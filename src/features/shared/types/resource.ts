@@ -114,6 +114,8 @@ export type ResourceColumn = {
   prefix?: string;
   /** Fetched, sortable and exported, but not shown in the table. */
   exportOnly?: boolean;
+  /** Display words for raw `status` values (`active` → "Released"); the stored value is unchanged. */
+  valueLabels?: Record<string, string>;
 };
 
 /**

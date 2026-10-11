@@ -162,6 +162,7 @@ function CellValue({
     return value ? (
       <StatusBadge
         className={secondary ? "h-5 px-2 text-[11px]" : undefined}
+        label={column.valueLabels?.[String(value)]}
         status={String(value)}
       />
     ) : secondary ? null : (

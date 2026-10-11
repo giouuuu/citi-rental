@@ -3,6 +3,7 @@ import {
   HOLDING_DRAFT_PAYMENT_STATUSES,
   HOLDING_RENTAL_STATUSES,
 } from "@/features/rentals/lib/rental-holds";
+import { RENTAL_STATUS_LABELS } from "@/features/rentals/lib/rental-status-counts";
 import { buildDemoWorkspace } from "@/features/shared/lib/demo-workspace";
 import {
   optionalNumber,
@@ -279,14 +280,7 @@ export const rentalDefinition: ResourceDefinition = {
       op: "eq",
       label: "Status",
       picker: true,
-      valueLabels: {
-        draft: "Draft",
-        reserved: "Reserved",
-        active: "Active",
-        overdue: "Overdue",
-        completed: "Completed",
-        cancelled: "Cancelled",
-      },
+      valueLabels: RENTAL_STATUS_LABELS,
     },
     {
       param: "customer",
@@ -338,6 +332,7 @@ export const rentalDefinition: ResourceDefinition = {
       key: "status",
       label: "Status",
       format: "status",
+      valueLabels: RENTAL_STATUS_LABELS,
       secondary: [{ key: "payment_status", label: "Payment", format: "status" }],
     },
     // Computed columns (rental_list_bill_columns migration) read the payments ledger.

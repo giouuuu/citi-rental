@@ -45,6 +45,7 @@ export function ResourceList({
   canWrite,
   bulkActions,
   beforeTable,
+  headerActions,
   filterOptions = {},
 }: {
   definition: ResourceDefinition;
@@ -57,6 +58,8 @@ export function ResourceList({
   bulkActions?: ReactNode;
   /** A panel between the page header and the list, e.g. a to-do table. */
   beforeTable?: ReactNode;
+  /** Extra header buttons beside Add; shown only to roles that can write. */
+  headerActions?: ReactNode;
 }) {
   const dateRange = resolveDateRangeFilter(definition.filters);
   const pickers = (definition.filters ?? []).filter(
@@ -80,6 +83,7 @@ export function ResourceList({
               disabled={result.page === 1 && result.rows.length === 0}
               href={exportHref(definition.route, query)}
             />
+            {canWrite ? headerActions : null}
             {canWrite ? (
               <Button asChild>
                 <Link href={`${definition.route}/new`}>

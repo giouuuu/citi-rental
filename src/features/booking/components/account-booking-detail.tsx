@@ -14,6 +14,7 @@ import {
 import type { ReactNode } from "react";
 
 import { StatusBadge } from "@/components/design-system/status-badge";
+import { RENTAL_STATUS_LABELS } from "@/features/rentals/lib/rental-status-counts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -173,7 +174,7 @@ export function AccountBookingDetail({ booking }: { booking: CustomerBookingDeta
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <StatusBadge status={booking.status} />
+                <StatusBadge label={RENTAL_STATUS_LABELS[booking.status]} status={booking.status} />
                 {payment ? <span className="text-xs font-medium text-teal-700">{payment}</span> : null}
               </div>
             </div>

@@ -155,7 +155,7 @@ export async function ResourceDetailScreen({
         ]}
         description={
           definition.subtitleField
-            ? String(row[definition.subtitleField] ?? definition.description)
+            ? subtitleText(definition, row[definition.subtitleField])
             : definition.description
         }
         title={
@@ -211,4 +211,11 @@ export async function ResourceDetailScreen({
       })()}
     </div>
   );
+}
+
+/** The header subtitle, in the list column's display words when it has them. */
+function subtitleText(definition: ResourceDefinition, value: unknown) {
+  if (value === null || value === undefined) return definition.description;
+  const column = definition.columns.find((entry) => entry.key === definition.subtitleField);
+  return column?.valueLabels?.[String(value)] ?? String(value);
 }

@@ -264,6 +264,15 @@ Features:
 - Extend an active or overdue rental: move the return date (blocked by the next booking) and
   optionally add an Extension charge, suggested as extra days × the daily rate.
 - View rental payments.
+- Record a past rental (`/rentals/past`, owner/admin): for a trip that already ended, enter the
+  customer, car, pickup, agreed return, actual return, optional booking date, price (car rate,
+  driver fee, or the total actually charged), and the payment with the date it was received.
+  A preview shows exactly what will be saved (late return, balance owed); saving needs a
+  ticked acknowledgement. It is saved straight as `completed` with no inspections and no
+  customer emails, the booking and payment keep their real dates so Analytics and Finance count
+  them in the right period, and the timeline says "Recorded as a past rental"
+  (`record_past_rental`, `20261102090000_record_past_rental.sql`). Cars still out use New
+  rental with a past pickup instead.
 
 Business rules:
 - A vehicle cannot have overlapping active or reserved rentals (date-range conflicts).
@@ -456,6 +465,7 @@ leave them; do not add columns to them in this scope.
 - `/customers/[id]`
 - `/rentals`
 - `/rentals/new`
+- `/rentals/past`
 - `/rentals/[id]`
 - `/reports`
 - `/analytics`

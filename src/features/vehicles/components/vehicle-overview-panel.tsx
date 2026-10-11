@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CalendarCheck, CircleAlert, HandCoins, Receipt, Wallet } from "lucide-react";
 
 import { StatusBadge } from "@/components/design-system/status-badge";
+import { rentalStatusLabel } from "@/features/rentals/lib/rental-status-counts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -508,7 +509,7 @@ function ActivityCard({
                       </Link>
                     </TableCell>
                     <TableCell>
-                      {entry.kind === "rental" && entry.status ? <StatusBadge status={entry.status} /> : null}
+                      {entry.kind === "rental" && entry.status ? <StatusBadge label={rentalStatusLabel(entry.status)} status={entry.status} /> : null}
                     </TableCell>
                     <TableCell
                       className={cn(

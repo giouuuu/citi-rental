@@ -65,6 +65,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/export/[...r
           key: column.key,
           header: column.label,
           format: column.format,
+          valueLabels: column.valueLabels,
         })),
         rows,
       },

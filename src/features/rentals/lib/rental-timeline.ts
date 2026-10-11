@@ -321,6 +321,16 @@ function auditEvent(
       return inspectionEvent(entry);
     case "rental.rescheduled":
       return rescheduleEvent(entry);
+    case "rental.recorded_past":
+      return {
+        id: entry.id,
+        at: entry.createdAt,
+        kind: "status",
+        title: "Recorded as a past rental",
+        detail: "Entered after the trip — saved as completed without inspections or customer emails",
+        actor: entry.actorName,
+        tone: "success",
+      };
     case "rental.marked_overdue": {
       const automatic = entry.metadata?.source === "sweep";
       return {

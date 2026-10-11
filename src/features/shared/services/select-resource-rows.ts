@@ -35,23 +35,11 @@ export async function selectResourceRows(
       ].filter(Boolean),
     ),
   ].join(",");
-  let request = supabase.from(definition.table).select(columns);
-  if (query.q)
-    request = request.ilike(definition.searchColumn, `%${query.q}%`);
-  for (const filter of definition.filters ?? []) {
-    const value = query.filters?.[filter.param];
-    if (!value) continue;
-    const day = filter.timestamp ? parseDateKey(value) : null;
-    if (filter.timestamp && !day) continue;
-    request =
-      filter.op === "gte"
-        ? request.gte(filter.column, day ? manilaDayStart(day).toISOString() : value)
-        : filter.op === "lte"
-          ? day
-            ? request.lt(filter.column, manilaDayEnd(day).toISOString())
-            : request.lte(filter.column, value)
-          : request.eq(filter.column, value);
-  }
+  const request = applyResourceQuery(
+    supabase.from(definition.table).select(columns),
+    definition,
+    query,
+  );
   // A linked column sorts by its record's label: `customer_name(full_name)`.
   const sortReference = references.find((column) => column.key === query.sort)?.reference;
   const { data, error } = await request
@@ -68,6 +56,46 @@ export async function selectResourceRows(
     for (const column of references) flat[column.key] = referenceLabel(column, row[column.key]);
     return flat;
   });
+}
+
+/** The bits of a Supabase filter builder the list's search and filters use. */
+type FilterableRequest = {
+  ilike(column: string, pattern: string): FilterableRequest;
+  eq(column: string, value: string): FilterableRequest;
+  gte(column: string, value: string): FilterableRequest;
+  lte(column: string, value: string): FilterableRequest;
+  lt(column: string, value: string): FilterableRequest;
+};
+
+/**
+ * Applies a list's search and filters to any select on its table, so counts
+ * and summaries above a list agree with the rows in it.
+ */
+export function applyResourceQuery<T>(
+  builder: T,
+  definition: ResourceDefinition,
+  query: ResourceQuery,
+): T {
+  // Supabase's builder types are too deep to constrain generically; every
+  // method here returns the same builder, so the cast back is sound.
+  let request = builder as unknown as FilterableRequest;
+  if (query.q)
+    request = request.ilike(definition.searchColumn, `%${query.q}%`);
+  for (const filter of definition.filters ?? []) {
+    const value = query.filters?.[filter.param];
+    if (!value) continue;
+    const day = filter.timestamp ? parseDateKey(value) : null;
+    if (filter.timestamp && !day) continue;
+    request =
+      filter.op === "gte"
+        ? request.gte(filter.column, day ? manilaDayStart(day).toISOString() : value)
+        : filter.op === "lte"
+          ? day
+            ? request.lt(filter.column, manilaDayEnd(day).toISOString())
+            : request.lte(filter.column, value)
+          : request.eq(filter.column, value);
+  }
+  return request as unknown as T;
 }
 
 /** `customer_name:customers(full_name)`: the linked record, named for the column. */

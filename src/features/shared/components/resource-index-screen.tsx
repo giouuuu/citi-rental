@@ -19,6 +19,7 @@ export async function ResourceIndexScreen({
   searchParams,
   bulkActions,
   beforeTable,
+  headerActions,
 }: {
   definition: ResourceDefinition;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -26,6 +27,8 @@ export async function ResourceIndexScreen({
   bulkActions?: ReactNode;
   /** A panel between the page header and the list. */
   beforeTable?: ReactNode;
+  /** Extra header buttons beside Add, for roles that can write. */
+  headerActions?: ReactNode;
 }) {
   const resourceQuery = parseResourceQuery(
     searchParams ? await searchParams : {},
@@ -41,6 +44,7 @@ export async function ResourceIndexScreen({
     return (
       <ResourceList
         beforeTable={beforeTable}
+        headerActions={headerActions}
         canWrite={definition.allowCreate !== false}
         definition={definition}
         query={resourceQuery}
@@ -87,6 +91,7 @@ export async function ResourceIndexScreen({
     <ResourceList
       beforeTable={beforeTable}
       bulkActions={bulkActions}
+      headerActions={headerActions}
       canWrite={
         definition.writeRoles.includes(profile.role as AppRole) &&
         definition.allowCreate !== false

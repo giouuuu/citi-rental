@@ -2,6 +2,7 @@ import Link from "next/link";
 import { KeyRound } from "lucide-react";
 
 import { StatusBadge } from "@/components/design-system/status-badge";
+import { rentalStatusLabel } from "@/features/rentals/lib/rental-status-counts";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -91,7 +92,7 @@ export function CustomerRentalHistory({ rentals }: { rentals: CustomerRental[] }
                     startAt: rental.startAt,
                     endAt: rental.actualReturnAt ?? rental.expectedReturnAt,
                     late: isLateReturn(rental) ? "Yes" : "No",
-                    status: rental.status.charAt(0).toUpperCase() + rental.status.slice(1).replaceAll("_", " "),
+                    status: rentalStatusLabel(rental.status),
                     quoted: rental.quotedTotal,
                     collected: rental.collected,
                     owes: rentalOutstanding(rental),
@@ -133,7 +134,7 @@ export function CustomerRentalHistory({ rentals }: { rentals: CustomerRental[] }
                       {isLateReturn(rental) ? <span className="block font-medium text-destructive">Returned late</span> : null}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={rental.status} />
+                      <StatusBadge label={rentalStatusLabel(rental.status)} status={rental.status} />
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatPhp(rental.quotedTotal)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatPhp(rental.collected)}</TableCell>

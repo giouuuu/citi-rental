@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronRight, MapPin, Star } from "lucide-react";
 
 import { StatusBadge } from "@/components/design-system/status-badge";
+import { RENTAL_STATUS_LABELS } from "@/features/rentals/lib/rental-status-counts";
 import { Button } from "@/components/ui/button";
 import { customerPaymentLabel } from "@/features/booking/lib/customer-booking-labels";
 import {
@@ -66,7 +67,7 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
               </p>
             </div>
             <div className="flex flex-col items-end gap-1">
-              <StatusBadge status={booking.status} />
+              <StatusBadge label={RENTAL_STATUS_LABELS[booking.status]} status={booking.status} />
               {payment ? (
                 <span className="text-xs font-medium text-teal-700">
                   {payment}

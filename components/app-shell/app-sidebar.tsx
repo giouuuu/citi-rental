@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { Building2, ChevronsUpDown, LogOut, UserRound } from "lucide-react";
 
 import { logoutAction } from "@/app/(auth)/actions";
+import { ZekeMark } from "@/components/brand/zeke-mark";
+import { zekeWordmark } from "@/components/landing/landing-fonts";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -30,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import type { RentalNavCounts } from "@/features/rentals/lib/rental-nav-counts";
 import { navigationGroupsFor } from "@/lib/navigation";
+import { cn } from "@/lib/utils";
 
 import { RentalNavBadges } from "./rental-nav-badges";
 
@@ -67,16 +70,19 @@ export function AppSidebar({
               tooltip="View the website"
             >
               {/* The brand opens the customer site; Dashboard is in the nav. */}
-              <Link aria-label={`City Rentals — view the ${companyName} website`} href="/">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sm font-black text-sidebar-primary-foreground shadow-sm">
-                  M
-                </span>
+              <Link aria-label={`Zeke Car Rental & Services — view the ${companyName} website`} href="/">
+                <ZekeMark className="size-8" title="" />
                 <span className="grid flex-1 text-left leading-tight">
-                  <span className="truncate text-sm font-semibold text-white">
-                    City Rentals
+                  <span
+                    className={cn(
+                      zekeWordmark.className,
+                      "truncate text-base leading-none tracking-[0.04em] text-white",
+                    )}
+                  >
+                    ZEKE’S
                   </span>
-                  <span className="truncate text-[11px] text-sidebar-foreground/65">
-                    {companyName}
+                  <span className="mt-1 truncate text-[10px] font-bold tracking-[0.08em] text-sidebar-foreground/65 uppercase">
+                    Car Rental &amp; Services
                   </span>
                 </span>
               </Link>

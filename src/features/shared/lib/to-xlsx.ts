@@ -7,6 +7,8 @@ export type XlsxColumn = {
   key: string;
   header: string;
   format?: ResourceColumn["format"] | "percent";
+  /** Display words for raw `status` values, as the table shows them. */
+  valueLabels?: Record<string, string>;
 };
 
 export type XlsxSheet = {
@@ -46,7 +48,11 @@ function toExcelDate(value: unknown): Date | null {
 }
 
 /** One cell as Excel should store it: numbers and dates stay typed so sums and sorts work. */
-export function xlsxCellValue(value: unknown, format: XlsxColumn["format"] = "text"): ExcelJS.CellValue {
+export function xlsxCellValue(
+  value: unknown,
+  format: XlsxColumn["format"] = "text",
+  valueLabels?: Record<string, string>,
+): ExcelJS.CellValue {
   if (value === null || value === undefined || value === "") return null;
   switch (format) {
     case "money":
@@ -61,7 +67,7 @@ export function xlsxCellValue(value: unknown, format: XlsxColumn["format"] = "te
     case "datetime":
       return toExcelDate(value) ?? String(value);
     case "status":
-      return humanize(String(value));
+      return valueLabels?.[String(value)] ?? humanize(String(value));
     default:
       return typeof value === "object" ? JSON.stringify(value) : String(value);
   }
@@ -101,7 +107,7 @@ export async function toXlsx(sheets: XlsxSheet[]): Promise<Uint8Array> {
     for (const row of sheet.rows) {
       worksheet.addRow(
         Object.fromEntries(
-          columns.map((column) => [column.key, xlsxCellValue(row[column.key], column.format)]),
+          columns.map((column) => [column.key, xlsxCellValue(row[column.key], column.format, column.valueLabels)]),
         ),
       );
     }
