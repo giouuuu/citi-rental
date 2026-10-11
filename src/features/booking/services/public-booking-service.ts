@@ -160,6 +160,8 @@ export type PublicBookingFees = {
   officeAddress: string | null;
   /** Charge types → Car wash default amount; charged if returned unwashed. */
   carWashFee: number | null;
+  /** The wash is charged on every booking, so the car can come back unwashed. */
+  carWashIncluded: boolean;
   /** Charge types ticked "Add to every online booking". */
   bookingFees: BookingFeeLine[];
 };
@@ -168,6 +170,7 @@ const NO_BOOKING_FEES: PublicBookingFees = {
   delivery: { withinCity: null, outsideCity: null },
   officeAddress: null,
   carWashFee: null,
+  carWashIncluded: false,
   bookingFees: [],
 };
 
@@ -191,6 +194,7 @@ export const getPublicBookingFees = cache(
       officeAddress:
         typeof row.office_address === "string" ? row.office_address : null,
       carWashFee: optionalNum(row.car_wash_fee),
+      carWashIncluded: row.car_wash_included === true,
       bookingFees: parseBookingFees(row.booking_fees),
     };
   },

@@ -153,6 +153,7 @@ export default async function BookVehiclePage({
         bookedRanges={bookedRanges}
         bookingFees={bookingFees.bookingFees}
         carWashFee={bookingFees.carWashFee}
+        carWashIncluded={bookingFees.carWashIncluded}
         deliveryFees={bookingFees.delivery}
         driverDailyRate={driverDailyRate}
         fleet={fleet}

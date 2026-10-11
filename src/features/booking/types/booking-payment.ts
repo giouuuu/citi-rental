@@ -33,7 +33,8 @@ export type BookingPaymentDetails = {
   bookingFees: BookingFeeLine[];
   pickupLocation: string | null;
   returnLocation: string | null;
-  /** Charged only if the car comes back unwashed. Null: not set. */
+  /** Charged only if the car comes back unwashed. Null: not set, or the
+   *  booking already pays for the wash (then nothing is said about it). */
   carWashFee: number | null;
   depositAmount: number;
   balanceDue: number;
