@@ -7,10 +7,6 @@ import {
   requiredText,
 } from "@/features/shared/schemas/schema-helpers";
 import type { ResourceDefinition } from "@/features/shared/types/resource";
-import {
-  EXPENSE_CATEGORIES,
-  EXPENSE_CATEGORY_OPTIONS,
-} from "@/features/vehicle-costs/lib/expense-categories";
 
 export const vehicleExpenseDefinition: ResourceDefinition = {
   key: "expense",
@@ -34,7 +30,7 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
   detailColumns: [
     "id",
     "vehicle_id",
-    "category",
+    "category_id",
     "amount",
     "incurred_on",
     "odometer_km",
@@ -45,7 +41,7 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
   ],
   schema: z.object({
     vehicle_id: z.uuid("Select a vehicle."),
-    category: z.enum(EXPENSE_CATEGORIES),
+    category_id: z.uuid("Select a category."),
     amount: requiredNumber("Amount", 0.01),
     incurred_on: requiredText("Date", 40),
     odometer_km: optionalNumber(0),
@@ -66,11 +62,16 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
       },
     },
     {
-      name: "category",
+      name: "category_id",
       label: "Category",
       type: "select",
       required: true,
-      options: EXPENSE_CATEGORY_OPTIONS,
+      reference: {
+        table: "vehicle_expense_categories",
+        labelColumn: "name",
+        activeColumn: "is_active",
+      },
+      description: "Missing one? Add it under Expenses → Categories.",
     },
     {
       name: "amount",
@@ -114,9 +115,23 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
       className: "md:col-span-2",
     },
   ],
+  filters: [
+    {
+      param: "category",
+      column: "category_id",
+      op: "eq",
+      label: "Category",
+      picker: true,
+      reference: { table: "vehicle_expense_categories", labelColumn: "name" },
+    },
+  ],
   columns: [
     { key: "incurred_on", label: "Date", format: "date" },
-    { key: "category", label: "Category", format: "status" },
+    {
+      key: "category_name",
+      label: "Category",
+      reference: { table: "vehicle_expense_categories", column: "name" },
+    },
     { key: "amount", label: "Amount", format: "number" },
     { key: "vendor", label: "Vendor" },
     { key: "reference", label: "Reference" },
@@ -125,7 +140,7 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
     {
       id: "demo-expense",
       vehicle_id: "demo-vehicle",
-      category: "repair",
+      category_name: "Repair",
       amount: 6400,
       incurred_on: "2026-08-05",
       vendor: "Aircon specialist",

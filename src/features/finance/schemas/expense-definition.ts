@@ -128,7 +128,8 @@ export const expenseDefinition: ResourceDefinition = {
         labelColumn: "name",
         activeColumn: "is_active",
       },
-      description: "Depreciation is not entered here; it comes from the fixed-asset register.",
+      description:
+        "Depreciation is not entered here; it comes from the fixed-asset register. Missing a category? Add it under Finance → Expense categories.",
     },
     {
       name: "description",

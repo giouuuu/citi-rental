@@ -18,7 +18,7 @@ export type VehicleExpense = {
 
 type ExpenseRow = {
   id: string;
-  category: string;
+  category: { name: string } | null;
   amount: number | string;
   incurred_on: string;
   odometer_km: number | string | null;
@@ -44,7 +44,7 @@ export async function listVehicleExpenses(
   const { data, error } = await supabase
     .from("vehicle_expenses")
     .select(
-      "id, category, amount, incurred_on, odometer_km, vendor, reference, receipt_path, notes",
+      "id, category:vehicle_expense_categories(name), amount, incurred_on, odometer_km, vendor, reference, receipt_path, notes",
     )
     .eq("vehicle_id", vehicleId)
     .order("incurred_on", { ascending: false })
@@ -56,7 +56,7 @@ export async function listVehicleExpenses(
     return [];
   }
 
-  const rows = data as ExpenseRow[];
+  const rows = data as unknown as ExpenseRow[];
   return Promise.all(
     rows.map(async (row) => {
       let receiptUrl: string | null = null;
@@ -68,7 +68,7 @@ export async function listVehicleExpenses(
       }
       return {
         id: row.id,
-        category: row.category,
+        category: row.category?.name ?? "Uncategorized",
         amount: Number(row.amount),
         incurredOn: row.incurred_on,
         odometerKm: row.odometer_km == null ? null : Number(row.odometer_km),

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const SECTIONS = [
   { href: "/finance", label: "Overview" },
   { href: "/finance/expenses", label: "Expenses" },
+  { href: "/finance/categories", label: "Expense categories" },
   { href: "/finance/assets", label: "Fixed assets" },
   { href: "/finance/report", label: "Accountant report" },
   { href: "/finance/withholding", label: "2307 certificates" },

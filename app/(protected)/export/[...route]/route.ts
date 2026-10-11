@@ -5,6 +5,7 @@ import { customerDefinition } from "@/features/customers";
 import { deviceDefinition } from "@/features/devices";
 import { driverDefinition } from "@/features/drivers";
 import {
+  expenseCategoryDefinition,
   expenseDefinition,
   fixedAssetDefinition,
   withholdingCertificateDefinition,
@@ -19,7 +20,7 @@ import { toXlsx, xlsxResponse } from "@/features/shared/lib/to-xlsx";
 import { selectResourceRows } from "@/features/shared/services/select-resource-rows";
 import type { ResourceDefinition, ResourceRow } from "@/features/shared/types/resource";
 import { userDefinition } from "@/features/users";
-import { vehicleExpenseDefinition } from "@/features/vehicle-costs";
+import { vehicleExpenseCategoryDefinition, vehicleExpenseDefinition } from "@/features/vehicle-costs";
 import { vehicleDefinition } from "@/features/vehicles";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -32,6 +33,7 @@ const exportable = new Map<string, ResourceDefinition>(
     customerDefinition,
     deviceDefinition,
     driverDefinition,
+    expenseCategoryDefinition,
     expenseDefinition,
     fixedAssetDefinition,
     geofenceDefinition,
@@ -39,6 +41,7 @@ const exportable = new Map<string, ResourceDefinition>(
     reviewDefinition,
     userDefinition,
     vehicleDefinition,
+    vehicleExpenseCategoryDefinition,
     vehicleExpenseDefinition,
     withholdingCertificateDefinition,
   ].map((definition) => [definition.route, definition]),

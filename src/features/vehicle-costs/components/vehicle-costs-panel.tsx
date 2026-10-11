@@ -26,7 +26,6 @@ import {
   parseDateKey,
 } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
-import { expenseCategoryLabel } from "@/features/vehicle-costs/lib/expense-categories";
 import type { VehicleExpense } from "@/features/vehicle-costs/services/list-vehicle-expenses";
 
 function formatDate(value: string) {
@@ -67,7 +66,7 @@ export function VehicleCostsPanel({
                 ],
                 rows: expenses.map((expense) => ({
                   incurredOn: expense.incurredOn,
-                  category: expenseCategoryLabel(expense.category),
+                  category: expense.category,
                   amount: expense.amount,
                   vendor: expense.vendor,
                 })),
@@ -139,7 +138,7 @@ export function VehicleCostsPanel({
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {expenseCategoryLabel(expense.category)}
+                        {expense.category}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
