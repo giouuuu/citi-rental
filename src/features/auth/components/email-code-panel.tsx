@@ -1,6 +1,7 @@
 "use client";
 
 import { REGEXP_ONLY_DIGITS } from "input-otp";
+import { CheckCircle2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { checkEmailAction } from "@/features/auth/actions/email-code-actions";
 import {
@@ -63,11 +65,14 @@ function formatCountdown(ms: number) {
  * Emails a 6-digit code to `email` as soon as it mounts, then signs the
  * browser in when the right code is typed. No password and no redirect: the
  * Supabase session lands in cookies and the server sees it on the next call.
- * `onVerified` runs while the panel still shows its busy state.
+ * While `onVerified` runs, the code boxes give way to an "Email confirmed"
+ * panel with `finishingLabel` and a progress bar; it stays up through the
+ * navigation `onVerified` starts, and steps aside only for an error.
  */
 export function EmailCodePanel({
   email,
   verifyLabel,
+  finishingLabel,
   onVerified,
   onChangeEmail,
   emailRedirectTo,
@@ -75,6 +80,8 @@ export function EmailCodePanel({
   email: string;
   /** Main button, e.g. "Verify and send booking". */
   verifyLabel: string;
+  /** Shown under "Email confirmed" while onVerified runs, e.g. "Signing you in…". */
+  finishingLabel: string;
   /** Returns an error message to show, or nothing when it went through. */
   onVerified: () => Promise<string | void>;
   onChangeEmail?: () => void;
@@ -90,6 +97,8 @@ export function EmailCodePanel({
   const [code, setCode] = useState("");
   const [error, setError] = useState<string>();
   const [verifying, setVerifying] = useState(false);
+  /** Code accepted and onVerified running (or navigating away). */
+  const [finishing, setFinishing] = useState(false);
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const inFlight = useRef(false);
@@ -182,11 +191,16 @@ export function EmailCodePanel({
       setVerifying(false);
       return;
     }
+    setFinishing(true);
     try {
       const message = await onVerified();
-      if (message) setError(message);
+      if (message) {
+        setError(message);
+        setFinishing(false);
+      }
     } catch {
       setError(VERIFIED_RETRY_MESSAGE);
+      setFinishing(false);
     } finally {
       setVerifying(false);
     }
@@ -194,6 +208,23 @@ export function EmailCodePanel({
 
   const sending = sendState === "sending";
   const busy = sending || verifying;
+
+  if (finishing) {
+    return (
+      <div
+        aria-live="polite"
+        className="space-y-4 rounded-xl border border-success/20 bg-success-surface px-4 py-5 text-center"
+        role="status"
+      >
+        <CheckCircle2 aria-hidden="true" className="mx-auto size-8 text-success" />
+        <div className="space-y-1">
+          <p className="font-medium text-brand-950">Email confirmed</p>
+          <p className="text-sm text-muted-foreground">{finishingLabel}</p>
+        </div>
+        <Progress aria-label={finishingLabel} className="bg-success/15" value={null} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

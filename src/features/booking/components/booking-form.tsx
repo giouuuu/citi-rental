@@ -988,6 +988,7 @@ export function BookingForm({
                 goTo("you", "email");
               }}
               onVerified={onEmailVerified}
+              finishingLabel="Sending your booking. Please wait…"
               verifyLabel="Verify and send booking"
             />
           ) : null}

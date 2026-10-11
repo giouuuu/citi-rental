@@ -145,6 +145,7 @@ export function LoginForm({
             key={codeEmail}
             onChangeEmail={() => setCodeEmail(undefined)}
             onVerified={onCodeVerified}
+            finishingLabel="Signing you in. Please wait…"
             verifyLabel="Verify and sign in"
           />
         </div>
