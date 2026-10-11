@@ -1,10 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import {
-  AGREEMENT_TEMPLATE_VERSION,
-  buildAgreementTerms,
-} from "@/features/agreements/lib/agreement-template";
+import { buildAgreementTerms } from "@/features/agreements/lib/agreement-template";
 import { getAgreementCompany } from "@/features/agreements/services/get-agreement-draft";
 import { isStaffRole } from "@/features/shared/lib/app-roles";
 import type { ActionResult } from "@/features/shared/types/resource";
@@ -166,11 +163,14 @@ export async function submitRentalInspectionAction(
       }
       // Terms are built here, not taken from the browser, so what is signed
       // is always the current template.
+      const terms = buildAgreementTerms({
+        freeCancellationHours: company.freeCancellationHours,
+        template: company.template,
+        version: company.templateVersion,
+      });
       agreement = {
-        template_version: AGREEMENT_TEMPLATE_VERSION,
-        terms: buildAgreementTerms({
-          freeCancellationHours: company.freeCancellationHours,
-        }),
+        template_version: terms.version,
+        terms,
         renter_address: renterAddress,
         accepted: true,
         company_signature_path: companySignaturePath,

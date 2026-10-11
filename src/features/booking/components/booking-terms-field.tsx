@@ -31,7 +31,11 @@ import {
   AgreementClauses,
   AgreementRules,
 } from "@/features/agreements/components/agreement-document";
-import { buildAgreementTerms } from "@/features/agreements/lib/agreement-template";
+import {
+  type AgreementTerms,
+  buildAgreementTerms,
+  isEmptyCancellation,
+} from "@/features/agreements/lib/agreement-template";
 import { DEFAULT_FREE_CANCELLATION_HOURS } from "@/features/booking/lib/cancellation-policy";
 
 /** Close enough to the end of the terms to count as read. */
@@ -49,20 +53,25 @@ export function BookingTermsField<
   control,
   name,
   freeCancellationHours,
+  terms: savedTerms,
   disabled,
 }: {
   control: Control<T, unknown, TOut>;
   name: FieldPath<T>;
   freeCancellationHours?: number | null;
+  /** The agreement from Settings; without it, the built-in wording. */
+  terms?: AgreementTerms;
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [read, setRead] = useState(false);
   const [reachedEnd, setReachedEnd] = useState(false);
-  const terms = buildAgreementTerms({
-    freeCancellationHours:
-      freeCancellationHours ?? DEFAULT_FREE_CANCELLATION_HOURS,
-  });
+  const terms =
+    savedTerms ??
+    buildAgreementTerms({
+      freeCancellationHours:
+        freeCancellationHours ?? DEFAULT_FREE_CANCELLATION_HOURS,
+    });
 
   const checkEnd = useCallback((element: HTMLElement | null) => {
     if (!element) return;
@@ -141,10 +150,12 @@ export function BookingTermsField<
                   ref={checkEnd}
                   tabIndex={0}
                 >
-                  <AgreementCancellationPolicy
-                    className="rounded-lg bg-brand-50/70 p-4"
-                    terms={terms}
-                  />
+                  {isEmptyCancellation(terms.cancellation) ? null : (
+                    <AgreementCancellationPolicy
+                      className="rounded-lg bg-brand-50/70 p-4"
+                      terms={terms}
+                    />
+                  )}
                   <section className="space-y-3">
                     <h2 className="text-base font-semibold uppercase">
                       {terms.title}
@@ -152,7 +163,7 @@ export function BookingTermsField<
                     <AgreementClauses terms={terms} />
                   </section>
                   <AgreementRules terms={terms} />
-                  <p>{terms.acknowledgement}</p>
+                  {terms.acknowledgement ? <p>{terms.acknowledgement}</p> : null}
                 </div>
                 <DialogFooter className="border-t border-border px-5 py-4">
                   <Button

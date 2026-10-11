@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { AgreementTerms } from "@/features/agreements/lib/agreement-template";
+import { normalizeAgreementTerms } from "@/features/agreements/lib/agreement-template";
 import type { SignedRentalAgreement } from "@/features/agreements/types";
 import { createInspectionSignedUrls } from "@/features/inspections/services/upload-inspection-photo";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -62,7 +62,7 @@ export async function getRentalAgreement(
     id: data.id,
     rentalId: data.rental_id,
     templateVersion: data.template_version,
-    terms: data.terms as AgreementTerms,
+    terms: normalizeAgreementTerms(data.terms),
     parties: {
       companyName: data.company_name,
       companyAddress: data.company_address,

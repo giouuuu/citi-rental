@@ -18,16 +18,20 @@ import {
 
 import { BRAND_NAME, formatPeso, formatWhen } from "./templates.ts";
 
-/** The agreement terms as frozen on rental_agreements.terms. */
+/**
+ * The agreement terms as frozen on rental_agreements.terms. Mirrors
+ * AgreementTerms in src/features/agreements/lib/agreement-template.ts.
+ */
+export type AgreementSection =
+  | { kind: "list"; heading: string; intro: string; items: string[]; closing: string }
+  | { kind: "fines"; heading: string; items: { label: string; amount: number }[] }
+  | { kind: "labeled"; heading: string; items: { label: string; text: string }[] };
+
 export type AgreementTerms = {
   title: string;
   intro: string;
   clauses: string[];
-  penalties: { heading: string; items: string[] };
-  fines: { label: string; amount: number }[];
-  otherCharges: { label: string; detail: string }[];
-  prohibitedUse: { intro: string; items: string[]; closing: string };
-  reminders: { label: string; text: string }[];
+  sections: AgreementSection[];
   acknowledgement: string;
   cancellation: {
     title: string;
@@ -37,8 +41,56 @@ export type AgreementTerms = {
   };
 };
 
+/** Agreements signed before the template became editable: fixed sections. */
+type LegacyAgreementTerms = Omit<AgreementTerms, "sections"> & {
+  penalties: { heading: string; items: string[] };
+  fines: { label: string; amount: number }[];
+  otherCharges: { label: string; detail: string }[];
+  prohibitedUse: { intro: string; items: string[]; closing: string };
+  reminders: { label: string; text: string }[];
+};
+
+/** Terms in the section-list shape, whichever shape they were signed in. */
+export function normalizeTerms(terms: AgreementTerms | LegacyAgreementTerms): AgreementTerms {
+  if ("sections" in terms && Array.isArray(terms.sections)) return terms as AgreementTerms;
+  const legacy = terms as LegacyAgreementTerms;
+  return {
+    title: legacy.title,
+    intro: legacy.intro,
+    clauses: legacy.clauses ?? [],
+    sections: [
+      {
+        kind: "list",
+        heading: "Penalties",
+        intro: legacy.penalties?.heading ?? "",
+        items: legacy.penalties?.items ?? [],
+        closing: "",
+      },
+      { kind: "fines", heading: "Fines", items: legacy.fines ?? [] },
+      {
+        kind: "labeled",
+        heading: "Other charges",
+        items: (legacy.otherCharges ?? []).map((charge) => ({
+          label: charge.label,
+          text: charge.detail,
+        })),
+      },
+      {
+        kind: "list",
+        heading: "Prohibited use",
+        intro: legacy.prohibitedUse?.intro ?? "",
+        items: legacy.prohibitedUse?.items ?? [],
+        closing: legacy.prohibitedUse?.closing ?? "",
+      },
+      { kind: "labeled", heading: "Additional reminders", items: legacy.reminders ?? [] },
+    ],
+    acknowledgement: legacy.acknowledgement,
+    cancellation: legacy.cancellation,
+  };
+}
+
 export type EmailAgreement = {
-  terms: AgreementTerms;
+  terms: AgreementTerms | LegacyAgreementTerms;
   companyName: string;
   companyAddress: string | null;
   companyPhone: string | null;
@@ -549,7 +601,7 @@ function titleRow(context: Context, title: string) {
 
 function agreementSection(context: Context, agreement: EmailAgreement) {
   const { layout } = context;
-  const { terms } = agreement;
+  const terms = normalizeTerms(agreement.terms);
   companyHeader(context);
   titleRow(context, terms.title);
   layout.facts([
@@ -565,37 +617,41 @@ function agreementSection(context: Context, agreement: EmailAgreement) {
     ],
   ]);
 
-  layout.text(terms.intro);
+  if (terms.intro) layout.text(terms.intro);
   layout.bullets(terms.clauses);
 
-  layout.heading(terms.penalties.heading.length > 60 ? "Penalties" : terms.penalties.heading);
-  if (terms.penalties.heading.length > 60) layout.text(terms.penalties.heading);
-  layout.bullets(terms.penalties.items);
-
-  layout.heading("Fines", 11, 30 + terms.fines.length * 22);
-  layout.table(
-    [
-      { header: "Violation", width: 3 },
-      { header: "Fine", width: 1, align: "right" },
-    ],
-    terms.fines.map((fine) => ({ cells: [fine.label, formatPeso(fine.amount)] })),
-  );
-
-  layout.heading("Other charges");
-  layout.bullets(terms.otherCharges.map((charge) => `${charge.label}: ${charge.detail}`));
-
-  layout.heading("Prohibited use");
-  layout.text(terms.prohibitedUse.intro);
-  layout.bullets(terms.prohibitedUse.items);
-  layout.text(terms.prohibitedUse.closing);
-
-  layout.heading("Additional reminders");
-  layout.bullets(terms.reminders.map((reminder) => `${reminder.label}: ${reminder.text}`));
+  for (const section of terms.sections) {
+    if (section.kind === "fines") {
+      if (!section.items.length) continue;
+      layout.heading(section.heading, 11, 30 + section.items.length * 22);
+      layout.table(
+        [
+          { header: "Violation", width: 3 },
+          { header: "Fine", width: 1, align: "right" },
+        ],
+        section.items.map((fine) => ({ cells: [fine.label, formatPeso(fine.amount)] })),
+      );
+    } else if (section.kind === "labeled") {
+      if (!section.items.length) continue;
+      layout.heading(section.heading);
+      layout.bullets(section.items.map((item) => `${item.label}: ${item.text}`));
+    } else {
+      if (!section.items.length && !section.intro && !section.closing) continue;
+      layout.heading(section.heading);
+      if (section.intro) layout.text(section.intro);
+      layout.bullets(section.items);
+      if (section.closing) layout.text(section.closing);
+    }
+  }
 
   // The acknowledgement and both signatures stay on one page.
-  layout.heading("Acknowledgement", 11, 250);
-  layout.text(terms.acknowledgement);
-  layout.space(10);
+  if (terms.acknowledgement) {
+    layout.heading("Acknowledgement", 11, 250);
+    layout.text(terms.acknowledgement);
+    layout.space(10);
+  } else {
+    layout.ensure(250);
+  }
   const signed = when(context, agreement.signedAt);
   layout.signatures([
     {
@@ -618,16 +674,27 @@ function agreementSection(context: Context, agreement: EmailAgreement) {
     },
   ]);
 
+  const policy = terms.cancellation;
+  if (
+    !policy.sections.length &&
+    !policy.title &&
+    !policy.intro &&
+    !policy.closing
+  ) {
+    return;
+  }
   layout.space(18);
   layout.ensure(180);
-  layout.text(terms.cancellation.title.toUpperCase(), { size: 13, font: "bold", gap: 2 });
-  layout.rule(INK);
-  layout.text(terms.cancellation.intro);
-  terms.cancellation.sections.forEach((section, index) => {
+  if (policy.title) {
+    layout.text(policy.title.toUpperCase(), { size: 13, font: "bold", gap: 2 });
+    layout.rule(INK);
+  }
+  if (policy.intro) layout.text(policy.intro);
+  policy.sections.forEach((section, index) => {
     layout.text(`${index + 1}. ${section.heading}`, { font: "bold", gap: 1 });
     layout.text(section.body, { indent: 12 });
   });
-  layout.text(terms.cancellation.closing);
+  if (policy.closing) layout.text(policy.closing);
 }
 
 // ---------------------------------------------------------------------------

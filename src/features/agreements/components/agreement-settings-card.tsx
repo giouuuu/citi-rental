@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LoaderCircle, Save, TriangleAlert } from "lucide-react";
+import { FileText, LoaderCircle, Save, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -91,6 +93,13 @@ export function AgreementSettingsCard({ settings }: { settings: AgreementSetting
           The company details and signature filled into the agreement the
           renter signs when a car is released.
         </CardDescription>
+        <CardAction>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/settings/agreement">
+              <FileText /> Edit terms
+            </Link>
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent>
         <form className="space-y-5" noValidate onSubmit={submit}>

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { buildAgreementTerms } from "@/features/agreements/lib/agreement-template";
+import { parseAgreementTemplate } from "@/features/agreements/schemas/agreement-template-schema";
 import type { AgreementDraft } from "@/features/agreements/types";
 import { createInspectionSignedUrls } from "@/features/inspections/services/upload-inspection-photo";
 import { DEFAULT_FREE_CANCELLATION_HOURS } from "@/features/rentals/lib/cancellation-policy";
@@ -17,7 +18,7 @@ export async function getAgreementCompany() {
   const { data, error } = await supabase
     .from("company_profile")
     .select(
-      "name, legal_name, business_address, contact_phone, contact_email, agreement_signature_path, free_cancellation_hours",
+      "name, legal_name, business_address, contact_phone, contact_email, agreement_signature_path, free_cancellation_hours, agreement_template, agreement_template_version",
     )
     .single();
   if (error) throw new Error(error.message);
@@ -31,6 +32,9 @@ export async function getAgreementCompany() {
       data.free_cancellation_hours != null
         ? Number(data.free_cancellation_hours)
         : DEFAULT_FREE_CANCELLATION_HOURS,
+    /** The agreement wording saved in Settings; null uses the built-in one. */
+    template: parseAgreementTemplate(data.agreement_template),
+    templateVersion: data.agreement_template_version as string | null,
   };
 }
 
@@ -103,6 +107,8 @@ export async function getAgreementDraft(
     },
     terms: buildAgreementTerms({
       freeCancellationHours: company.freeCancellationHours,
+      template: company.template,
+      version: company.templateVersion,
     }),
     companySignatureUrl: signatureUrl,
   };

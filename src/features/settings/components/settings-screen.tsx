@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, PlugZap, ReceiptText, Users } from "lucide-react";
+import { FileText, Mail, PlugZap, ReceiptText, Users } from "lucide-react";
 import { PageHeader } from "@/components/design-system/page-header";
 import { Button } from "@/components/ui/button";
 import { getOrganizationSettings } from "@/features/settings/services/settings-service";
@@ -24,6 +24,11 @@ export async function SettingsScreen() {
             <Button asChild variant="outline">
               <Link href="/settings/charge-types">
                 <ReceiptText /> Charge types
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/settings/agreement">
+                <FileText /> Rental agreement
               </Link>
             </Button>
             <Button asChild variant="outline">

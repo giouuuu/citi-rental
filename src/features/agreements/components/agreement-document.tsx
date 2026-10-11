@@ -1,6 +1,11 @@
 import Image from "next/image";
 
-import type { AgreementTerms } from "@/features/agreements/lib/agreement-template";
+import {
+  type AgreementSection,
+  type AgreementTerms,
+  isEmptyCancellation,
+  isEmptySection,
+} from "@/features/agreements/lib/agreement-template";
 import type { AgreementParties } from "@/features/agreements/types";
 import { formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/shared/lib/money";
@@ -175,10 +180,12 @@ export function AgreementDocument({
       <AgreementRules terms={terms} />
 
       <section className="space-y-4 break-inside-avoid">
-        <div className="space-y-1">
-          <h3 className="font-semibold uppercase">Acknowledgement</h3>
-          <p>{terms.acknowledgement}</p>
-        </div>
+        {terms.acknowledgement ? (
+          <div className="space-y-1">
+            <h3 className="font-semibold uppercase">Acknowledgement</h3>
+            <p>{terms.acknowledgement}</p>
+          </div>
+        ) : null}
         <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
           <PartyBlock
             date={dateLabel}
@@ -216,10 +223,12 @@ export function AgreementDocument({
         </div>
       </section>
 
-      <AgreementCancellationPolicy
-        className="border-t border-border pt-5 print:break-before-page print:border-0 print:pt-0"
-        terms={terms}
-      />
+      {isEmptyCancellation(terms.cancellation) ? null : (
+        <AgreementCancellationPolicy
+          className="border-t border-border pt-5 print:break-before-page print:border-0 print:pt-0"
+          terms={terms}
+        />
+      )}
     </article>
   );
 }
@@ -228,35 +237,27 @@ export function AgreementDocument({
 export function AgreementClauses({ terms }: { terms: AgreementTerms }) {
   return (
     <>
-      <p>{terms.intro}</p>
-      <ul className="list-disc space-y-1.5 pl-5">
-        {terms.clauses.map((clause) => (
-          <li key={clause}>{clause}</li>
-        ))}
-      </ul>
+      {terms.intro ? <p>{terms.intro}</p> : null}
+      {terms.clauses.length ? (
+        <ul className="list-disc space-y-1.5 pl-5">
+          {terms.clauses.map((clause, index) => (
+            <li key={index}>{clause}</li>
+          ))}
+        </ul>
+      ) : null}
     </>
   );
 }
 
-/** Penalties through reminders: the rules between the clauses and signatures. */
-export function AgreementRules({ terms }: { terms: AgreementTerms }) {
-  return (
-    <>
+function AgreementSectionBlock({ section }: { section: AgreementSection }) {
+  if (section.kind === "fines") {
+    return (
       <section className="space-y-2">
-        <h3 className="font-semibold uppercase">{terms.penalties.heading}</h3>
-        <ul className="list-disc space-y-1 pl-5">
-          {terms.penalties.items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="font-semibold uppercase">Fines</h3>
+        <h3 className="font-semibold uppercase">{section.heading}</h3>
         <table className="w-full max-w-md text-sm">
           <tbody>
-            {terms.fines.map((fine) => (
-              <tr key={fine.label} className="border-b border-border last:border-0">
+            {section.items.map((fine, index) => (
+              <tr key={index} className="border-b border-border last:border-0">
                 <td className="py-1 pr-4">{fine.label}</td>
                 <td className="py-1 text-right font-medium tabular-nums">
                   {formatPhp(fine.amount)}
@@ -266,37 +267,47 @@ export function AgreementRules({ terms }: { terms: AgreementTerms }) {
           </tbody>
         </table>
       </section>
-
-      <section className="space-y-1">
-        <h3 className="font-semibold uppercase">Other charges</h3>
-        {terms.otherCharges.map((charge) => (
-          <p key={charge.label}>
-            <span className="font-medium">{charge.label}:</span> {charge.detail}
-          </p>
-        ))}
-      </section>
-
+    );
+  }
+  if (section.kind === "labeled") {
+    return (
       <section className="space-y-2">
-        <h3 className="font-semibold uppercase">Prohibited use</h3>
-        <p>{terms.prohibitedUse.intro}</p>
+        <h3 className="font-semibold uppercase">{section.heading}</h3>
         <ul className="list-disc space-y-1 pl-5">
-          {terms.prohibitedUse.items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-        <p>{terms.prohibitedUse.closing}</p>
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="font-semibold uppercase">Additional reminders</h3>
-        <ul className="list-disc space-y-1 pl-5">
-          {terms.reminders.map((reminder) => (
-            <li key={reminder.label}>
-              <span className="font-medium">{reminder.label}:</span> {reminder.text}
+          {section.items.map((item, index) => (
+            <li key={index}>
+              <span className="font-medium">{item.label}:</span> {item.text}
             </li>
           ))}
         </ul>
       </section>
+    );
+  }
+  return (
+    <section className="space-y-2">
+      <h3 className="font-semibold uppercase">{section.heading}</h3>
+      {section.intro ? <p>{section.intro}</p> : null}
+      {section.items.length ? (
+        <ul className="list-disc space-y-1 pl-5">
+          {section.items.map((item, index) => (
+            <li key={index}>{item}</li>
+          ))}
+        </ul>
+      ) : null}
+      {section.closing ? <p>{section.closing}</p> : null}
+    </section>
+  );
+}
+
+/** The sections between the clauses and signatures; empty ones are skipped. */
+export function AgreementRules({ terms }: { terms: AgreementTerms }) {
+  return (
+    <>
+      {terms.sections.map((section, index) =>
+        isEmptySection(section) ? null : (
+          <AgreementSectionBlock key={index} section={section} />
+        ),
+      )}
     </>
   );
 }
@@ -310,11 +321,13 @@ export function AgreementCancellationPolicy({
 }) {
   return (
     <section className={cn("space-y-3", className)}>
-      <h2 className="text-base font-semibold uppercase">{terms.cancellation.title}</h2>
-      <p>{terms.cancellation.intro}</p>
+      {terms.cancellation.title ? (
+        <h2 className="text-base font-semibold uppercase">{terms.cancellation.title}</h2>
+      ) : null}
+      {terms.cancellation.intro ? <p>{terms.cancellation.intro}</p> : null}
       <ol className="space-y-2">
         {terms.cancellation.sections.map((section, index) => (
-          <li key={section.heading}>
+          <li key={index}>
             <p className="font-semibold">
               {index + 1}. {section.heading}
             </p>
@@ -322,7 +335,7 @@ export function AgreementCancellationPolicy({
           </li>
         ))}
       </ol>
-      <p>{terms.cancellation.closing}</p>
+      {terms.cancellation.closing ? <p>{terms.cancellation.closing}</p> : null}
     </section>
   );
 }

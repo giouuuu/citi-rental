@@ -22,7 +22,11 @@ import { parseManilaTimestamp } from "@/features/shared/lib/manila-time";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { uploadPaymentProof } from "@/features/booking/lib/upload-payment-proof";
 import { uploadBookingIdPhotos } from "@/features/booking/lib/upload-booking-id-photos";
-import { AGREEMENT_TEMPLATE_VERSION } from "@/features/agreements/lib/agreement-template";
+import {
+  type AgreementTemplate,
+  AGREEMENT_TEMPLATE_VERSION,
+} from "@/features/agreements/lib/agreement-template";
+import { parseAgreementTemplate } from "@/features/agreements/schemas/agreement-template-schema";
 
 function toTimestamptz(value: string) {
   const date = parseManilaTimestamp(value);
@@ -128,6 +132,33 @@ export async function getPublicFreeCancellationHours(): Promise<number | null> {
   return data != null && Number.isInteger(hours) && hours >= 0 ? hours : null;
 }
 
+/**
+ * The rental agreement wording saved in Settings, for the booking form's
+ * terms. A null template means the built-in one. Cached per request: the
+ * page shows it and the booking records its version.
+ */
+export const getPublicAgreementTemplate = cache(
+  async function getPublicAgreementTemplate(): Promise<{
+    template: AgreementTemplate | null;
+    version: string;
+  }> {
+    const fallback = { template: null, version: AGREEMENT_TEMPLATE_VERSION };
+    if (!isSupabaseConfigured()) return fallback;
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("get_public_agreement_template");
+    if (error) {
+      console.error("get_public_agreement_template failed", error.message);
+      return fallback;
+    }
+    const row = (data ?? {}) as { template?: unknown; version?: string | null };
+    const template = parseAgreementTemplate(row.template);
+    return template && row.version
+      ? { template, version: row.version }
+      : fallback;
+  },
+);
+
 /** Cached per request: page metadata and the page body both read it. */
 export const getPublicVehicle = cache(async function getPublicVehicle(
   vehicleId: string,
@@ -176,6 +207,7 @@ export async function createPublicBooking(
       governmentId: input.governmentId,
     },
   });
+  const { version: termsVersion } = await getPublicAgreementTemplate();
   const { data, error } = await supabase.rpc("create_public_booking", {
     p_vehicle_id: input.vehicleId,
     p_start_at: startAt,
@@ -201,7 +233,7 @@ export async function createPublicBooking(
     // that predates the driver option.
     ...(input.drivingMode === "with-driver" ? { p_with_driver: true } : {}),
     // The schema only passes a booking whose terms were ticked.
-    p_terms_version: AGREEMENT_TEMPLATE_VERSION,
+    p_terms_version: termsVersion,
   });
 
   if (error) {

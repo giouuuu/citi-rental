@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  getPublicAgreementTemplate,
   getPublicFreeCancellationHours,
   getPublicReservationFee,
 } from "@/features/booking/services/public-booking-service";
@@ -17,12 +18,13 @@ import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-p
  * what the booking flow and the agreement actually charge.
  */
 export async function loadSeoPageData(greeting: string) {
-  const [vehicles, contact, reservationFee, freeCancellationHours] =
+  const [vehicles, contact, reservationFee, freeCancellationHours, agreement] =
     await Promise.all([
       listPublicAvailableVehicles(),
       getPublicContactChannels(),
       getPublicReservationFee(),
       getPublicFreeCancellationHours(),
+      getPublicAgreementTemplate(),
     ]);
 
   const rates = vehicles.map((v) => v.daily_rate).filter((rate) => rate > 0);
@@ -33,6 +35,6 @@ export async function loadSeoPageData(greeting: string) {
     freeCancellationHours,
     contactChannels: buildContactChannels(contact, greeting),
     fromRate: rates.length ? formatPhp(Math.min(...rates)) : null,
-    deliveryFee: agreementDeliveryFee(),
+    deliveryFee: agreementDeliveryFee(agreement.template),
   };
 }

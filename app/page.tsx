@@ -43,6 +43,7 @@ import { BookingReminderCard } from "@/features/booking/components/booking-remin
 import { bookingFormPath } from "@/features/booking/lib/booking-continue";
 import { getMyBookingReminder } from "@/features/booking/services/get-my-booking-reminder";
 import {
+  getPublicAgreementTemplate,
   getPublicDriverDailyRate,
   getPublicFreeCancellationHours,
   getPublicReservationFee,
@@ -143,6 +144,7 @@ export default async function HomePage({
     driverDailyRate,
     bookingReminder,
     operatingAddress,
+    agreement,
   ] = await Promise.all([
     listPublicAvailableVehicles({
       startDate: trip.start,
@@ -155,6 +157,7 @@ export default async function HomePage({
     getPublicDriverDailyRate(),
     getMyBookingReminder(),
     getPublicOperatingAddress(),
+    getPublicAgreementTemplate(),
   ]);
   const contactChannels = buildContactChannels(
     contactValues,
@@ -172,7 +175,7 @@ export default async function HomePage({
   const bookingQuery = bookingParams.toString() || undefined;
   const dailyRates = availableVehicles.map((vehicle) => vehicle.daily_rate);
   const lowestRate = dailyRates.filter((rate) => rate > 0);
-  const deliveryFrom = agreementDeliveryFromAmount();
+  const deliveryFrom = agreementDeliveryFromAmount(agreement.template);
   // The renter's first questions after the hero, answered with live numbers.
   // A fact whose setting is missing drops out rather than showing a guess.
   const factCandidates: (Fact | null)[] = [
@@ -224,7 +227,7 @@ export default async function HomePage({
     dailyRates,
     reservationFee,
     freeCancellationHours,
-    deliveryFee: agreementDeliveryFee(),
+    deliveryFee: agreementDeliveryFee(agreement.template),
   });
   // Hero lineup: available cars the owner gave a landing-page image.
   const heroFleet: HeroFleetCar[] = availableVehicles.flatMap((vehicle) =>

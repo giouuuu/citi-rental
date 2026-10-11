@@ -3,11 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SiteHeader } from "@/components/landing/site-header";
+import { buildAgreementTerms } from "@/features/agreements/lib/agreement-template";
 import { BookingHero } from "@/features/booking/components/booking-hero";
 import { BookingWorkspace } from "@/features/booking/components/booking-workspace";
+import { DEFAULT_FREE_CANCELLATION_HOURS } from "@/features/booking/lib/cancellation-policy";
 import { parseDrivingMode } from "@/features/booking/lib/driving-mode";
 import { listPublicVehicleBookedRanges } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import {
+  getPublicAgreementTemplate,
   getPublicDriverDailyRate,
   getPublicFreeCancellationHours,
   getPublicReservationFee,
@@ -82,13 +85,21 @@ export default async function BookVehiclePage({
     reservationFee,
     freeCancellationHours,
     driverDailyRate,
+    agreementTemplate,
   ] = await Promise.all([
     listPublicVehicleBookedRanges(vehicleId),
     listPublicAvailableVehicles(),
     getPublicReservationFee(),
     getPublicFreeCancellationHours(),
     getPublicDriverDailyRate(),
+    getPublicAgreementTemplate(),
   ]);
+  const agreementTerms = buildAgreementTerms({
+    freeCancellationHours:
+      freeCancellationHours ?? DEFAULT_FREE_CANCELLATION_HOURS,
+    template: agreementTemplate.template,
+    version: agreementTemplate.version,
+  });
   const bookingQuery = {
     pickup: query.pickup,
     start: query.start,
@@ -135,6 +146,7 @@ export default async function BookVehiclePage({
   return (
     <main className="min-h-screen bg-background" id="main-content">
       <BookingWorkspace
+        agreementTerms={agreementTerms}
         bookedRanges={bookedRanges}
         driverDailyRate={driverDailyRate}
         fleet={fleet}

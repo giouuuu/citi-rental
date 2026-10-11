@@ -26,6 +26,7 @@ import {
 } from "@/features/booking/lib/booking-draft";
 import { compressBookingPhoto } from "@/features/booking/lib/compress-booking-photo";
 import { BookingTermsField } from "@/features/booking/components/booking-terms-field";
+import type { AgreementTerms } from "@/features/agreements/lib/agreement-template";
 import { BookingVehicleSummary } from "@/features/booking/components/booking-vehicle-summary";
 import { DrivingModeToggle } from "@/features/booking/components/driving-mode-toggle";
 import type { DrivingMode } from "@/features/booking/lib/driving-mode";
@@ -85,6 +86,8 @@ type BookingFormProps = {
   reservationFee?: number | null;
   /** Settings → free-cancellation window; states the refund policy. */
   freeCancellationHours?: number | null;
+  /** The rental agreement from Settings, shown as the terms to accept. */
+  agreementTerms?: AgreementTerms;
 };
 
 function toDateTimeLocalValue(value?: string) {
@@ -116,6 +119,7 @@ export function BookingForm({
   initialEmail,
   reservationFee,
   freeCancellationHours,
+  agreementTerms,
 }: BookingFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -459,6 +463,7 @@ export function BookingForm({
           disabled={pending}
           freeCancellationHours={freeCancellationHours}
           name="acceptTerms"
+          terms={agreementTerms}
         />
 
         {restored && !result ? (

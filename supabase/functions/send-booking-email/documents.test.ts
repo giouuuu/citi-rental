@@ -5,6 +5,7 @@ import {
   type DocumentInput,
   buildAgreementPdf,
   documentFilename,
+  normalizeTerms,
   pdfText,
   signaturePaths,
 } from "./documents";
@@ -92,6 +93,42 @@ describe("buildAgreementPdf", () => {
   it("still builds when a signature is missing", async () => {
     const bytes = await buildAgreementPdf(input({ signatures: new Map() }));
     expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThanOrEqual(2);
+  });
+
+  it("builds an edited agreement with sections removed or added", async () => {
+    const base = input();
+    const bytes = await buildAgreementPdf({
+      ...base,
+      agreement: {
+        ...base.agreement,
+        terms: {
+          title: "Car Rental Agreement",
+          intro: "",
+          clauses: ["Only one clause."],
+          sections: [
+            { kind: "labeled", heading: "Insurance", items: [{ label: "Excess", text: "₱5,000" }] },
+            { kind: "fines", heading: "Fines", items: [] },
+            { kind: "list", heading: "Notes", intro: "", items: ["Keep it clean"], closing: "" },
+          ],
+          acknowledgement: "",
+          cancellation: { title: "", intro: "", sections: [], closing: "" },
+        },
+      },
+    });
+    expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("normalizeTerms", () => {
+  it("rebuilds the fixed sections of an older agreement", () => {
+    const terms = normalizeTerms(input().agreement.terms);
+    expect(terms.sections.map((section) => section.heading)).toEqual([
+      "Penalties",
+      "Fines",
+      "Other charges",
+      "Prohibited use",
+      "Additional reminders",
+    ]);
   });
 });
 
