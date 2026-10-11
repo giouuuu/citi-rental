@@ -172,6 +172,7 @@ Features:
 - Search and filter vehicles.
 - Manage the vehicle photo gallery.
 - Display current and upcoming rentals (bookings calendar).
+- Pick each car's fleet calendar color on a color wheel (or leave it on Automatic for an unused palette color); calendar bars are filled with the car's color and edged with the booking status.
 - Display rate quote for a date range.
 
 Validation:

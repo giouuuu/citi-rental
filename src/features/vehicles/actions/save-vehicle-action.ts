@@ -30,6 +30,7 @@ export async function saveVehicleAction(
     model: formData.get("model") ?? undefined,
     year: formData.get("year") ?? undefined,
     color: formData.get("color") || undefined,
+    calendar_color: formData.get("calendar_color") || undefined,
     category: formData.get("category") || undefined,
     transmission: formData.get("transmission") || undefined,
     fuel_type: formData.get("fuel_type") || undefined,
@@ -79,6 +80,8 @@ export async function saveVehicleAction(
   // A cleared optional rate is saved as "none", not left as it was.
   payload.half_day_rate = parsed.data.half_day_rate ?? null;
   payload.hourly_rate = parsed.data.hourly_rate ?? null;
+  // Cleared back to Automatic: the calendar assigns a palette colour.
+  payload.calendar_color = parsed.data.calendar_color ?? null;
 
   try {
     const supabase = await createClient();

@@ -20,6 +20,8 @@ export type FleetBooking = {
   vehicleId: string;
   plateNumber: string;
   vehicleName: string | null;
+  /** The car's picked calendar colour, if any. */
+  vehicleColor: string | null;
   customerName: string | null;
 };
 
@@ -57,7 +59,7 @@ export async function listFleetBookingsAction(input: {
   const { data, error } = await supabase
     .from("rentals")
     .select(
-      "id, reference_number, status, start_at, expected_return_at, actual_return_at, vehicle_id, vehicles ( plate_number, name ), customers ( full_name )",
+      "id, reference_number, status, start_at, expected_return_at, actual_return_at, vehicle_id, vehicles ( plate_number, name, calendar_color ), customers ( full_name )",
     )
     // Held, out, late, or done — plus drafts whose deposit was sent.
     .or(rentalHoldsDatesFilter(["completed"]))
@@ -75,7 +77,7 @@ export async function listFleetBookingsAction(input: {
     expected_return_at: string;
     actual_return_at: string | null;
     vehicle_id: string;
-    vehicles: { plate_number: string; name: string | null } | null;
+    vehicles: { plate_number: string; name: string | null; calendar_color: string | null } | null;
     customers: { full_name: string | null } | null;
   };
 
@@ -94,6 +96,7 @@ export async function listFleetBookingsAction(input: {
       vehicleId: row.vehicle_id,
       plateNumber: row.vehicles?.plate_number ?? "Car",
       vehicleName: row.vehicles?.name ?? null,
+      vehicleColor: row.vehicles?.calendar_color ?? null,
       customerName: row.customers?.full_name ?? null,
     })),
   };

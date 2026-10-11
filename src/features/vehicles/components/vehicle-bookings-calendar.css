@@ -106,6 +106,16 @@
   cursor: default;
 }
 
+/* Fleet calendar: fill is the car, left edge is the booking's status. */
+.vehicle-bookings-calendar .fc-event.fleet-car-event {
+  border-left: 4px solid var(--fleet-status-color, transparent) !important;
+  cursor: pointer;
+}
+
+.vehicle-bookings-calendar .fc-event.fleet-car-event.is-completed {
+  opacity: 0.55;
+}
+
 .vehicle-bookings-calendar .fc-daygrid-event-harness {
   margin-bottom: 2px;
 }

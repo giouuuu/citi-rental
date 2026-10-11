@@ -119,7 +119,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot | null> 
   try {
     const supabase = await createClient();
     const [vehicleResult, rentalResult, returnedResult, paymentResult] = await Promise.all([
-      supabase.from("vehicles").select("id, plate_number, name, status").order("plate_number"),
+      supabase.from("vehicles").select("id, plate_number, name, status, calendar_color").order("plate_number"),
       supabase
         .from("rentals")
         .select(
@@ -177,6 +177,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot | null> 
         plateNumber: String(v.plate_number ?? "—"),
         name: v.name ? String(v.name) : "",
         status: String(v.status),
+        calendarColor: v.calendar_color ? String(v.calendar_color) : null,
       })),
       rentals,
       returnedToday: returnedResult.count ?? 0,

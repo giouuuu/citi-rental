@@ -20,6 +20,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { DatePicker, DateTimePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ColorWheelPicker } from "@/features/shared/components/color-wheel-picker";
 import { ImageDropzone } from "@/features/shared/components/image-dropzone";
 import { compressImage } from "@/features/shared/lib/compress-image";
 import type {
@@ -241,6 +242,22 @@ export function ResourceFormField({
                   options={options}
                   placeholder={`Select ${fieldDef.label.toLowerCase()}`}
                   searchPlaceholder={`Search ${fieldDef.label.toLowerCase()}…`}
+                  value={String(field.value ?? "")}
+                />
+              ) : fieldDef.type === "color" ? (
+                <ColorWheelPicker
+                  aria-invalid={fieldState.invalid}
+                  clearLabel={
+                    fieldDef.emptyLabel ? `Use ${fieldDef.emptyLabel.toLowerCase()}` : undefined
+                  }
+                  disabled={readOnly || isPending}
+                  emptyLabel={fieldDef.emptyLabel}
+                  id={id}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    field.onBlur();
+                  }}
+                  swatches={fieldDef.swatches}
                   value={String(field.value ?? "")}
                 />
               ) : fieldDef.type === "date" ? (

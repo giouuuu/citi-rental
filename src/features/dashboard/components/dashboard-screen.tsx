@@ -147,6 +147,7 @@ export async function DashboardScreen() {
               id: vehicle.id,
               plateNumber: vehicle.plateNumber,
               name: vehicle.name || null,
+              calendarColor: vehicle.calendarColor ?? null,
             }))}
           />
           <section className="grid gap-4 xl:grid-cols-12">

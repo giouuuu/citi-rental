@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -9,18 +9,27 @@ import type { EventInput, EventSourceFuncArg } from "@fullcalendar/core";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Combobox } from "@/components/ui/combobox";
 import { DataTableLoadingBar } from "@/components/data-table/data-table-loading-bar";
+import { normalizeHex, readableTextColor } from "@/features/shared/lib/color";
 import { listFleetBookingsAction } from "@/features/vehicles/actions/list-fleet-bookings-action";
 import { STATUS_COLOR } from "@/features/vehicles/components/vehicle-bookings-calendar";
+import { assignCarColors, fallbackCarColor } from "@/features/vehicles/lib/calendar-color";
+import { cn } from "@/lib/utils";
 import "./vehicle-bookings-calendar.css";
 
-export type FleetCar = { id: string; plateNumber: string; name: string | null };
+export type FleetCar = {
+  id: string;
+  plateNumber: string;
+  name: string | null;
+  /** Picked on the vehicle form; null gets a palette colour. */
+  calendarColor: string | null;
+};
 
 const ALL_CARS = "all";
 
 /**
  * Every car's bookings on one month/week grid: plate and renter on each bar,
- * colored by status, opening the rental on click. Loads only the weeks in
- * view as staff page through months.
+ * filled with the car's colour and edged with its status, opening the rental
+ * on click. Loads only the weeks in view as staff page through months.
  */
 export function FleetBookingsCalendar({ cars }: { cars: FleetCar[] }) {
   const router = useRouter();
@@ -30,6 +39,7 @@ export function FleetBookingsCalendar({ cars }: { cars: FleetCar[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [inView, setInView] = useState<number | null>(null);
+  const carColors = useMemo(() => assignCarColors(cars), [cars]);
 
   const loadEvents = useCallback(
     async (range: EventSourceFuncArg): Promise<EventInput[]> => {
@@ -44,29 +54,38 @@ export function FleetBookingsCalendar({ cars }: { cars: FleetCar[] }) {
       setError("");
       return (result.data ?? [])
         .filter((booking) => car === ALL_CARS || booking.vehicleId === car)
-        .map((booking) => ({
-          id: booking.id,
-          title: [booking.plateNumber, booking.customerName]
-            .filter(Boolean)
-            .join(" · "),
-          start: booking.startAt,
-          end: booking.endAt,
-          url: `/rentals/${booking.id}`,
-          backgroundColor: STATUS_COLOR[booking.status] ?? "#6b7280",
-          borderColor: STATUS_COLOR[booking.status] ?? "#6b7280",
-          extendedProps: {
-            hover: [
-              booking.referenceNumber,
-              [booking.plateNumber, booking.vehicleName].filter(Boolean).join(" "),
-              booking.customerName,
-              booking.status,
-            ]
+        .map((booking) => {
+          // A retired car is off the list, so it falls back to its own colour.
+          const carColor =
+            carColors.get(booking.vehicleId) ??
+            normalizeHex(booking.vehicleColor) ??
+            fallbackCarColor(booking.vehicleId);
+          return {
+            id: booking.id,
+            title: [booking.plateNumber, booking.customerName]
               .filter(Boolean)
               .join(" · "),
-          },
-        }));
+            start: booking.startAt,
+            end: booking.endAt,
+            url: `/rentals/${booking.id}`,
+            backgroundColor: carColor,
+            textColor: readableTextColor(carColor),
+            classNames: ["fleet-car-event", `is-${booking.status}`],
+            extendedProps: {
+              statusColor: STATUS_COLOR[booking.status] ?? "#6b7280",
+              hover: [
+                booking.referenceNumber,
+                [booking.plateNumber, booking.vehicleName].filter(Boolean).join(" "),
+                booking.customerName,
+                booking.status,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+            },
+          };
+        });
     },
-    [car],
+    [car, carColors],
   );
 
   function chooseCar(next: string) {
@@ -123,6 +142,10 @@ export function FleetBookingsCalendar({ cars }: { cars: FleetCar[] }) {
           }}
           eventDidMount={(info) => {
             info.el.title = String(info.event.extendedProps.hover ?? info.event.title);
+            info.el.style.setProperty(
+              "--fleet-status-color",
+              String(info.event.extendedProps.statusColor ?? "transparent"),
+            );
           }}
           eventDisplay="block"
           events={loadEvents}
@@ -139,16 +162,52 @@ export function FleetBookingsCalendar({ cars }: { cars: FleetCar[] }) {
           plugins={[dayGridPlugin]}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-        {Object.entries(STATUS_COLOR).map(([status, color]) => (
-          <span className="flex items-center gap-1.5 capitalize" key={status}>
-            <span
-              className="inline-block size-3 rounded-sm"
-              style={{ backgroundColor: color }}
-            />
-            {status}
-          </span>
-        ))}
+      <div className="space-y-2 text-xs text-muted-foreground">
+        {cars.length ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 font-medium text-foreground">Cars</span>
+            {cars.map((option) => {
+              const color = carColors.get(option.id) ?? fallbackCarColor(option.id);
+              const selected = car === option.id;
+              return (
+                <button
+                  aria-pressed={selected}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                    selected && "border-foreground bg-muted text-foreground",
+                  )}
+                  key={option.id}
+                  onClick={() => chooseCar(selected ? ALL_CARS : option.id)}
+                  title={
+                    selected
+                      ? "Show all cars"
+                      : `Show only ${[option.plateNumber, option.name].filter(Boolean).join(" · ")}`
+                  }
+                  type="button"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="inline-block size-3 rounded-full"
+                    style={{ backgroundColor: color }}
+                  />
+                  {option.plateNumber}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="font-medium text-foreground">Status (left edge)</span>
+          {Object.entries(STATUS_COLOR).map(([status, color]) => (
+            <span className="flex items-center gap-1.5 capitalize" key={status}>
+              <span
+                className="inline-block h-3 w-1 rounded-sm"
+                style={{ backgroundColor: color }}
+              />
+              {status}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );

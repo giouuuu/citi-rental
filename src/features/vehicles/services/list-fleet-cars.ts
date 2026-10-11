@@ -10,7 +10,7 @@ export async function listFleetCars(): Promise<FleetCar[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("vehicles")
-    .select("id, plate_number, name")
+    .select("id, plate_number, name, calendar_color")
     .neq("status", "inactive")
     .order("plate_number");
   // The calendar still works without the filter list; don't break the page.
@@ -22,5 +22,6 @@ export async function listFleetCars(): Promise<FleetCar[]> {
     id: String(row.id),
     plateNumber: String(row.plate_number),
     name: row.name ? String(row.name) : null,
+    calendarColor: row.calendar_color ? String(row.calendar_color) : null,
   }));
 }

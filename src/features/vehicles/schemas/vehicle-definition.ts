@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DEMO_VEHICLES } from "@/features/shared/lib/demo-workspace";
+import { CAR_CALENDAR_PALETTE } from "@/features/vehicles/lib/calendar-color";
 
 import {
   optionalNumber,
@@ -46,6 +47,7 @@ export const vehicleDefinition: ResourceDefinition = {
     "model",
     "year",
     "color",
+    "calendar_color",
     "category",
     "transmission",
     "fuel_type",
@@ -66,6 +68,12 @@ export const vehicleDefinition: ResourceDefinition = {
     model: requiredText("Model", 80),
     year: requiredNumber("Year", 1900).max(2100),
     color: optionalText(60),
+    calendar_color: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^#[0-9a-f]{6}$/, "Pick a colour on the wheel or enter a hex like #2563eb.")
+      .optional(),
     category: optionalText(80),
     transmission: z.enum(["automatic", "manual", "cvt"]).optional(),
     fuel_type: z
@@ -96,6 +104,15 @@ export const vehicleDefinition: ResourceDefinition = {
     { name: "model", label: "Model", required: true },
     { name: "year", label: "Year", type: "number", required: true },
     { name: "color", label: "Color" },
+    {
+      name: "calendar_color",
+      label: "Calendar color",
+      type: "color",
+      swatches: CAR_CALENDAR_PALETTE,
+      emptyLabel: "Automatic",
+      description:
+        "This car's color on the booking calendar, so its bookings stand out. Left on Automatic, it gets a palette color no other car is using.",
+    },
     { name: "category", label: "Category", placeholder: "Sedan" },
     {
       name: "transmission",

@@ -24,7 +24,8 @@ export type ResourceField = {
     | "textarea"
     | "select"
     | "checkbox"
-    | "image";
+    | "image"
+    | "color";
   required?: boolean;
   placeholder?: string;
   description?: string;
@@ -50,6 +51,10 @@ export type ResourceField = {
   removable?: boolean;
   /** For a removable `image`: what else removing it does, shown once marked. */
   removeNote?: string;
+  /** For `color`: quick picks beside the wheel, as `#rrggbb`. */
+  swatches?: readonly string[];
+  /** For `color`: what an empty value means, e.g. "Automatic". */
+  emptyLabel?: string;
   /**
    * For `date-range`: this field holds the start and `endField` the end, both
    * `YYYY-MM-DDTHH:mm`. The end field is edited here, not on its own.

@@ -27,6 +27,8 @@ export type DashboardVehicle = {
   plateNumber: string;
   name: string;
   status: string;
+  /** Picked fleet-calendar colour; null gets a palette colour. */
+  calendarColor?: string | null;
 };
 
 /**
