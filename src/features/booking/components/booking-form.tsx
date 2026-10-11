@@ -594,8 +594,8 @@ export function BookingForm({
                 <p className="text-sm text-muted-foreground">
                   {withDriver
                     ? driverDailyRate
-                      ? "A local driver who knows Cebu drives you for the whole trip. Their day rate is in your total."
-                      : "A local driver who knows Cebu drives you for the whole trip. Staff confirm the driver fee with you."
+                      ? "A local driver who knows Cebu drives you for the whole trip, and brings and collects the car for free. Their day rate is in your total."
+                      : "A local driver who knows Cebu drives you for the whole trip, and brings and collects the car for free. Staff confirm the driver fee with you."
                     : "You drive. Bring your valid driver's license to pickup."}
                 </p>
               </FieldSet>
@@ -622,6 +622,7 @@ export function BookingForm({
                     locationName="pickupLocation"
                     methodName="pickupMethod"
                     officeAddress={officeAddress}
+                    withDriver={withDriver}
                   />
                   <Field orientation="horizontal">
                     <Checkbox
@@ -662,6 +663,7 @@ export function BookingForm({
                       locationName="returnLocation"
                       methodName="returnMethod"
                       officeAddress={officeAddress}
+                      withDriver={withDriver}
                     />
                   )}
                 </FieldGroup>

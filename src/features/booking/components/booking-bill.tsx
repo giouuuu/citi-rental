@@ -45,8 +45,9 @@ export type BookingBill = {
  * create_public_booking.
  */
 export function bookingBill(input: BookingBillInput): BookingBill | null {
-  const pickupFee = deliveryFee(input.pickupMethod, input.deliveryFees);
-  const returnFee = deliveryFee(input.returnMethod, input.deliveryFees);
+  const withDriver = input.withDriver != null;
+  const pickupFee = deliveryFee(input.pickupMethod, input.deliveryFees, withDriver);
+  const returnFee = deliveryFee(input.returnMethod, input.deliveryFees, withDriver);
   const quote = quoteTrip(
     { daily: input.dailyRate },
     input.start,
@@ -80,7 +81,7 @@ export function bookingBill(input: BookingBillInput): BookingBill | null {
     ["pickup", input.pickupMethod, pickupFee],
     ["return", input.returnMethod, returnFee],
   ] as const) {
-    const line = handoverBillLine(leg, method, fee);
+    const line = handoverBillLine(leg, method, fee, withDriver);
     // The office is free; only a delivery or collection is a bill line.
     if (!line || method === "office") continue;
     lines.push({ key: leg, label: line.label, detail: line.detail, amount: fee });

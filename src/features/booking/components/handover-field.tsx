@@ -51,8 +51,8 @@ const legCopy = {
 
 /**
  * One end of the trip: at the office (free) or delivered / collected within
- * or outside Cebu City at the per-way fee from Settings. A delivery asks for
- * the address; at the office there is nothing to type.
+ * or outside Cebu City at the per-way fee from Settings (free with a driver).
+ * A delivery asks for the address; at the office there is nothing to type.
  */
 export function HandoverField<T extends FieldValues, TOut extends FieldValues = T>({
   control,
@@ -60,6 +60,7 @@ export function HandoverField<T extends FieldValues, TOut extends FieldValues = 
   methodName,
   locationName,
   fees,
+  withDriver = false,
   officeAddress,
   disabled,
   compact = false,
@@ -70,6 +71,8 @@ export function HandoverField<T extends FieldValues, TOut extends FieldValues = 
   methodName: FieldPath<T>;
   locationName: FieldPath<T>;
   fees: DeliveryFees | null;
+  /** With a driver, delivery and collection are free. */
+  withDriver?: boolean;
   /** Settings → operating address; shown when the customer picks the office. */
   officeAddress?: string | null;
   disabled?: boolean;
@@ -126,10 +129,11 @@ export function HandoverField<T extends FieldValues, TOut extends FieldValues = 
                         </FieldTitle>
                         <FieldDescription className="tabular-nums">
                           {compact
-                            ? handoverPrice(option, fees)
+                            ? handoverPrice(option, fees, withDriver)
                                 .replace(" per way", "/way")
                                 .replace("Fee confirmed by staff", "Staff quote")
-                            : handoverPrice(option, fees)}
+                                .replace("Free with driver", "Free")
+                            : handoverPrice(option, fees, withDriver)}
                         </FieldDescription>
                       </FieldContent>
                       <RadioGroupItem

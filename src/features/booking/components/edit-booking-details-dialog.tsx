@@ -66,7 +66,7 @@ function defaultsFor(
 /**
  * The total after a pick-up or return change, as update_my_booking_details
  * prices it: an unchanged leg keeps its booked fee, a changed one takes
- * today's rate. Null when nothing changes.
+ * today's rate (free with a driver). Null when nothing changes.
  */
 function repricedTotal(
   booking: CustomerBookingDetail,
@@ -78,7 +78,10 @@ function repricedTotal(
     method: HandoverMethod | null,
     bookedMethod: HandoverMethod | null,
     bookedFee: number,
-  ) => (method === bookedMethod ? bookedFee : deliveryFee(method, fees));
+  ) =>
+    method === bookedMethod
+      ? bookedFee
+      : deliveryFee(method, fees, booking.withDriver);
   const next =
     Math.round(
       (booking.quotedTotal -
@@ -240,6 +243,7 @@ export function EditBookingDetailsDialog({
                 locationName="pickupLocation"
                 methodName="pickupMethod"
                 officeAddress={officeAddress}
+                withDriver={withDriver}
               />
               <HandoverField
                 control={form.control}
@@ -249,6 +253,7 @@ export function EditBookingDetailsDialog({
                 locationName="returnLocation"
                 methodName="returnMethod"
                 officeAddress={officeAddress}
+                withDriver={withDriver}
               />
               <BookingTextField
                 control={form.control}

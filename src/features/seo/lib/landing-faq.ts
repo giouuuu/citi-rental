@@ -41,6 +41,7 @@ export function landingFaq({
       answer: [
         "Yes, anywhere in Cebu province: Mactan-Cebu Airport, your hotel, your home, or your office. Enter the address when you book, and our staff confirm the handover with you.",
         deliveryFee ? `Delivery is ${deliveryFee}.` : null,
+        "With a driver, delivery and collection are free.",
       ]
         .filter(Boolean)
         .join(" "),

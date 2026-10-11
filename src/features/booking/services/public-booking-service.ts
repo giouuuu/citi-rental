@@ -383,7 +383,7 @@ export async function createPublicBooking(
       result.withDriver
         ? `WITH DRIVER: ${result.driverFee > 0 ? `${formatPhp(result.driverFee)} included` : "fee to quote"}`
         : "Self-drive",
-      ...handoverTelegramLines(result.handover),
+      ...handoverTelegramLines(result.handover, result.withDriver),
       ...result.bookingFees.map((fee) => `${fee.name}: ${formatPhp(fee.amount)}`),
       `Trip: ${input.pickupMethod === "office" ? "Office pick-up" : input.pickupLocation} → ${input.destination} · ${input.passengerCount} pax`,
       input.fullName
@@ -408,10 +408,13 @@ export async function createPublicBooking(
 }
 
 /** "Delivery: Within Cebu City · ₱300" lines for the owner's alert. */
-function handoverTelegramLines(handover: PublicBookingResult["handover"]) {
+function handoverTelegramLines(
+  handover: PublicBookingResult["handover"],
+  withDriver: boolean,
+) {
   return [
-    handoverBillLine("pickup", handover.pickupMethod, handover.pickupFee),
-    handoverBillLine("return", handover.returnMethod, handover.returnFee),
+    handoverBillLine("pickup", handover.pickupMethod, handover.pickupFee, withDriver),
+    handoverBillLine("return", handover.returnMethod, handover.returnFee, withDriver),
   ].flatMap((line) =>
     line
       ? [`${line.label}: ${line.detail}${line.fee > 0 ? ` · ${formatPhp(line.fee)}` : ""}`]

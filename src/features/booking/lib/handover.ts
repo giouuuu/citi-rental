@@ -21,11 +21,16 @@ export function parseHandoverMethod(value: unknown): HandoverMethod | null {
   return HANDOVER_METHODS.find((method) => method === value) ?? null;
 }
 
-/** One leg's fee. Mirrors private.delivery_fee: the office and unset rates are 0. */
+/**
+ * One leg's fee. Mirrors create_public_booking: the office, unset rates and
+ * with-driver trips (the driver brings the car and takes it back) are 0.
+ */
 export function deliveryFee(
   method: HandoverMethod | null | undefined,
   fees: DeliveryFees | null | undefined,
+  withDriver = false,
 ): number {
+  if (withDriver) return 0;
   if (method === "within_city") return fees?.withinCity ?? 0;
   if (method === "outside_city") return fees?.outsideCity ?? 0;
   return 0;
@@ -76,8 +81,10 @@ export function handoverShortLabel(method: HandoverMethod) {
 export function handoverPrice(
   method: HandoverMethod,
   fees: DeliveryFees | null | undefined,
+  withDriver = false,
 ) {
   if (method === "office") return "Free";
+  if (withDriver) return "Free with driver";
   const rate = deliveryRate(method, fees);
   return rate == null ? "Fee confirmed by staff" : rate === 0 ? "Free" : `${formatPhp(rate)} per way`;
 }
@@ -87,6 +94,7 @@ export function handoverBillLine(
   leg: HandoverLeg,
   method: HandoverMethod | null,
   fee: number,
+  withDriver = false,
 ): { label: string; detail: string; fee: number } | null {
   if (!method) return null;
   if (method === "office") {
@@ -96,7 +104,12 @@ export function handoverBillLine(
   return {
     label: copy[leg].bill.delivered,
     // No rate in Settings when booked: staff add the fee as a charge.
-    detail: fee > 0 ? zone : `${zone} · fee confirmed by staff`,
+    detail:
+      fee > 0
+        ? zone
+        : withDriver
+          ? `${zone} · free with driver`
+          : `${zone} · fee confirmed by staff`,
     fee,
   };
 }

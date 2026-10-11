@@ -27,6 +27,13 @@ describe("delivery fees", () => {
     expect(handoverPrice("outside_city", unset)).toBe("Fee confirmed by staff");
   });
 
+  it("charges nothing with a driver: the driver brings and collects the car", () => {
+    expect(deliveryFee("within_city", fees, true)).toBe(0);
+    expect(deliveryFee("outside_city", fees, true)).toBe(0);
+    expect(handoverPrice("outside_city", fees, true)).toBe("Free with driver");
+    expect(handoverPrice("office", fees, true)).toBe("Free");
+  });
+
   it("charges nothing for a booking with no method recorded", () => {
     expect(deliveryFee(null, fees)).toBe(0);
     expect(handoverBillLine("pickup", null, 0)).toBeNull();
@@ -48,6 +55,9 @@ describe("bill lines", () => {
     expect(handoverBillLine("return", "outside_city", 0)).toMatchObject({
       label: "Collection",
       detail: "Outside Cebu City · fee confirmed by staff",
+    });
+    expect(handoverBillLine("pickup", "within_city", 0, true)).toMatchObject({
+      detail: "Within Cebu City · free with driver",
     });
   });
 });

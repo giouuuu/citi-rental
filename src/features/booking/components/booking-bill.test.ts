@@ -46,6 +46,25 @@ describe("bookingBill", () => {
     expect(bill?.quote.total).toBe(7300);
   });
 
+  it("waives delivery and collection with a driver", () => {
+    const bill = bookingBill({
+      ...base,
+      withDriver: { rate: 1000 },
+      pickupMethod: "within_city",
+      returnMethod: "outside_city",
+    });
+    expect(bill?.lines.map((line) => [line.key, line.amount])).toEqual([
+      ["rent", 6900],
+      ["driver", 3000],
+      ["pickup", 0],
+      ["return", 0],
+    ]);
+    expect(bill?.lines.find((line) => line.key === "pickup")?.detail).toBe(
+      "Within Cebu City · free with driver",
+    );
+    expect(bill?.quote.total).toBe(9900);
+  });
+
   it("shows a driver with no rate as staff-quoted, outside the total", () => {
     const bill = bookingBill({ ...base, withDriver: { rate: null } });
     const driver = bill?.lines.find((line) => line.key === "driver");

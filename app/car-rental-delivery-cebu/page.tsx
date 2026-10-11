@@ -46,8 +46,8 @@ export default async function CarDeliveryPage() {
         {
           question: "How much is the delivery fee?",
           answer: deliveryLine
-            ? `${deliveryLine} Staff confirm the exact amount with your booking.`
-            : "Staff confirm the delivery fee with your booking.",
+            ? `${deliveryLine} Staff confirm the exact amount with your booking. With a driver, delivery and collection are free.`
+            : "Staff confirm the delivery fee with your booking. With a driver, delivery and collection are free.",
         },
         {
           question: "Can you deliver the car to my hotel?",

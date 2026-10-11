@@ -99,8 +99,8 @@ export function buildRentalBill({
   const quoted = quotedTotal ?? 0;
   const handoverLines = handover
     ? [
-        handoverBillLine("pickup", handover.pickupMethod, handover.pickupFee),
-        handoverBillLine("return", handover.returnMethod, handover.returnFee),
+        handoverBillLine("pickup", handover.pickupMethod, handover.pickupFee, driver != null),
+        handoverBillLine("return", handover.returnMethod, handover.returnFee, driver != null),
       ].filter((line) => line !== null)
     : [];
   // quoted_total holds the car, the driver, delivery and the booking fees;
