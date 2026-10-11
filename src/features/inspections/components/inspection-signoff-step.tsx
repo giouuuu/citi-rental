@@ -10,6 +10,7 @@ import { AgreementDocument } from "@/features/agreements/components/agreement-do
 import type { AgreementDraft } from "@/features/agreements/types";
 import { InspectionSignaturePad } from "@/features/inspections/components/inspection-signature-pad";
 import {
+  EarlyReturnNotice,
   LateReturnSection,
   ReturnPaymentSection,
   type ReturnSettlementControls,
@@ -139,7 +140,10 @@ export function InspectionSignoffStep({
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {inspectionType === "return" && settle ? (
-        <LateReturnSection settle={settle} />
+        <>
+          <EarlyReturnNotice settle={settle} />
+          <LateReturnSection settle={settle} />
+        </>
       ) : null}
 
       {inspectionType === "return" ? (

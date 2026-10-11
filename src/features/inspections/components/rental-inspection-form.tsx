@@ -117,6 +117,7 @@ export function RentalInspectionForm({
     returnBill && form.settlement
       ? {
           late: form.late,
+          early: form.early,
           lateChargeAmount: form.lateChargeAmount,
           lateChargeWaived: form.lateChargeWaived,
           lateChargeNote: form.lateChargeNote,

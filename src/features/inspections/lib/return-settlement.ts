@@ -43,6 +43,29 @@ export function lateReturn(
   };
 }
 
+export type EarlyReturn = {
+  dueAt: string;
+  /** Whole hours left before the booked return. */
+  hoursEarly: number;
+  /** Back before the booked pickup — the car was released ahead of schedule. */
+  beforePickup: boolean;
+};
+
+/** How early the car is back, or null when it is due or late. */
+export function earlyReturn(
+  context: Pick<ReturnBillContext, "startAt" | "expectedReturnAt">,
+  now: Date,
+): EarlyReturn | null {
+  const earlyMs = new Date(context.expectedReturnAt).getTime() - now.getTime();
+  // Under an hour early counts as on time.
+  if (!Number.isFinite(earlyMs) || earlyMs < HOUR_MS) return null;
+  return {
+    dueAt: context.expectedReturnAt,
+    hoursEarly: Math.floor(earlyMs / HOUR_MS),
+    beforePickup: now.getTime() < new Date(context.startAt).getTime(),
+  };
+}
+
 export type ReturnSettlement = {
   /** Bill so far plus the charges posted at return. */
   total: number;

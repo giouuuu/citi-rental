@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lateReturn, settleReturn } from "./return-settlement";
+import { earlyReturn, lateReturn, settleReturn } from "./return-settlement";
 
 const rental = {
   startAt: "2026-10-01T09:00:00+08:00",
@@ -31,6 +31,27 @@ describe("lateReturn", () => {
   it("suggests nothing when the rental has no rates", () => {
     const late = lateReturn({ ...rental, rates: null }, new Date("2026-10-04T09:00:00+08:00"));
     expect(late).toMatchObject({ hoursLate: 24, suggested: 0 });
+  });
+});
+
+describe("earlyReturn", () => {
+  it("is null when the car is due, under an hour early, or late", () => {
+    expect(earlyReturn(rental, new Date("2026-10-03T08:30:00+08:00"))).toBeNull();
+    expect(earlyReturn(rental, new Date("2026-10-03T10:00:00+08:00"))).toBeNull();
+  });
+
+  it("counts whole hours left before the booked return", () => {
+    expect(earlyReturn(rental, new Date("2026-10-02T06:30:00+08:00"))).toEqual({
+      dueAt: rental.expectedReturnAt,
+      hoursEarly: 26,
+      beforePickup: false,
+    });
+  });
+
+  it("flags a return before the booked pickup", () => {
+    expect(earlyReturn(rental, new Date("2026-09-28T09:00:00+08:00"))).toMatchObject({
+      beforePickup: true,
+    });
   });
 });
 

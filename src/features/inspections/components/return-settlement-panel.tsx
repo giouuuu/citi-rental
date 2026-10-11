@@ -1,6 +1,6 @@
 "use client";
 
-import { ClockAlert } from "lucide-react";
+import { CalendarClock, ClockAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { ReturnPaymentMethod } from "@/features/inspections/hooks/use-inspection-form-state";
 import type {
+  EarlyReturn,
   LateReturn,
   ReturnSettlement,
 } from "@/features/inspections/lib/return-settlement";
@@ -33,6 +34,7 @@ export function describeLateness(hoursLate: number) {
 
 export type ReturnSettlementControls = {
   late: LateReturn | null;
+  early: EarlyReturn | null;
   lateChargeAmount: string;
   lateChargeWaived: boolean;
   lateChargeNote: string;
@@ -50,6 +52,28 @@ export type ReturnSettlementControls = {
   onPaymentMethod: (value: ReturnPaymentMethod) => void;
   onPaymentReference: (value: string) => void;
 };
+
+/** Return sign-off: a heads-up that the car is back before its booked return. */
+export function EarlyReturnNotice({ settle }: { settle: ReturnSettlementControls }) {
+  const { early } = settle;
+  if (!early) return null;
+
+  return (
+    <Alert className="border-warning/30 bg-warning-surface">
+      <CalendarClock className="text-warning" />
+      <AlertTitle className="text-warning">
+        {early.beforePickup
+          ? "This car is back before its booked pickup"
+          : `This car is back ${describeLateness(early.hoursEarly)} early`}
+      </AlertTitle>
+      <AlertDescription>
+        It is booked until {formatManila(early.dueAt)}. You can still complete
+        the rental — the vehicle frees up for those dates. The bill stays as
+        booked; if you agreed a refund, adjust it on Bill &amp; payments.
+      </AlertDescription>
+    </Alert>
+  );
+}
 
 /** Return sign-off: the overdue notice and its penalty. */
 export function LateReturnSection({ settle }: { settle: ReturnSettlementControls }) {

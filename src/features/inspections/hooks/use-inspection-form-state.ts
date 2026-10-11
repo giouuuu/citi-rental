@@ -18,6 +18,7 @@ import {
   summarizeInspectionDelta,
 } from "@/features/inspections/lib/compare-inspections";
 import {
+  earlyReturn,
   lateReturn,
   settleReturn,
   type ReturnBillContext,
@@ -87,6 +88,9 @@ export function useInspectionFormState(options: {
   // Lateness is priced once, when the inspection opens.
   const [late] = useState(() =>
     returnBill ? lateReturn(returnBill, new Date()) : null,
+  );
+  const [early] = useState(() =>
+    returnBill ? earlyReturn(returnBill, new Date()) : null,
   );
   const [lateChargeAmount, setLateChargeAmount] = useState(() =>
     late ? String(late.suggested) : "",
@@ -470,6 +474,7 @@ export function useInspectionFormState(options: {
     damageChargeNote,
     setDamageChargeNote,
     late,
+    early,
     lateChargeAmount,
     setLateChargeAmount,
     lateChargeWaived,
