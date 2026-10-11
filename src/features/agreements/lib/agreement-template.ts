@@ -1,5 +1,5 @@
 /**
- * The rental agreement and cancellation policy the renter signs at release.
+ * The rental agreement and policies the renter signs at release.
  *
  * DEFAULT_AGREEMENT_TEMPLATE is the company's paper agreement, with its
  * grammar and typos cleaned up and the amounts unchanged. Owners can replace
@@ -33,7 +33,8 @@ export type AgreementSection =
 
 export type AgreementSectionKind = AgreementSection["kind"];
 
-export type CancellationPolicy = {
+/** A titled policy printed after the signatures: cancellation, extension… */
+export type AgreementPolicy = {
   title: string;
   intro: string;
   sections: { heading: string; body: string }[];
@@ -47,7 +48,9 @@ export type AgreementTemplate = {
   clauses: string[];
   sections: AgreementSection[];
   acknowledgement: string;
-  cancellation: CancellationPolicy;
+  cancellation: AgreementPolicy;
+  /** More policies the owner added, printed after the cancellation policy. */
+  policies: AgreementPolicy[];
 };
 
 /** The agreement as shown and signed: the template, filled in and versioned. */
@@ -153,6 +156,7 @@ export const DEFAULT_AGREEMENT_TEMPLATE: AgreementTemplate = {
     ],
     closing: "Thank you for your understanding and cooperation.",
   },
+  policies: [],
 };
 
 /** An empty section of a kind, for "Add section" in Settings. */
@@ -160,6 +164,11 @@ export function emptyAgreementSection(kind: AgreementSectionKind): AgreementSect
   if (kind === "fines") return { kind, heading: "", items: [{ label: "", amount: 0 }] };
   if (kind === "labeled") return { kind, heading: "", items: [{ label: "", text: "" }] };
   return { kind, heading: "", intro: "", items: [""], closing: "" };
+}
+
+/** An empty policy, for "Add policy" in Settings. */
+export function emptyAgreementPolicy(): AgreementPolicy {
+  return { title: "", intro: "", sections: [{ heading: "", body: "" }], closing: "" };
 }
 
 function hoursPhrase(hours: number) {
@@ -214,18 +223,19 @@ type LegacyTerms = {
   prohibitedUse: { intro: string; items: string[]; closing: string };
   reminders: AgreementLabeledItem[];
   acknowledgement: string;
-  cancellation: CancellationPolicy;
+  cancellation: AgreementPolicy;
 };
 
 /**
  * Terms read back from a signed agreement. Agreements signed before the
  * template became editable stored fixed sections; they are rebuilt into
- * the section list without changing a word.
+ * the section list without changing a word. Ones signed before policies
+ * could be added have none beyond cancellation.
  */
 export function normalizeAgreementTerms(raw: unknown): AgreementTerms {
   const terms = raw as AgreementTerms | LegacyTerms;
   if ("sections" in terms && Array.isArray(terms.sections)) {
-    return terms as AgreementTerms;
+    return Array.isArray(terms.policies) ? terms : { ...terms, policies: [] };
   }
   const legacy = terms as LegacyTerms;
   return {
@@ -265,6 +275,7 @@ export function normalizeAgreementTerms(raw: unknown): AgreementTerms {
     ],
     acknowledgement: legacy.acknowledgement,
     cancellation: legacy.cancellation,
+    policies: [],
   };
 }
 
@@ -276,8 +287,8 @@ export function isEmptySection(section: AgreementSection) {
   return !section.items.length;
 }
 
-/** True when the cancellation policy has nothing to print. */
-export function isEmptyCancellation(policy: CancellationPolicy) {
+/** True when a policy has nothing to print. Such policies are skipped. */
+export function isEmptyPolicy(policy: AgreementPolicy) {
   return (
     !policy.sections.length &&
     !policy.title.trim() &&

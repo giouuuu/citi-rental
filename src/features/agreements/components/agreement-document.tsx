@@ -1,9 +1,10 @@
 import Image from "next/image";
 
 import {
+  type AgreementPolicy,
   type AgreementSection,
   type AgreementTerms,
-  isEmptyCancellation,
+  isEmptyPolicy,
   isEmptySection,
 } from "@/features/agreements/lib/agreement-template";
 import type { AgreementParties } from "@/features/agreements/types";
@@ -106,7 +107,7 @@ function PartyBlock({
 }
 
 /**
- * The rental agreement and cancellation policy, filled in. Used for the live
+ * The rental agreement and its policies, filled in. Used for the live
  * preview at release and for the signed, printable copy.
  */
 export function AgreementDocument({
@@ -223,12 +224,12 @@ export function AgreementDocument({
         </div>
       </section>
 
-      {isEmptyCancellation(terms.cancellation) ? null : (
-        <AgreementCancellationPolicy
-          className="border-t border-border pt-5 print:break-before-page print:border-0 print:pt-0"
+      {agreementPolicies(terms).length ? (
+        <AgreementPolicies
+          className="space-y-6 border-t border-border pt-5 print:break-before-page print:border-0 print:pt-0"
           terms={terms}
         />
-      )}
+      ) : null}
     </article>
   );
 }
@@ -312,30 +313,61 @@ export function AgreementRules({ terms }: { terms: AgreementTerms }) {
   );
 }
 
-export function AgreementCancellationPolicy({
+/** The cancellation policy, then any added ones; empty ones are skipped. */
+export function agreementPolicies(terms: AgreementTerms) {
+  return [terms.cancellation, ...terms.policies].filter(
+    (policy) => !isEmptyPolicy(policy),
+  );
+}
+
+/**
+ * Every policy, printed after the signatures. `policyClassName` styles each
+ * one; `className` the block holding them.
+ */
+export function AgreementPolicies({
   terms,
   className,
+  policyClassName,
 }: {
   terms: AgreementTerms;
+  className?: string;
+  policyClassName?: string;
+}) {
+  return (
+    <div className={className}>
+      {agreementPolicies(terms).map((policy, index) => (
+        <AgreementPolicyBlock key={index} className={policyClassName} policy={policy} />
+      ))}
+    </div>
+  );
+}
+
+function AgreementPolicyBlock({
+  policy,
+  className,
+}: {
+  policy: AgreementPolicy;
   className?: string;
 }) {
   return (
     <section className={cn("space-y-3", className)}>
-      {terms.cancellation.title ? (
-        <h2 className="text-base font-semibold uppercase">{terms.cancellation.title}</h2>
+      {policy.title ? (
+        <h2 className="text-base font-semibold uppercase">{policy.title}</h2>
       ) : null}
-      {terms.cancellation.intro ? <p>{terms.cancellation.intro}</p> : null}
-      <ol className="space-y-2">
-        {terms.cancellation.sections.map((section, index) => (
-          <li key={index}>
-            <p className="font-semibold">
-              {index + 1}. {section.heading}
-            </p>
-            <p>{section.body}</p>
-          </li>
-        ))}
-      </ol>
-      {terms.cancellation.closing ? <p>{terms.cancellation.closing}</p> : null}
+      {policy.intro ? <p>{policy.intro}</p> : null}
+      {policy.sections.length ? (
+        <ol className="space-y-2">
+          {policy.sections.map((section, index) => (
+            <li key={index}>
+              <p className="font-semibold">
+                {index + 1}. {section.heading}
+              </p>
+              <p>{section.body}</p>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {policy.closing ? <p>{policy.closing}</p> : null}
     </section>
   );
 }

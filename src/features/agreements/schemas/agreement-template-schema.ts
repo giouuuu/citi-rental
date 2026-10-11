@@ -43,16 +43,9 @@ const labeledSection = z.object({
     .max(40),
 });
 
-export const agreementTemplateSchema = z.object({
-  title: required(120, "Give the agreement a title."),
-  intro: line(1000),
-  clauses: z.array(required(1500, "Fill in or remove this clause.")).max(60),
-  sections: z
-    .array(z.discriminatedUnion("kind", [listSection, finesSection, labeledSection]))
-    .max(20),
-  acknowledgement: line(1500),
-  cancellation: z.object({
-    title: line(120),
+const policy = (title: z.ZodString) =>
+  z.object({
+    title,
     intro: line(1000),
     sections: z
       .array(
@@ -63,7 +56,22 @@ export const agreementTemplateSchema = z.object({
       )
       .max(20),
     closing: line(1000),
-  }),
+  });
+
+export const agreementTemplateSchema = z.object({
+  title: required(120, "Give the agreement a title."),
+  intro: line(1000),
+  clauses: z.array(required(1500, "Fill in or remove this clause.")).max(60),
+  sections: z
+    .array(z.discriminatedUnion("kind", [listSection, finesSection, labeledSection]))
+    .max(20),
+  acknowledgement: line(1500),
+  cancellation: policy(line(120)),
+  // Templates saved before policies could be added have none.
+  policies: z
+    .array(policy(required(120, "Give this policy a title.")))
+    .max(10)
+    .default([]),
 }) satisfies z.ZodType<AgreementTemplate>;
 
 /** A saved template, or null when it is missing or no longer valid. */

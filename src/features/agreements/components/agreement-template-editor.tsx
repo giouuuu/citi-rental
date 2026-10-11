@@ -43,10 +43,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveAgreementTemplateAction } from "@/features/agreements/actions/save-agreement-template-action";
 import { AgreementDocument } from "@/features/agreements/components/agreement-document";
 import {
+  type AgreementPolicy,
   type AgreementSection,
   type AgreementSectionKind,
   type AgreementTemplate,
   buildAgreementTerms,
+  emptyAgreementPolicy,
   emptyAgreementSection,
   HOURS_TOKEN,
 } from "@/features/agreements/lib/agreement-template";
@@ -421,6 +423,92 @@ function SectionEditor({
   );
 }
 
+/** Title, intro, numbered parts and closing of one policy. */
+function PolicyFields({
+  path,
+  policy,
+  errors,
+  disabled,
+  titlePlaceholder,
+  onChange,
+}: {
+  /** Where its errors are keyed: "cancellation" or "policies.0". */
+  path: string;
+  policy: AgreementPolicy;
+  errors: Errors;
+  disabled?: boolean;
+  titlePlaceholder?: string;
+  onChange: (policy: AgreementPolicy) => void;
+}) {
+  const id = path.replace(".", "-");
+  return (
+    <div className="space-y-5">
+      <TextField
+        disabled={disabled}
+        errors={errors[`${path}.title`]}
+        id={`${id}-title`}
+        label="Title"
+        placeholder={titlePlaceholder}
+        value={policy.title}
+        onChange={(title) => onChange({ ...policy, title })}
+      />
+      <TextField
+        multiline
+        disabled={disabled}
+        errors={errors[`${path}.intro`]}
+        id={`${id}-intro`}
+        label="Intro"
+        value={policy.intro}
+        onChange={(intro) => onChange({ ...policy, intro })}
+      />
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">Policy parts</h3>
+        <RowList
+          disabled={disabled}
+          itemLabel="part"
+          items={policy.sections}
+          newItem={() => ({ heading: "", body: "" })}
+          renderItem={(part, index, update) => (
+            <div className="space-y-2">
+              <TextField
+                hideLabel
+                disabled={disabled}
+                errors={errors[`${path}.sections.${index}.heading`]}
+                id={`${id}-part-${index}-heading`}
+                label={`Part ${index + 1} heading`}
+                placeholder="Heading"
+                value={part.heading}
+                onChange={(heading) => update({ ...part, heading })}
+              />
+              <TextField
+                hideLabel
+                multiline
+                disabled={disabled}
+                errors={errors[`${path}.sections.${index}.body`]}
+                id={`${id}-part-${index}-body`}
+                label={`Part ${index + 1} text`}
+                placeholder="Text"
+                value={part.body}
+                onChange={(body) => update({ ...part, body })}
+              />
+            </div>
+          )}
+          onChange={(sections) => onChange({ ...policy, sections })}
+        />
+      </div>
+      <TextField
+        multiline
+        disabled={disabled}
+        errors={errors[`${path}.closing`]}
+        id={`${id}-closing`}
+        label="Closing"
+        value={policy.closing}
+        onChange={(closing) => onChange({ ...policy, closing })}
+      />
+    </div>
+  );
+}
+
 /**
  * Edit the rental agreement: every wording, and which parts it has. Saved
  * changes apply to agreements signed and bookings made afterwards.
@@ -441,10 +529,6 @@ export function AgreementTemplateEditor({
     setTemplate(next);
     // Once a save was refused, errors clear as each part is fixed.
     if (Object.keys(errors).length) setErrors(validate(next));
-  }
-
-  function patchCancellation(patch: Partial<AgreementTemplate["cancellation"]>) {
-    change({ ...template, cancellation: { ...template.cancellation, ...patch } });
   }
 
   function save(next: AgreementTemplate | null) {
@@ -639,70 +723,75 @@ export function AgreementTemplateEditor({
               every part to leave the policy off.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <TextField
+          <CardContent>
+            <PolicyFields
               disabled={isPending}
-              errors={errors["cancellation.title"]}
-              id="cancellation-title"
-              label="Title"
-              value={template.cancellation.title}
-              onChange={(title) => patchCancellation({ title })}
-            />
-            <TextField
-              multiline
-              disabled={isPending}
-              errors={errors["cancellation.intro"]}
-              id="cancellation-intro"
-              label="Intro"
-              value={template.cancellation.intro}
-              onChange={(intro) => patchCancellation({ intro })}
-            />
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Policy parts</h3>
-              <RowList
-                disabled={isPending}
-                itemLabel="part"
-                items={template.cancellation.sections}
-                newItem={() => ({ heading: "", body: "" })}
-                renderItem={(part, index, update) => (
-                  <div className="space-y-2">
-                    <TextField
-                      hideLabel
-                      disabled={isPending}
-                      errors={errors[`cancellation.sections.${index}.heading`]}
-                      id={`cancellation-part-${index}-heading`}
-                      label={`Part ${index + 1} heading`}
-                      placeholder="Heading"
-                      value={part.heading}
-                      onChange={(heading) => update({ ...part, heading })}
-                    />
-                    <TextField
-                      hideLabel
-                      multiline
-                      disabled={isPending}
-                      errors={errors[`cancellation.sections.${index}.body`]}
-                      id={`cancellation-part-${index}-body`}
-                      label={`Part ${index + 1} text`}
-                      placeholder="Text"
-                      value={part.body}
-                      onChange={(body) => update({ ...part, body })}
-                    />
-                  </div>
-                )}
-                onChange={(sections) => patchCancellation({ sections })}
-              />
-            </div>
-            <TextField
-              multiline
-              disabled={isPending}
-              errors={errors["cancellation.closing"]}
-              id="cancellation-closing"
-              label="Closing"
-              value={template.cancellation.closing}
-              onChange={(closing) => patchCancellation({ closing })}
+              errors={errors}
+              path="cancellation"
+              policy={template.cancellation}
+              onChange={(cancellation) => change({ ...template, cancellation })}
             />
           </CardContent>
         </Card>
+
+        {template.policies.map((policy, index) => (
+          <Card key={index}>
+            <CardHeader>
+              <CardTitle>{policy.title.trim() || "New policy"}</CardTitle>
+              <CardDescription>
+                Printed after the cancellation policy, here and on the booking
+                form. {HOURS_TOKEN} works here too.
+              </CardDescription>
+              <CardAction>
+                <RowControls
+                  count={template.policies.length}
+                  disabled={isPending}
+                  index={index}
+                  label={`policy ${policy.title.trim() || index + 1}`}
+                  onMove={(to) =>
+                    change({ ...template, policies: move(template.policies, index, to) })
+                  }
+                  onRemove={() =>
+                    change({
+                      ...template,
+                      policies: template.policies.filter((_, i) => i !== index),
+                    })
+                  }
+                />
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <PolicyFields
+                disabled={isPending}
+                errors={errors}
+                path={`policies.${index}`}
+                policy={policy}
+                titlePlaceholder="e.g. Rental Extension Policy"
+                onChange={(next) =>
+                  change({
+                    ...template,
+                    policies: template.policies.map((current, i) =>
+                      i === index ? next : current,
+                    ),
+                  })
+                }
+              />
+            </CardContent>
+          </Card>
+        ))}
+
+        <div>
+          <Button
+            disabled={isPending}
+            type="button"
+            variant="outline"
+            onClick={() =>
+              change({ ...template, policies: [...template.policies, emptyAgreementPolicy()] })
+            }
+          >
+            <Plus /> Add policy
+          </Button>
+        </div>
       </TabsContent>
 
       <TabsContent value="preview">

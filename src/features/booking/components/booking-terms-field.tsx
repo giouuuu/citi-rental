@@ -27,14 +27,13 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import {
-  AgreementCancellationPolicy,
   AgreementClauses,
+  AgreementPolicies,
   AgreementRules,
 } from "@/features/agreements/components/agreement-document";
 import {
   type AgreementTerms,
   buildAgreementTerms,
-  isEmptyCancellation,
 } from "@/features/agreements/lib/agreement-template";
 import { DEFAULT_FREE_CANCELLATION_HOURS } from "@/features/booking/lib/cancellation-policy";
 
@@ -42,7 +41,7 @@ import { DEFAULT_FREE_CANCELLATION_HOURS } from "@/features/booking/lib/cancella
 const READ_THRESHOLD_PX = 24;
 
 /**
- * The rental agreement and cancellation policy the renter signs at pickup,
+ * The rental agreement and policies the renter signs at pickup,
  * accepted up front. The box only ticks once the terms were opened and
  * scrolled to the end; until then, ticking it opens them.
  */
@@ -150,12 +149,11 @@ export function BookingTermsField<
                   ref={checkEnd}
                   tabIndex={0}
                 >
-                  {isEmptyCancellation(terms.cancellation) ? null : (
-                    <AgreementCancellationPolicy
-                      className="rounded-lg bg-brand-50/70 p-4"
-                      terms={terms}
-                    />
-                  )}
+                  <AgreementPolicies
+                    className="space-y-4 empty:hidden"
+                    policyClassName="rounded-lg bg-brand-50/70 p-4"
+                    terms={terms}
+                  />
                   <section className="space-y-3">
                     <h2 className="text-base font-semibold uppercase">
                       {terms.title}

@@ -5,9 +5,13 @@ import {
   type AgreementTemplate,
   buildAgreementTerms,
   DEFAULT_AGREEMENT_TEMPLATE,
+  HOURS_TOKEN,
   normalizeAgreementTerms,
 } from "@/features/agreements/lib/agreement-template";
-import { agreementTemplateSchema } from "@/features/agreements/schemas/agreement-template-schema";
+import {
+  agreementTemplateSchema,
+  parseAgreementTemplate,
+} from "@/features/agreements/schemas/agreement-template-schema";
 
 describe("buildAgreementTerms", () => {
   it("prints the cancellation window from Settings", () => {
@@ -107,5 +111,45 @@ describe("normalizeAgreementTerms", () => {
   it("leaves current terms alone", () => {
     const terms = buildAgreementTerms({ freeCancellationHours: 24 });
     expect(normalizeAgreementTerms(terms)).toBe(terms);
+  });
+
+  it("gives terms signed before added policies an empty list", () => {
+    const signed = { ...buildAgreementTerms({ freeCancellationHours: 24 }), policies: undefined };
+    expect(normalizeAgreementTerms(signed).policies).toEqual([]);
+  });
+});
+
+describe("added policies", () => {
+  it("fill in the cancellation window like the cancellation policy", () => {
+    const terms = buildAgreementTerms({
+      freeCancellationHours: 12,
+      template: {
+        ...DEFAULT_AGREEMENT_TEMPLATE,
+        policies: [
+          {
+            title: "Rental Extension Policy",
+            intro: "",
+            sections: [{ heading: "Notice", body: `Tell us ${HOURS_TOKEN} ahead.` }],
+            closing: "",
+          },
+        ],
+      },
+    });
+    expect(terms.policies[0]!.sections[0]!.body).toBe("Tell us 12 hours ahead.");
+  });
+
+  it("default to none on templates saved before they existed", () => {
+    const saved = { ...DEFAULT_AGREEMENT_TEMPLATE, policies: undefined };
+    expect(parseAgreementTemplate(saved)?.policies).toEqual([]);
+  });
+
+  it("need a title", () => {
+    const template = {
+      ...DEFAULT_AGREEMENT_TEMPLATE,
+      policies: [
+        { title: " ", intro: "", sections: [{ heading: "Notice", body: "Call us." }], closing: "" },
+      ],
+    };
+    expect(parseAgreementTemplate(template)).toBeNull();
   });
 });
