@@ -12,7 +12,7 @@ import { listPublicVehicleBookedRanges } from "@/features/booking/services/list-
 import {
   getPublicAgreementTemplate,
   getPublicBookingFees,
-  getPublicDriverDailyRate,
+  getPublicDriverTerms,
   getPublicFreeCancellationHours,
   getPublicReservationFee,
   getPublicVehicle,
@@ -85,7 +85,7 @@ export default async function BookVehiclePage({
     fleet,
     reservationFee,
     freeCancellationHours,
-    driverDailyRate,
+    driverTerms,
     agreementTemplate,
     bookingFees,
   ] = await Promise.all([
@@ -93,7 +93,7 @@ export default async function BookVehiclePage({
     listPublicAvailableVehicles(),
     getPublicReservationFee(),
     getPublicFreeCancellationHours(),
-    getPublicDriverDailyRate(),
+    getPublicDriverTerms(),
     getPublicAgreementTemplate(),
     getPublicBookingFees(),
   ]);
@@ -155,7 +155,7 @@ export default async function BookVehiclePage({
         carWashFee={bookingFees.carWashFee}
         carWashIncluded={bookingFees.carWashIncluded}
         deliveryFees={bookingFees.delivery}
-        driverDailyRate={driverDailyRate}
+        driverTerms={driverTerms}
         fleet={fleet}
         freeCancellationHours={freeCancellationHours}
         header={<SiteHeader />}

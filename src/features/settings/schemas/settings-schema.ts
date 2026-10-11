@@ -49,6 +49,13 @@ export const settingsSchema = z
         .max(1_000_000)
         .nullable(),
     ),
+    driver_hours_per_day: z.coerce
+      .number()
+      .int("Use whole hours.")
+      .min(1, "A driver day covers at least 1 hour.")
+      .max(24, "A driver day covers at most 24 hours."),
+    // Empty: no overtime rate is shown to renters.
+    driver_overtime_hourly_rate: optionalFee("The overtime rate cannot be negative."),
     // Per way. Empty: deliveries go through and staff quote the fee.
     delivery_fee_within_city: optionalFee("The delivery fee cannot be negative."),
     delivery_fee_outside_city: optionalFee("The delivery fee cannot be negative."),

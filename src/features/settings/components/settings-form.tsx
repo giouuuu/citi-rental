@@ -80,6 +80,8 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
       gps_provider: settings.gps_provider as SettingsInput["gps_provider"],
       reservation_fee: settings.reservation_fee,
       driver_daily_rate: settings.driver_daily_rate,
+      driver_hours_per_day: settings.driver_hours_per_day,
+      driver_overtime_hourly_rate: settings.driver_overtime_hourly_rate,
       delivery_fee_within_city: settings.delivery_fee_within_city,
       delivery_fee_outside_city: settings.delivery_fee_outside_city,
       free_cancellation_hours: settings.free_cancellation_hours,
@@ -322,6 +324,85 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                   <FieldDescription>
                     Added to with-driver bookings for every started 24 hours.
                     Leave empty to quote the driver yourself.
+                  </FieldDescription>
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="driver_hours_per_day"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="driver_hours_per_day">
+                    Driver hours a day
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    disabled={isPending}
+                    id="driver_hours_per_day"
+                    min={1}
+                    max={24}
+                    step="1"
+                    onChange={(event) =>
+                      field.onChange(
+                        event.target.value === ""
+                          ? null
+                          : event.target.valueAsNumber,
+                      )
+                    }
+                    type="number"
+                    value={
+                      field.value === undefined || field.value === null
+                        ? ""
+                        : String(field.value)
+                    }
+                  />
+                  <FieldDescription>
+                    How many hours of driving the driver daily rate covers.
+                  </FieldDescription>
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="driver_overtime_hourly_rate"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="driver_overtime_hourly_rate">
+                    Driver overtime (₱ per hour)
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    disabled={isPending}
+                    id="driver_overtime_hourly_rate"
+                    min={0}
+                    step="0.01"
+                    onChange={(event) =>
+                      field.onChange(
+                        event.target.value === ""
+                          ? null
+                          : event.target.valueAsNumber,
+                      )
+                    }
+                    placeholder="Not shown"
+                    type="number"
+                    value={
+                      field.value === undefined || field.value === null
+                        ? ""
+                        : String(field.value)
+                    }
+                  />
+                  <FieldDescription>
+                    Each hour past the driver&apos;s day. Shown on the renter&apos;s bill and
+                    settled at return, not added to the booking. Leave empty to hide it.
                   </FieldDescription>
                   {fieldState.invalid ? (
                     <FieldError errors={[fieldState.error]} />

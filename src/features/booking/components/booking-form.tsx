@@ -69,6 +69,10 @@ import {
 } from "@/features/booking/lib/handover";
 import type { DrivingMode } from "@/features/booking/lib/driving-mode";
 import {
+  type DriverTerms,
+  NO_DRIVER_TERMS,
+} from "@/features/booking/lib/driver-terms";
+import {
   idPhotoCopy,
   publicBookingSchema,
 } from "@/features/booking/schemas/public-booking-schema";
@@ -179,8 +183,8 @@ type BookingFormProps = {
   initialPickupLocation?: string;
   /** From the landing search or the car dialog (`?mode=with-driver`). */
   initialDrivingMode?: DrivingMode;
-  /** Settings → driver day rate; null means staff quote the driver. */
-  driverDailyRate?: number | null;
+  /** Settings → driver day rate (null: staff quote it), its hours and overtime. */
+  driverTerms?: DriverTerms | null;
   /** Settings → per-way delivery fees, priced into the total as picked. */
   deliveryFees?: DeliveryFees | null;
   /** Settings → operating address, shown for an office pick-up or return. */
@@ -234,7 +238,7 @@ export function BookingForm({
   initialReturnAt,
   initialPickupLocation,
   initialDrivingMode = "self-drive",
-  driverDailyRate,
+  driverTerms = null,
   deliveryFees = null,
   officeAddress,
   carWashFee,
@@ -307,7 +311,7 @@ export function BookingForm({
     dailyRate: vehicle.daily_rate,
     start: startAt,
     end: expectedReturnAt,
-    withDriver: withDriver ? { rate: driverDailyRate ?? null } : null,
+    withDriver: withDriver ? (driverTerms ?? NO_DRIVER_TERMS) : null,
     pickupMethod,
     returnMethod,
     deliveryFees,
@@ -576,7 +580,7 @@ export function BookingForm({
                 <FieldLegend>Driving</FieldLegend>
                 <DrivingModeToggle
                   disabled={pending}
-                  driverDailyRate={driverDailyRate}
+                  driverDailyRate={driverTerms?.dailyRate}
                   onChange={(mode) => {
                     form.setValue("drivingMode", mode, { shouldDirty: true });
                     // The license and ID photo rules follow the mode; refresh
@@ -593,9 +597,9 @@ export function BookingForm({
                 />
                 <p className="text-sm text-muted-foreground">
                   {withDriver
-                    ? driverDailyRate
-                      ? "A local driver who knows Cebu drives you for the whole trip, and brings and collects the car for free. Their day rate is in your total."
-                      : "A local driver who knows Cebu drives you for the whole trip, and brings and collects the car for free. Staff confirm the driver fee with you."
+                    ? driverTerms?.dailyRate
+                      ? `A driver from Cebu drives you the whole trip. They bring the car to you and pick it up for free. The driver's pay for up to ${driverTerms.hoursPerDay} hours a day is already in your total.`
+                      : "A driver from Cebu drives you the whole trip. They bring the car to you and pick it up for free. Our staff will tell you how much the driver costs."
                     : "You drive. Bring your valid driver's license to pickup."}
                 </p>
               </FieldSet>

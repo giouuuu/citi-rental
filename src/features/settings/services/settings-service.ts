@@ -28,6 +28,10 @@ export type OrganizationSettings = {
   reservation_fee: number;
   /** Per day on with-driver bookings; null when staff quote the driver. */
   driver_daily_rate: number | null;
+  /** Hours a day the driver rate covers. */
+  driver_hours_per_day: number;
+  /** Per hour past those hours, settled at return; null when not shown. */
+  driver_overtime_hourly_rate: number | null;
   /** Per way, within / outside Cebu City; null when staff quote it. */
   delivery_fee_within_city: number | null;
   delivery_fee_outside_city: number | null;
@@ -53,6 +57,8 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       gps_provider: "simulator",
       reservation_fee: 500,
       driver_daily_rate: null,
+      driver_hours_per_day: 10,
+      driver_overtime_hourly_rate: null,
       delivery_fee_within_city: 300,
       delivery_fee_outside_city: 400,
       free_cancellation_hours: 24,
@@ -71,7 +77,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     .from("company_profile")
     .select(
       [
-        "name, timezone, reservation_fee, driver_daily_rate, delivery_fee_within_city, delivery_fee_outside_city, free_cancellation_hours, payment_qr_url, payment_instructions, operating_address, review_google_url, review_facebook_url, review_thank_you_message",
+        "name, timezone, reservation_fee, driver_daily_rate, driver_hours_per_day, driver_overtime_hourly_rate, delivery_fee_within_city, delivery_fee_outside_city, free_cancellation_hours, payment_qr_url, payment_instructions, operating_address, review_google_url, review_facebook_url, review_thank_you_message",
         ...CONTACT_COLUMNS,
       ].join(", "),
     )
@@ -91,6 +97,8 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     timezone: string;
     reservation_fee: number | null;
     driver_daily_rate: number | null;
+    driver_hours_per_day: number | null;
+    driver_overtime_hourly_rate: number | null;
     delivery_fee_within_city: number | null;
     delivery_fee_outside_city: number | null;
     free_cancellation_hours: number | null;
@@ -127,6 +135,11 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       organization.driver_daily_rate == null
         ? null
         : Number(organization.driver_daily_rate),
+    driver_hours_per_day: Number(organization.driver_hours_per_day ?? 10),
+    driver_overtime_hourly_rate:
+      organization.driver_overtime_hourly_rate == null
+        ? null
+        : Number(organization.driver_overtime_hourly_rate),
     delivery_fee_within_city:
       organization.delivery_fee_within_city == null
         ? null

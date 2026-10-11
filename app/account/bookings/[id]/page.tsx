@@ -7,7 +7,10 @@ import { SiteHeader } from "@/components/landing/site-header";
 import { Button } from "@/components/ui/button";
 import { AccountBookingDetail } from "@/features/booking/components/account-booking-detail";
 import { getMyBooking } from "@/features/booking/services/get-my-booking";
-import { getPublicBookingFees } from "@/features/booking/services/public-booking-service";
+import {
+  getPublicBookingFees,
+  getPublicDriverTerms,
+} from "@/features/booking/services/public-booking-service";
 import { getPublicReviewLinks } from "@/features/settings/services/get-public-review-links";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -34,10 +37,11 @@ export default async function AccountBookingPage({
   // get_my_booking returns nothing for a booking this account does not own.
   const booking = /^[0-9a-f-]{36}$/i.test(id) ? await getMyBooking(id) : null;
   if (!booking) notFound();
-  const [reviewLinks, bookingFees] = await Promise.all([
+  const [reviewLinks, bookingFees, driverTerms] = await Promise.all([
     booking.status === "completed" ? getPublicReviewLinks() : null,
     // Prices a pick-up or return change while the booking is still editable.
     booking.detailsEditable ? getPublicBookingFees() : null,
+    booking.withDriver ? getPublicDriverTerms() : null,
   ]);
 
   return (
@@ -60,6 +64,7 @@ export default async function AccountBookingPage({
         <AccountBookingDetail
           booking={booking}
           bookingFees={bookingFees}
+          driverTerms={driverTerms}
           reviewLinks={reviewLinks}
         />
       </div>

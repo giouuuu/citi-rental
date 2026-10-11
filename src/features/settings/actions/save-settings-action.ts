@@ -71,6 +71,8 @@ export async function saveSettingsAction(
       .update({
         reservation_fee: parsed.data.reservation_fee,
         driver_daily_rate: parsed.data.driver_daily_rate,
+        driver_hours_per_day: parsed.data.driver_hours_per_day,
+        driver_overtime_hourly_rate: parsed.data.driver_overtime_hourly_rate,
         delivery_fee_within_city: parsed.data.delivery_fee_within_city,
         delivery_fee_outside_city: parsed.data.delivery_fee_outside_city,
         free_cancellation_hours: parsed.data.free_cancellation_hours,

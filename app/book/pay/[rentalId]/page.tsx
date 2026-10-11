@@ -21,6 +21,7 @@ import { getMyBooking } from "@/features/booking/services/get-my-booking";
 import {
   getBookingPaymentDetails,
   getPublicBookingFees,
+  getPublicDriverTerms,
   getPublicFreeCancellationHours,
 } from "@/features/booking/services/public-booking-service";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
@@ -52,7 +53,7 @@ export default async function BookingPayPage({
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
-  const [booking, freeCancellationHours, myBooking, bookingFees] =
+  const [booking, freeCancellationHours, myBooking, bookingFees, driverTerms] =
     await Promise.all([
       getBookingPaymentDetails(rentalId, reference),
       getPublicFreeCancellationHours(),
@@ -60,6 +61,8 @@ export default async function BookingPayPage({
       getMyBooking(rentalId),
       // Prices a pick-up or return change in that edit.
       getPublicBookingFees(),
+      // The hours a driver day covers, on the driver line.
+      getPublicDriverTerms(),
     ]);
   if (!booking) notFound();
 
@@ -145,6 +148,7 @@ export default async function BookingPayPage({
         <div className="mt-8">
           <BookingPaymentForm
             booking={booking}
+            driverTerms={driverTerms}
             onlinePayment={
               // PayMongo takes the reservation fee on a draft only.
               isPaymongoEnabled() && booking.status === "draft" ? (

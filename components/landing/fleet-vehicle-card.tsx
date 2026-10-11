@@ -55,6 +55,8 @@ type FleetVehicleCardProps = {
   reservationFee?: number | null;
   /** Settings → driver day rate, for the with-driver quote. */
   driverDailyRate?: number | null;
+  /** Fees on every online booking, quoted inside the rent. */
+  bookingFeesTotal?: number;
 };
 
 export function FleetVehicleCard({
@@ -62,6 +64,7 @@ export function FleetVehicleCard({
   bookingQuery,
   reservationFee,
   driverDailyRate,
+  bookingFeesTotal,
 }: FleetVehicleCardProps) {
   // Lifted above its neighbours while the photo is in (or flying back from) the gallery.
   const [raised, setRaised] = useState(false);
@@ -109,6 +112,7 @@ export function FleetVehicleCard({
       {coverUrl && vehicle.gallery.length ? (
         <VehicleGalleryDialog
           cover={{ src: coverUrl, sizes: PHOTO_SIZES }}
+          bookingFeesTotal={bookingFeesTotal}
           driverDailyRate={driverDailyRate}
           layoutId={photoLayoutId}
           onExitComplete={() => setRaised(false)}
@@ -183,6 +187,7 @@ export function FleetVehicleCard({
             end={tripQuery.end}
             rates={{ daily: vehicle.daily_rate }}
             priceClassName="font-display text-xl tracking-[-0.015em]"
+            bookingFeesTotal={bookingFeesTotal}
             reservationFee={reservationFee}
             start={tripQuery.start}
           />

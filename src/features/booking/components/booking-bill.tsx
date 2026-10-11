@@ -3,6 +3,12 @@ import {
   bookingFeesTotal,
 } from "@/features/booking/lib/booking-fees";
 import {
+  type DriverTerms,
+  driverDayNote,
+  driverExtraHoursLine,
+  driverLineLabel,
+} from "@/features/booking/lib/driver-terms";
+import {
   type DeliveryFees,
   deliveryFee,
   handoverBillLine,
@@ -21,8 +27,8 @@ export type BookingBillInput = {
   dailyRate: number;
   start?: string | null;
   end?: string | null;
-  /** Set for a with-driver trip: the owner's driver day rate, if any. */
-  withDriver?: { rate: number | null } | null;
+  /** Set for a with-driver trip: the owner's driver terms. */
+  withDriver?: DriverTerms | null;
   pickupMethod: HandoverMethod | null;
   returnMethod: HandoverMethod | null;
   deliveryFees: DeliveryFees | null;
@@ -30,7 +36,14 @@ export type BookingBillInput = {
   reservationFee?: number | null;
 };
 
-type BillLine = { key: string; label: string; detail?: string; amount: number | null };
+type BillLine = {
+  key: string;
+  label: string;
+  detail?: string;
+  amount: number | null;
+  /** Shown instead of the amount, for a price that is not in the total ("₱250 / hour"). */
+  amountText?: string;
+};
 
 export type BookingBill = {
   quote: TripQuote;
@@ -52,30 +65,45 @@ export function bookingBill(input: BookingBillInput): BookingBill | null {
     { daily: input.dailyRate },
     input.start,
     input.end,
-    input.withDriver,
+    input.withDriver ? { rate: input.withDriver.dailyRate } : null,
     pickupFee + returnFee,
     bookingFeesTotal(input.bookingFees),
   );
   if (!quote) return null;
 
+  // Fees on every booking (the car wash) are part of the rent the renter
+  // sees, not lines of their own.
   const lines: BillLine[] = [
     {
       key: "rent",
-      label: `${formatPhp(input.dailyRate)} × ${describeBilledTime(quote.rent)}`,
-      detail: "Car rental",
-      amount: quote.rent.total,
+      label:
+        quote.fees > 0
+          ? `Car rental · ${describeBilledTime(quote.rent)}`
+          : `${formatPhp(input.dailyRate)} × ${describeBilledTime(quote.rent)}`,
+      detail: quote.fees > 0 ? undefined : "Car rental",
+      amount: quote.rent.total + quote.fees,
     },
   ];
-  if (quote.driver) {
+  if (quote.driver && input.withDriver) {
+    const priced = quote.driver.rate != null;
     lines.push({
       key: "driver",
-      label:
-        quote.driver.rate != null
-          ? `Driver · ${formatPhp(quote.driver.rate)} × ${quote.driver.days} ${quote.driver.days === 1 ? "day" : "days"}`
-          : "Driver",
-      detail: quote.driver.rate != null ? undefined : "Fee confirmed by staff",
-      amount: quote.driver.rate != null ? quote.driver.fee : null,
+      label: driverLineLabel(quote.driver.days),
+      detail: priced
+        ? driverDayNote(quote.driver.rate ?? 0, input.withDriver)
+        : "Fee confirmed by staff",
+      amount: priced ? quote.driver.fee : null,
     });
+    const extra = priced ? driverExtraHoursLine(input.withDriver) : null;
+    if (extra) {
+      lines.push({
+        key: "driver-extra",
+        label: extra.label,
+        detail: extra.detail,
+        amount: null,
+        amountText: extra.amount,
+      });
+    }
   }
   for (const [leg, method, fee] of [
     ["pickup", input.pickupMethod, pickupFee],
@@ -85,9 +113,6 @@ export function bookingBill(input: BookingBillInput): BookingBill | null {
     // The office is free; only a delivery or collection is a bill line.
     if (!line || method === "office") continue;
     lines.push({ key: leg, label: line.label, detail: line.detail, amount: fee });
-  }
-  for (const fee of input.bookingFees) {
-    lines.push({ key: `fee-${fee.name}`, label: fee.name, amount: fee.amount });
   }
 
   return {
@@ -129,7 +154,7 @@ export function BookingBillList({
             ) : null}
           </dt>
           <dd className="shrink-0 text-brand-950">
-            {line.amount == null ? "—" : formatPhp(line.amount)}
+            {line.amountText ?? (line.amount == null ? "—" : formatPhp(line.amount))}
           </dd>
         </div>
       ))}

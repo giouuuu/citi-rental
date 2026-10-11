@@ -37,6 +37,10 @@ import {
   handoverBillLine,
   parseHandoverMethod,
 } from "@/features/booking/lib/handover";
+import {
+  type DriverTerms,
+  NO_DRIVER_TERMS,
+} from "@/features/booking/lib/driver-terms";
 
 function toTimestamptz(value: string) {
   const date = parseManilaTimestamp(value);
@@ -139,19 +143,32 @@ export async function getPublicReservationFee(): Promise<number | null> {
   return Number.isFinite(fee) && fee > 0 ? fee : null;
 }
 
-/** The owner's driver day rate for with-driver bookings. Null when not set. */
-export async function getPublicDriverDailyRate(): Promise<number | null> {
-  if (!isSupabaseConfigured()) return null;
+/** The owner's driver day rate, the hours it covers, and overtime. Cached per request. */
+export const getPublicDriverTerms = cache(
+  async function getPublicDriverTerms(): Promise<DriverTerms> {
+    if (!isSupabaseConfigured()) return NO_DRIVER_TERMS;
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_public_driver_daily_rate");
-  if (error) {
-    console.error("get_public_driver_daily_rate failed", error.message);
-    return null;
-  }
-  const rate = Number(data);
-  return data != null && Number.isFinite(rate) && rate > 0 ? rate : null;
-}
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("get_public_driver_terms");
+    if (error || !data) {
+      if (error) console.error("get_public_driver_terms failed", error.message);
+      return NO_DRIVER_TERMS;
+    }
+    const row = data as Record<string, unknown>;
+    // Zero reads as unset, like an empty Settings field.
+    const positive = (value: unknown) => {
+      const amount = optionalNum(value);
+      return amount != null && amount > 0 ? amount : null;
+    };
+    const hours = Number(row.hours_per_day);
+    return {
+      dailyRate: positive(row.daily_rate),
+      hoursPerDay:
+        Number.isInteger(hours) && hours > 0 ? hours : NO_DRIVER_TERMS.hoursPerDay,
+      overtimeRate: positive(row.overtime_hourly_rate),
+    };
+  },
+);
 
 export type PublicBookingFees = {
   /** Settings → per-way delivery fees. */

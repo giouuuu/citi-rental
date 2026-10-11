@@ -39,6 +39,8 @@ export type HeroFleetCar = {
   reservationFee: number | null;
   /** Settings → driver day rate, for the with-driver quote. */
   driverDailyRate: number | null;
+  /** Fees on every online booking, quoted inside the rent. */
+  bookingFeesTotal: number;
 };
 
 type HeroFleetState = {
@@ -184,6 +186,7 @@ export function HeroCarGallery({ className }: { className?: string }) {
 
   return (
     <VehicleGalleryDialog
+      bookingFeesTotal={car.bookingFeesTotal}
       driverDailyRate={car.driverDailyRate}
       reservationFee={car.reservationFee}
       trip={car.trip}
@@ -256,6 +259,7 @@ export function HeroCarSummary() {
       ) : null}
       {car.vehicle.gallery.length ? (
         <VehicleGalleryDialog
+          bookingFeesTotal={car.bookingFeesTotal}
           driverDailyRate={car.driverDailyRate}
           reservationFee={car.reservationFee}
           trip={car.trip}

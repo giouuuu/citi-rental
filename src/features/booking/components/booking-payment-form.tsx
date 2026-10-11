@@ -15,7 +15,14 @@ import { formatPhpExact } from "@/features/shared/lib/money";
 import {
   buildRentalBill,
   describeRentLine,
+  withBookingFeesInRent,
 } from "@/features/rentals/lib/rental-bill";
+import {
+  type DriverTerms,
+  driverDayNote,
+  driverExtraHoursLine,
+  driverLineLabel,
+} from "@/features/booking/lib/driver-terms";
 import { formatPhp } from "@/features/vehicles/lib/rental-pricing";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -36,8 +43,11 @@ function formatWhen(value: string) {
 export function BookingPaymentForm({
   booking,
   onlinePayment,
+  driverTerms = null,
 }: {
   booking: BookingPaymentDetails;
+  /** Settings → the hours a driver day covers and overtime, for the driver line. */
+  driverTerms?: DriverTerms | null;
   /** PayMongo checkout, shown above the manual QR + proof upload when set up. */
   onlinePayment?: ReactNode;
 }) {
@@ -62,7 +72,7 @@ export function BookingPaymentForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   // The trip total split into car, driver and delivery; payments stay off
   // this summary, which shows the fee due and what is left at pick-up.
-  const bill = buildRentalBill({
+  const bill = withBookingFeesInRent(buildRentalBill({
     quotedRates: { daily: booking.quotedDailyRate },
     quotedDays: booking.quotedDays,
     quotedHours: booking.quotedHours,
@@ -71,7 +81,9 @@ export function BookingPaymentForm({
     handover: booking.handover,
     bookingFees: booking.bookingFees,
     payments: [],
-  });
+  }));
+  const extraHours =
+    bill.driver?.rate != null ? driverExtraHoursLine(driverTerms) : null;
   const itemized =
     bill.driver !== null || bill.handover.length > 0 || bill.bookingFees.length > 0;
 
@@ -158,15 +170,26 @@ export function BookingPaymentForm({
           {bill.driver ? (
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">
-                Driver
+                {driverLineLabel(bill.driver.days)}
                 <span className="block text-xs">
-                  {bill.driver.rate != null && bill.driver.days != null
-                    ? `${formatPhp(bill.driver.rate)} × ${bill.driver.days} ${bill.driver.days === 1 ? "day" : "days"}`
+                  {bill.driver.rate != null
+                    ? driverDayNote(bill.driver.rate, driverTerms)
                     : "Fee confirmed by staff"}
                 </span>
               </dt>
               <dd className="font-medium text-brand-950 tabular-nums">
                 {formatPhp(bill.driver.fee)}
+              </dd>
+            </div>
+          ) : null}
+          {extraHours ? (
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">
+                {extraHours.label}
+                <span className="block text-xs">{extraHours.detail}</span>
+              </dt>
+              <dd className="shrink-0 font-medium text-brand-950 tabular-nums">
+                {extraHours.amount}
               </dd>
             </div>
           ) : null}

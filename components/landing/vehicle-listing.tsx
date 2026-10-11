@@ -43,6 +43,8 @@ type VehicleListingProps = {
   reservationFee?: number | null;
   /** Settings → driver day rate, for the with-driver quote. */
   driverDailyRate?: number | null;
+  /** Fees on every online booking, quoted inside the rent. */
+  bookingFeesTotal?: number;
 };
 
 function formatTripDate(value?: string) {
@@ -62,6 +64,7 @@ export function VehicleListing({
   initialCategory,
   reservationFee,
   driverDailyRate,
+  bookingFeesTotal,
 }: VehicleListingProps) {
   const categories = useMemo(() => {
     const fromFleet = Array.from(
@@ -227,6 +230,7 @@ export function VehicleListing({
               <FleetVehicleCard
                 bookingQuery={bookingQuery}
                 key={vehicle.id}
+                bookingFeesTotal={bookingFeesTotal}
                 driverDailyRate={driverDailyRate}
                 reservationFee={reservationFee}
                 vehicle={vehicle}

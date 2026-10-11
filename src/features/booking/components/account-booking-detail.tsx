@@ -33,7 +33,17 @@ import {
 } from "@/features/booking/lib/customer-booking-labels";
 import { customerPaymentKind } from "@/features/booking/lib/booking-payment-step";
 import type { CustomerBookingDetail } from "@/features/booking/types/customer-booking-detail";
-import { describeRentLine, rentalBillStatus } from "@/features/rentals/lib/rental-bill";
+import {
+  describeRentLine,
+  rentalBillStatus,
+  withBookingFeesInRent,
+} from "@/features/rentals/lib/rental-bill";
+import {
+  type DriverTerms,
+  driverDayNote,
+  driverExtraHoursLine,
+  driverLineLabel,
+} from "@/features/booking/lib/driver-terms";
 import { formatDuration } from "@/features/shared/lib/format-duration";
 import { formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhpExact } from "@/features/shared/lib/money";
@@ -74,7 +84,8 @@ function BillLine({
 }: {
   label: string;
   detail?: string | null;
-  amount: number;
+  /** A string is shown as is and is not money in the total ("₱250 / hour"). */
+  amount: number | string;
   strong?: boolean;
   tone?: "credit";
 }) {
@@ -94,7 +105,7 @@ function BillLine({
         )}
       >
         {tone === "credit" ? "− " : ""}
-        {formatPhpExact(amount)}
+        {typeof amount === "string" ? amount : formatPhpExact(amount)}
       </p>
     </div>
   );
@@ -167,15 +178,20 @@ function ThankYouCard({ links }: { links: ReviewLinks }) {
 export function AccountBookingDetail({
   booking,
   bookingFees = null,
+  driverTerms = null,
   reviewLinks = null,
 }: {
   booking: CustomerBookingDetail;
+  /** Settings → the hours a driver day covers and overtime, for the driver line. */
+  driverTerms?: DriverTerms | null;
   /** Delivery fees and office address, for editing pick-up and return. */
   bookingFees?: PublicBookingFees | null;
   /** Completed rentals only. */
   reviewLinks?: ReviewLinks | null;
 }) {
-  const { bill, vehicle } = booking;
+  const { vehicle } = booking;
+  // Fees on every booking (the car wash) read as part of the rent.
+  const bill = withBookingFeesInRent(booking.bill);
   const modelLine = vehicleModelLine(vehicle);
   // Once a car is booked, the bill (charges included) says where payment
   // stands; payment_status alone misses charges added after paying in full.
@@ -201,6 +217,8 @@ export function AccountBookingDetail({
     new Date(returnedAt ?? booking.expectedReturnAt),
   );
   const rentLine = describeRentLine(bill.rent);
+  const extraHours =
+    bill.driver?.rate != null ? driverExtraHoursLine(driverTerms) : null;
   const payHref = `/book/pay/${booking.id}?ref=${encodeURIComponent(booking.referenceNumber)}`;
   const cancelled = booking.status === "cancelled";
   const completed = booking.status === "completed";
@@ -389,11 +407,18 @@ export function AccountBookingDetail({
                 <BillLine
                   amount={bill.driver.fee}
                   detail={
-                    bill.driver.rate != null && bill.driver.days != null
-                      ? `${formatPhpExact(bill.driver.rate)} × ${bill.driver.days} ${bill.driver.days === 1 ? "day" : "days"}`
+                    bill.driver.rate != null
+                      ? driverDayNote(bill.driver.rate, driverTerms)
                       : "Quoted by our staff"
                   }
-                  label="Driver"
+                  label={driverLineLabel(bill.driver.days)}
+                />
+              ) : null}
+              {extraHours ? (
+                <BillLine
+                  amount={extraHours.amount}
+                  detail={extraHours.detail}
+                  label={extraHours.label}
                 />
               ) : null}
               {bill.handover.map((line) => (

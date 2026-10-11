@@ -7,6 +7,7 @@ import {
   describeRentLine,
   rentalBillStatus,
   summarizeChargeCosts,
+  withBookingFeesInRent,
 } from "./rental-bill";
 
 function entry(overrides: Partial<RentalPayment>): RentalPayment {
@@ -80,6 +81,25 @@ describe("buildRentalBill", () => {
     expect(bill.rent.total).toBe(2500);
     expect(bill.bookingFees).toEqual([{ name: "Booking fee", amount: 200 }]);
     expect(bill.total).toBe(2700);
+  });
+
+  it("puts every-booking fees inside the rent on the renter's view", () => {
+    const bill = withBookingFeesInRent(
+      buildRentalBill({
+        quotedRates: { daily: 1500 },
+        quotedDays: 1,
+        quotedHours: 0,
+        quotedTotal: 3300,
+        driver: { fee: 1500, rate: 1500, days: 1 },
+        bookingFees: [{ name: "Car wash", amount: 300 }],
+        payments: [],
+      }),
+    );
+
+    expect(bill.rent.total).toBe(1800);
+    expect(bill.bookingFees).toEqual([]);
+    expect(describeRentLine(bill.rent)).toBe("1 day");
+    expect(bill.total).toBe(3300);
   });
 
   it("lists an office pick-up as free and skips a leg with no method", () => {
