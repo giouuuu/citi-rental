@@ -74,6 +74,10 @@ export async function saveSettingsAction(
         free_cancellation_hours: parsed.data.free_cancellation_hours,
         payment_instructions: parsed.data.payment_instructions?.trim() || null,
         operating_address: parsed.data.operating_address?.trim() || null,
+        review_google_url: parsed.data.review_google_url?.trim() || null,
+        review_facebook_url: parsed.data.review_facebook_url?.trim() || null,
+        review_thank_you_message:
+          parsed.data.review_thank_you_message?.trim() || null,
         ...Object.fromEntries(
           CONTACT_CHANNEL_KEYS.map(contactChannelField).map((column) => [
             column,

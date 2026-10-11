@@ -33,6 +33,10 @@ export type OrganizationSettings = {
   payment_instructions: string;
   /** Where the business currently operates; not the agreement's registered address. */
   operating_address: string;
+  /** Completed-rental review buttons and the note above them. */
+  review_google_url: string;
+  review_facebook_url: string;
+  review_thank_you_message: string;
 } & ContactChannelFields;
 
 export async function getOrganizationSettings(): Promise<OrganizationSettings> {
@@ -50,6 +54,9 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       payment_qr_url: "",
       payment_instructions: "",
       operating_address: "",
+      review_google_url: "",
+      review_facebook_url: "",
+      review_thank_you_message: "",
       ...emptyContactChannels,
     };
   const supabase = await createClient();
@@ -59,7 +66,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     .from("company_profile")
     .select(
       [
-        "name, timezone, reservation_fee, driver_daily_rate, free_cancellation_hours, payment_qr_url, payment_instructions, operating_address",
+        "name, timezone, reservation_fee, driver_daily_rate, free_cancellation_hours, payment_qr_url, payment_instructions, operating_address, review_google_url, review_facebook_url, review_thank_you_message",
         ...CONTACT_COLUMNS,
       ].join(", "),
     )
@@ -83,6 +90,9 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     payment_qr_url: string | null;
     payment_instructions: string | null;
     operating_address: string | null;
+    review_google_url: string | null;
+    review_facebook_url: string | null;
+    review_thank_you_message: string | null;
   } & Record<(typeof CONTACT_COLUMNS)[number], string | null>;
   const values = new Map(
     (appSettings ?? []).map((setting) => [
@@ -116,6 +126,9 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     payment_qr_url: organization.payment_qr_url ?? "",
     payment_instructions: organization.payment_instructions ?? "",
     operating_address: organization.operating_address ?? "",
+    review_google_url: organization.review_google_url ?? "",
+    review_facebook_url: organization.review_facebook_url ?? "",
+    review_thank_you_message: organization.review_thank_you_message ?? "",
     ...(Object.fromEntries(
       CONTACT_COLUMNS.map((column) => [column, organization[column] ?? ""]),
     ) as ContactChannelFields),

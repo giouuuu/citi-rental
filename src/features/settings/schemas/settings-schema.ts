@@ -9,6 +9,15 @@ const phoneChannel = z
   )
   .optional();
 const handleChannel = z.string().trim().max(200).optional();
+const reviewLink = z
+  .string()
+  .trim()
+  .max(500, "Keep the link under 500 characters.")
+  .refine(
+    (value) => value === "" || /^https?:\/\/\S+$/i.test(value),
+    "Paste the full link, starting with https://.",
+  )
+  .optional();
 
 export const settingsSchema = z
   .object({
@@ -42,6 +51,13 @@ export const settingsSchema = z
       .string()
       .trim()
       .max(300, "Keep the address under 300 characters.")
+      .optional(),
+    review_google_url: reviewLink,
+    review_facebook_url: reviewLink,
+    review_thank_you_message: z
+      .string()
+      .trim()
+      .max(1000, "Keep the message under 1,000 characters.")
       .optional(),
     contact_phone: phoneChannel,
     contact_whatsapp: phoneChannel,

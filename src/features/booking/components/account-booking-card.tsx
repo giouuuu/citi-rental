@@ -33,6 +33,7 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
   const awaiting = isAwaitingPayment(booking);
   const payment = customerPaymentLabel(booking.status, booking.paymentStatus);
   const detailHref = `/account/bookings/${booking.id}`;
+  const completed = booking.status === "completed";
 
   return (
     <article className="overflow-hidden rounded-xl border border-border bg-card">
@@ -89,7 +90,8 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
                 {formatWhen(booking.expectedReturnAt)}
               </dd>
             </div>
-            {booking.depositAmount != null ? (
+            {/* A completed trip is settled; its card no longer talks money. */}
+            {booking.depositAmount != null && !completed ? (
               <div>
                 <dt className="text-muted-foreground">Reservation fee</dt>
                 <dd className="font-medium tabular-nums text-brand-950">
@@ -97,7 +99,7 @@ export function AccountBookingCard({ booking }: AccountBookingCardProps) {
                 </dd>
               </div>
             ) : null}
-            {booking.quotedTotal != null ? (
+            {booking.quotedTotal != null && !completed ? (
               <div>
                 <dt className="text-muted-foreground">Trip total</dt>
                 <dd className="font-medium tabular-nums text-brand-950">

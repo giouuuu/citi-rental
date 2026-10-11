@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CarFront,
   ClipboardCheck,
+  Heart,
   MapPin,
   Navigation,
   ReceiptText,
@@ -12,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { siFacebook, siGoogle, type SimpleIcon } from "simple-icons";
 
 import { StatusBadge } from "@/components/design-system/status-badge";
 import { RENTAL_STATUS_LABELS } from "@/features/rentals/lib/rental-status-counts";
@@ -33,6 +35,7 @@ import { describeRentLine, rentalBillStatus } from "@/features/rentals/lib/renta
 import { formatDuration } from "@/features/shared/lib/format-duration";
 import { formatManila } from "@/features/shared/lib/manila-time";
 import { formatPhpExact } from "@/features/shared/lib/money";
+import type { ReviewLinks } from "@/features/settings/lib/review-links";
 import { vehicleModelLine } from "@/features/vehicles/lib/vehicle-model-line";
 import { cn } from "@/lib/utils";
 
@@ -71,7 +74,7 @@ function BillLine({
   detail?: string | null;
   amount: number;
   strong?: boolean;
-  tone?: "credit" | "due";
+  tone?: "credit";
 }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2">
@@ -86,7 +89,6 @@ function BillLine({
           "shrink-0 text-sm tabular-nums",
           strong && "font-semibold text-brand-950",
           tone === "credit" && "text-success",
-          tone === "due" && "font-semibold text-destructive",
         )}
       >
         {tone === "credit" ? "− " : ""}
@@ -113,11 +115,61 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
+function BrandGlyph({ icon }: { icon: SimpleIcon }) {
+  return (
+    <svg aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+      <path d={icon.path} />
+    </svg>
+  );
+}
+
+/** Completed trips: the owner's thank-you note and the outside review links. */
+function ThankYouCard({ links }: { links: ReviewLinks }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Heart aria-hidden="true" className="size-4 text-gold-500" /> Thank you
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm whitespace-pre-line text-foreground">{links.thankYou}</p>
+        {links.google || links.facebook ? (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {links.google ? (
+              <Button asChild variant="outline">
+                <a href={links.google} rel="noopener noreferrer" target="_blank">
+                  <BrandGlyph icon={siGoogle} /> Review us on Google
+                </a>
+              </Button>
+            ) : null}
+            {links.facebook ? (
+              <Button asChild variant="outline">
+                <a href={links.facebook} rel="noopener noreferrer" target="_blank">
+                  <BrandGlyph icon={siFacebook} /> Review us on Facebook
+                </a>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 /**
  * Everything one booking holds for the renter: the car, the trip, the bill
- * line by line, every payment and its status, and their review.
+ * line by line, every payment and its status, and their review. Once the
+ * rental is completed the bill gives way to a thank-you and review links.
  */
-export function AccountBookingDetail({ booking }: { booking: CustomerBookingDetail }) {
+export function AccountBookingDetail({
+  booking,
+  reviewLinks = null,
+}: {
+  booking: CustomerBookingDetail;
+  /** Completed rentals only. */
+  reviewLinks?: ReviewLinks | null;
+}) {
   const { bill, vehicle } = booking;
   const modelLine = vehicleModelLine(vehicle);
   // Once a car is booked, the bill (charges included) says where payment
@@ -140,6 +192,7 @@ export function AccountBookingDetail({ booking }: { booking: CustomerBookingDeta
   const rentLine = describeRentLine(bill.rent);
   const payHref = `/book/pay/${booking.id}?ref=${encodeURIComponent(booking.referenceNumber)}`;
   const cancelled = booking.status === "cancelled";
+  const completed = booking.status === "completed";
 
   return (
     <div className="space-y-6">
@@ -281,58 +334,61 @@ export function AccountBookingDetail({ booking }: { booking: CustomerBookingDeta
         </CardContent>
       </Card>
 
-      {/* The bill */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Bill</CardTitle>
-          <CardDescription>{rentalBillStatus(bill, booking.paymentStatus)}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="divide-y">
-            <BillLine amount={bill.rent.total} detail={rentLine} label="Car rental" />
-            {bill.driver ? (
-              <BillLine
-                amount={bill.driver.fee}
-                detail={
-                  bill.driver.rate != null && bill.driver.days != null
-                    ? `${formatPhpExact(bill.driver.rate)} × ${bill.driver.days} ${bill.driver.days === 1 ? "day" : "days"}`
-                    : "Quoted by our staff"
-                }
-                label="Driver"
-              />
+      {/* The bill, until the rental is completed; then a thank-you */}
+      {completed ? (
+        reviewLinks ? (
+          <ThankYouCard links={reviewLinks} />
+        ) : null
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Bill</CardTitle>
+            <CardDescription>{rentalBillStatus(bill, booking.paymentStatus)}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y">
+              <BillLine amount={bill.rent.total} detail={rentLine} label="Car rental" />
+              {bill.driver ? (
+                <BillLine
+                  amount={bill.driver.fee}
+                  detail={
+                    bill.driver.rate != null && bill.driver.days != null
+                      ? `${formatPhpExact(bill.driver.rate)} × ${bill.driver.days} ${bill.driver.days === 1 ? "day" : "days"}`
+                      : "Quoted by our staff"
+                  }
+                  label="Driver"
+                />
+              ) : null}
+              {bill.charges.map((charge) => (
+                <BillLine
+                  amount={charge.amount}
+                  detail={formatManila(charge.submittedAt, "date")}
+                  key={charge.id}
+                  label={customerPaymentTitle(charge)}
+                />
+              ))}
+              <BillLine amount={bill.total} label="Total" strong />
+              {bill.paid > 0 ? <BillLine amount={bill.paid} label="You paid" tone="credit" /> : null}
+              {!cancelled ? (
+                <BillLine
+                  amount={bill.balance}
+                  detail={
+                    bill.balance > 0 ? "Settle the rest at pickup, or as agreed with us." : null
+                  }
+                  label="Balance"
+                  strong
+                />
+              ) : null}
+            </div>
+            {booking.depositAmount && booking.status === "draft" ? (
+              <p className="mt-3 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                A {formatPhpExact(booking.depositAmount)} reservation fee holds these dates. It counts
+                toward your total.
+              </p>
             ) : null}
-            {bill.charges.map((charge) => (
-              <BillLine
-                amount={charge.amount}
-                detail={formatManila(charge.submittedAt, "date")}
-                key={charge.id}
-                label={customerPaymentTitle(charge)}
-              />
-            ))}
-            <BillLine amount={bill.total} label="Total" strong />
-            {bill.paid > 0 ? <BillLine amount={bill.paid} label="You paid" tone="credit" /> : null}
-            {!cancelled ? (
-              <BillLine
-                amount={bill.balance}
-                detail={
-                  bill.balance > 0 && booking.status !== "completed"
-                    ? "Settle the rest at pickup, or as agreed with us."
-                    : null
-                }
-                label="Balance"
-                strong
-                tone={bill.balance > 0 && booking.status === "completed" ? "due" : undefined}
-              />
-            ) : null}
-          </div>
-          {booking.depositAmount && booking.status === "draft" ? (
-            <p className="mt-3 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              A {formatPhpExact(booking.depositAmount)} reservation fee holds these dates. It counts
-              toward your total.
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Payments */}
       <Card>
@@ -390,7 +446,7 @@ export function AccountBookingDetail({ booking }: { booking: CustomerBookingDeta
       </Card>
 
       {/* Review */}
-      {booking.status === "completed" ? (
+      {completed ? (
         <Card id="review">
           <CardHeader>
             <CardTitle>Your review</CardTitle>

@@ -32,6 +32,7 @@ import {
   contactChannelField,
   contactChannelSettings,
 } from "@/features/settings/lib/contact-channels";
+import { DEFAULT_THANK_YOU_MESSAGE } from "@/features/settings/lib/review-links";
 import {
   settingsSchema,
   type SettingsInput,
@@ -48,6 +49,7 @@ import { toast } from "sonner";
 
 type SettingsFormValues = z.input<typeof settingsSchema>;
 type SettingsParsed = z.output<typeof settingsSchema>;
+type ReviewLinkName = "review_google_url" | "review_facebook_url";
 type TextFieldName =
   | "name"
   | "timezone"
@@ -80,6 +82,9 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
       free_cancellation_hours: settings.free_cancellation_hours,
       payment_instructions: settings.payment_instructions,
       operating_address: settings.operating_address,
+      review_google_url: settings.review_google_url,
+      review_facebook_url: settings.review_facebook_url,
+      review_thank_you_message: settings.review_thank_you_message,
       ...Object.fromEntries(
         CONTACT_CHANNEL_KEYS.map(contactChannelField).map((column) => [
           column,
@@ -426,6 +431,95 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                   />
                 );
               })}
+            </FieldGroup>
+          </section>
+          <section
+            aria-labelledby="after-trip-title"
+            className="space-y-4 border-t pt-5"
+          >
+            <div>
+              <h3 className="text-sm font-medium" id="after-trip-title">
+                After the trip
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Once a rental is completed, the renter&apos;s booking page
+                shows this thank-you note with buttons to review you on Google
+                and Facebook. Empty links hide their button.
+              </p>
+            </div>
+            <FieldGroup className="grid items-start gap-5 md:grid-cols-2">
+              {(
+                [
+                  [
+                    "review_google_url",
+                    "Google review link",
+                    "https://g.page/r/…/review",
+                    "In Google Business Profile, open Ask for reviews and copy the link.",
+                  ],
+                  [
+                    "review_facebook_url",
+                    "Facebook review link",
+                    "https://www.facebook.com/zekecarrentals/reviews",
+                    "Leave empty to use the Facebook page's reviews tab.",
+                  ],
+                ] as const satisfies readonly (readonly [
+                  ReviewLinkName,
+                  string,
+                  string,
+                  string,
+                ])[]
+              ).map(([name, label, placeholder, description]) => (
+                <Controller
+                  control={form.control}
+                  key={name}
+                  name={name}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor={name}>{label}</FieldLabel>
+                      <Input
+                        {...field}
+                        aria-invalid={fieldState.invalid}
+                        autoComplete="off"
+                        disabled={isPending}
+                        id={name}
+                        inputMode="url"
+                        placeholder={placeholder}
+                        value={field.value ?? ""}
+                      />
+                      <FieldDescription>{description}</FieldDescription>
+                      {fieldState.invalid ? (
+                        <FieldError errors={[fieldState.error]} />
+                      ) : null}
+                    </Field>
+                  )}
+                />
+              ))}
+              <Controller
+                control={form.control}
+                name="review_thank_you_message"
+                render={({ field, fieldState }) => (
+                  <Field className="md:col-span-2" data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="review_thank_you_message">
+                      Thank-you message
+                    </FieldLabel>
+                    <Textarea
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      disabled={isPending}
+                      id="review_thank_you_message"
+                      placeholder={DEFAULT_THANK_YOU_MESSAGE}
+                      rows={3}
+                      value={field.value ?? ""}
+                    />
+                    <FieldDescription>
+                      Leave empty to use the message shown in the box.
+                    </FieldDescription>
+                    {fieldState.invalid ? (
+                      <FieldError errors={[fieldState.error]} />
+                    ) : null}
+                  </Field>
+                )}
+              />
             </FieldGroup>
           </section>
           <div className="flex justify-end border-t pt-5">
