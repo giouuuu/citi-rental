@@ -127,10 +127,19 @@ const bookingFields = z.object({
   ),
 });
 
+/**
+ * Runs with the other refinements (see `when`), so the booking form's Trip
+ * step catches a bad date pair before the renter moves on. A missing date
+ * already has its own "required" error, which shows first.
+ */
 function refineTripDates(
-  value: { startAt: string; expectedReturnAt: string },
+  value: { startAt?: unknown; expectedReturnAt?: unknown },
   context: z.RefinementCtx,
 ) {
+  if (typeof value.startAt !== "string" || typeof value.expectedReturnAt !== "string") {
+    return;
+  }
+  if (!value.startAt || !value.expectedReturnAt) return;
   const start = parseManilaTimestamp(value.startAt);
   const end = parseManilaTimestamp(value.expectedReturnAt);
   if (!start || !end) {
@@ -240,7 +249,7 @@ function refineHandover(
 }
 
 export const publicBookingSchema = bookingFields
-  .superRefine(refineTripDates)
+  .superRefine(refineTripDates, { when: () => true })
   .superRefine(refineRenterIds, { when: () => true })
   .superRefine(refineHandover, { when: () => true });
 

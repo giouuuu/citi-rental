@@ -15,6 +15,7 @@ import {
   XCircle,
 } from "lucide-react";
 
+import { ResendEmailControl } from "@/features/rentals/components/resend-email-control";
 import {
   rentalTimelineTrigger,
   type RentalTimelineEvent,
@@ -137,6 +138,12 @@ export function RentalTimelineList({
                   {rentalTimelineTrigger(event)}
                 </p>
               )}
+              {event.resend ? (
+                <ResendEmailControl
+                  key={event.resend.notificationId}
+                  resend={event.resend}
+                />
+              ) : null}
             </div>
           </li>
         );

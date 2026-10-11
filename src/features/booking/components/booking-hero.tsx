@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 
-/** The booking page's dark band: site header, then which car is being booked. */
+/**
+ * The booking page's dark band: site header, then a one-line title. Kept
+ * short so the form starts on the first screen of a phone.
+ */
 export function BookingHero({
   header,
   vehicleName,
@@ -11,17 +14,10 @@ export function BookingHero({
   return (
     <div className="bg-brand-950 text-white">
       {header}
-      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-        <p className="text-xs font-semibold tracking-[0.18em] text-teal-300 uppercase">
-          Customer booking
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Reserve {vehicleName}
+      <div className="mx-auto max-w-6xl px-4 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6 lg:px-8">
+        <h1 className="text-xl font-bold tracking-tight text-balance sm:text-2xl">
+          Book the {vehicleName}
         </h1>
-        <p className="mt-2 text-sm text-brand-100">
-          Submit your trip details and we will hold the car as reserved for
-          staff confirmation.
-        </p>
       </div>
     </div>
   );

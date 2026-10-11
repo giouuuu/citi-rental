@@ -254,16 +254,21 @@ export function HeroScene({
       ref={rootRef}
     >
       {/* The whole photo, tiny and blurred: on screen from the first paint
-          and hidden under the layers once they have loaded. */}
+          and hidden under the layers once they have loaded. It is the page's
+          LCP, so it alone is preloaded at high priority, served as the 21KB
+          file itself (blurred, extra pixels buy nothing) rather than through
+          the optimizer. */}
       <div className="absolute -inset-[4%]">
         <Image
           alt=""
           className={cn(FRAME, "scale-105 blur-md")}
+          fetchPriority="high"
           fill
           placeholder="blur"
-          priority
+          preload
           sizes="108vw"
           src={preview}
+          unoptimized
         />
       </div>
 
@@ -288,9 +293,12 @@ export function HeroScene({
                 alt=""
                 className={cn(FRAME, "select-none")}
                 draggable={false}
+                // Low, so React doesn't preload all seven layers alongside the
+                // preview and split the bandwidth the LCP image needs.
+                fetchPriority="low"
                 fill
+                loading="eager"
                 onLoad={() => setLoadedLayers((count) => count + 1)}
-                priority
                 sizes="108vw"
                 src={layer.image}
               />
@@ -342,10 +350,11 @@ export function HeroScene({
                     alt=""
                     className="relative h-auto w-full select-none"
                     draggable={false}
+                    // The waiting cars are hidden until a swap.
+                    fetchPriority={index === active ? undefined : "low"}
                     height={692}
                     loading="eager"
                     onLoad={index === active ? () => setCarLoaded(true) : undefined}
-                    priority={index === 0}
                     sizes={CAR_SIZES}
                     src={item.imageUrl}
                     width={900}
@@ -359,8 +368,8 @@ export function HeroScene({
                   alt=""
                   className="relative h-auto w-full select-none"
                   draggable={false}
+                  loading="eager"
                   onLoad={() => setCarLoaded(true)}
-                  priority
                   sizes={CAR_SIZES}
                   src={car}
                 />

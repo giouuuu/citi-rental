@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/landing/site-header";
 import { Button } from "@/components/ui/button";
 import { AccountBookingSection } from "@/features/booking/components/account-booking-section";
 import { AccountProfileSummary } from "@/features/booking/components/account-profile-summary";
+import { SetPasswordForm } from "@/features/auth/components/set-password-form";
 import { listMyBookings } from "@/features/booking/services/list-my-bookings";
 import { isAwaitingPayment, isCurrentBookingStatus } from "@/features/booking/types/customer-booking";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -99,6 +100,8 @@ export default async function AccountPage() {
           initials={initials}
           role={profile?.role}
         />
+
+        <SetPasswordForm email={user.email} />
 
         <AccountBookingSection
           bookings={awaitingPayment}

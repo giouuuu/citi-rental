@@ -36,7 +36,7 @@ export async function getRentalTimeline(
     supabase
       .from("rentals")
       .select(
-        "status, booking_source, created_at, created_by, start_at, expected_return_at, cancelled_at",
+        "status, booking_source, created_at, created_by, start_at, expected_return_at, cancelled_at, customers ( email )",
       )
       .eq("id", rentalId)
       .maybeSingle(),
@@ -56,7 +56,7 @@ export async function getRentalTimeline(
     supabase
       .from("rental_notifications")
       .select(
-        "id, kind, status, recipient, attempts, last_error, created_at, last_attempt_at, sent_at",
+        "id, kind, status, recipient, attempts, last_error, created_at, last_attempt_at, sent_at, requested_by, resend_of",
       )
       .eq("rental_id", rentalId)
       .order("created_at", { ascending: true }),
@@ -83,6 +83,7 @@ export async function getRentalTimeline(
   }
   const auditRows = auditResult.data ?? [];
   const paymentRows = paymentResult.data ?? [];
+  const notificationRows = notificationResult.data ?? [];
 
   const actorIds = new Set<string>();
   if (rental.created_by) actorIds.add(rental.created_by);
@@ -90,6 +91,9 @@ export async function getRentalTimeline(
   for (const row of paymentRows) {
     if (row.confirmed_by) actorIds.add(row.confirmed_by);
     if (row.rejected_by) actorIds.add(row.rejected_by);
+  }
+  for (const row of notificationRows) {
+    if (row.requested_by) actorIds.add(row.requested_by);
   }
 
   const names = new Map<string, string>();
@@ -139,9 +143,7 @@ export async function getRentalTimeline(
     };
   });
 
-  const notifications: RentalTimelineNotification[] = (
-    notificationResult.data ?? []
-  ).map((row) => ({
+  const notifications: RentalTimelineNotification[] = notificationRows.map((row) => ({
     id: row.id,
     kind: row.kind,
     status: row.status,
@@ -151,7 +153,13 @@ export async function getRentalTimeline(
     createdAt: row.created_at,
     lastAttemptAt: row.last_attempt_at,
     sentAt: row.sent_at,
+    requestedByName: nameOf(row.requested_by),
+    resendOf: row.resend_of,
   }));
+
+  const customer = (
+    Array.isArray(rental.customers) ? rental.customers[0] : rental.customers
+  ) as { email: string | null } | null | undefined;
 
   return buildRentalTimeline({
     rental: {
@@ -162,6 +170,7 @@ export async function getRentalTimeline(
       startAt: rental.start_at,
       expectedReturnAt: rental.expected_return_at,
       cancelledAt: rental.cancelled_at,
+      customerEmail: customer?.email ?? null,
     },
     audit,
     payments,

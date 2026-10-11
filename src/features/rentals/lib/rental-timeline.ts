@@ -47,6 +47,18 @@ export type RentalTimelineEvent = {
   trigger?: string;
   tone: RentalTimelineTone;
   upcoming?: boolean;
+  /** Set on the latest email of each kind: staff may resend it. */
+  resend?: RentalTimelineResend;
+};
+
+export type RentalTimelineResend = {
+  notificationId: string;
+  /** What the email is, e.g. "Rental agreement email". */
+  label: string;
+  /** Where a resend goes unless corrected: the customer's email first. */
+  recipient: string | null;
+  /** The address saved on the customer, to tell whether it changes. */
+  customerEmail: string | null;
 };
 
 export type RentalTimelineAuditEntry = {
@@ -85,6 +97,10 @@ export type RentalTimelineNotification = {
   createdAt: string;
   lastAttemptAt: string | null;
   sentAt: string | null;
+  /** The staff member who resent it; null when the system queued it. */
+  requestedByName?: string | null;
+  /** The email this one resends. */
+  resendOf?: string | null;
 };
 
 export type RentalTimelineInput = {
@@ -96,6 +112,7 @@ export type RentalTimelineInput = {
     startAt: string | null;
     expectedReturnAt: string | null;
     cancelledAt: string | null;
+    customerEmail?: string | null;
   };
   audit: RentalTimelineAuditEntry[];
   payments: RentalTimelinePayment[];
@@ -393,43 +410,48 @@ const EMAIL_LABELS: Record<string, string> = {
 /** Matches the retry cap in claim_rental_notification(). */
 const EMAIL_MAX_ATTEMPTS = 5;
 
+/** Statuses still in flight; a resend waits until they settle. */
+const EMAIL_IN_FLIGHT = new Set(["pending", "sending"]);
+
 function notificationEvent(
   note: RentalTimelineNotification,
+  resend: RentalTimelineResend | undefined,
 ): RentalTimelineEvent {
   const label = EMAIL_LABELS[note.kind] ?? "Email";
+  const resent = Boolean(note.resendOf);
   const base = {
     id: `email:${note.id}`,
     kind: "email" as const,
-    actor: null,
-    trigger: "Automatically, by the system",
+    actor: resent ? (note.requestedByName ?? null) : null,
+    trigger: resent ? "Resent by staff" : "Automatically, by the system",
+    resend,
   };
+  const to = note.recipient ? `To ${note.recipient}` : null;
   switch (note.status) {
     case "sent":
       return {
         ...base,
         at: note.sentAt ?? note.lastAttemptAt ?? note.createdAt,
-        title: `${label} sent`,
-        detail: note.recipient ? `To ${note.recipient}` : undefined,
+        title: resent ? `${label} resent` : `${label} sent`,
+        detail: to ?? undefined,
         tone: "default",
       };
     case "skipped":
       return {
         ...base,
         at: note.lastAttemptAt ?? note.createdAt,
-        title: `${label} not sent`,
+        title: resent ? `${label} resend not sent` : `${label} not sent`,
         detail: note.lastError ?? undefined,
         tone: "warning",
       };
     case "failed": {
       const retrying = note.attempts < EMAIL_MAX_ATTEMPTS;
+      const failed = resent ? `${label} resend failed` : `${label} failed`;
       return {
         ...base,
         at: note.lastAttemptAt ?? note.createdAt,
-        title: retrying ? `${label} failed — retrying` : `${label} failed`,
-        detail: joinDetail([
-          note.recipient ? `To ${note.recipient}` : null,
-          note.lastError,
-        ]),
+        title: retrying ? `${failed} — retrying` : failed,
+        detail: joinDetail([to, note.lastError]),
         tone: retrying ? "warning" : "danger",
       };
     }
@@ -437,11 +459,39 @@ function notificationEvent(
       return {
         ...base,
         at: note.createdAt,
-        title: `${label} sending`,
-        detail: note.recipient ? `To ${note.recipient}` : undefined,
+        title: resent ? `${label} resending` : `${label} sending`,
+        detail: to ?? undefined,
         tone: "muted",
       };
   }
+}
+
+/**
+ * The newest email of each kind, when it has settled, can be resent: to the
+ * customer's saved address if there is one, else where it last went.
+ */
+function resendTargets(
+  notifications: RentalTimelineNotification[],
+  customerEmail: string | null,
+) {
+  const latest = new Map<string, RentalTimelineNotification>();
+  for (const note of notifications) {
+    const seen = latest.get(note.kind);
+    if (!seen || new Date(note.createdAt) >= new Date(seen.createdAt)) {
+      latest.set(note.kind, note);
+    }
+  }
+  const targets = new Map<string, RentalTimelineResend>();
+  for (const note of latest.values()) {
+    if (EMAIL_IN_FLIGHT.has(note.status)) continue;
+    targets.set(note.id, {
+      notificationId: note.id,
+      label: EMAIL_LABELS[note.kind] ?? "Email",
+      recipient: customerEmail ?? note.recipient,
+      customerEmail,
+    });
+  }
+  return targets;
 }
 
 const OPEN_STATUSES = new Set(["draft", "reserved", "active", "overdue"]);
@@ -477,7 +527,13 @@ export function buildRentalTimeline({
     if (event) past.push(event);
   }
   for (const payment of payments) past.push(...paymentEvents(payment));
-  for (const note of notifications) past.push(notificationEvent(note));
+  const resendable = resendTargets(
+    notifications,
+    rental.customerEmail?.trim() || null,
+  );
+  for (const note of notifications) {
+    past.push(notificationEvent(note, resendable.get(note.id)));
+  }
 
   // Rentals cancelled before cancellations were audit-logged.
   if (rental.cancelledAt && !past.some((event) => event.kind === "cancelled")) {

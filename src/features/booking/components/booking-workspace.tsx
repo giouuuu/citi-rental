@@ -24,7 +24,13 @@ import type { PublicListedVehicle } from "@/features/vehicles/types/public-fleet
 
 type BookingWorkspaceProps = Omit<
   ComponentProps<typeof BookingFlow>,
-  "vehicle" | "bookedRanges" | "bookedRangesLoading" | "onDatesChange"
+  | "vehicle"
+  | "bookedRanges"
+  | "bookedRangesLoading"
+  | "onDatesChange"
+  | "carBar"
+  | "tripNotice"
+  | "datesTaken"
 > & {
   /** The site header, rendered on the server. */
   header: ReactNode;
@@ -37,8 +43,9 @@ type BookingWorkspaceProps = Omit<
 };
 
 /**
- * The booking page around the form: the car's photos, the rest of the fleet
- * to switch to, and a way out when the car is taken on the chosen dates.
+ * The booking page around the form: the car row (photos, switching cars)
+ * and a way out when the car is taken on the chosen dates, both handed to
+ * the form so they sit inside its layout.
  * Switching happens in place, so typed details survive;
  * the address bar follows along for refreshes and shares.
  */
@@ -94,30 +101,33 @@ export function BookingWorkspace({
     <>
       <BookingHero header={header} vehicleName={vehicle.name} />
 
-      <div className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-10 sm:px-6 lg:px-8">
-        <BookingCarShowcase
-          fleet={fleet}
-          onSelect={selectVehicle}
-          vehicle={vehicle}
-        />
-
-        {clashDay && fromKey && toKey ? (
-          <BookingDateClashNotice
-            clashDay={clashDay}
-            from={fromKey}
-            key={vehicle.id}
-            onChoose={selectVehicle}
-            to={toKey}
-            vehicleId={vehicle.id}
-            vehicleName={vehicle.name}
-          />
-        ) : null}
-
+      <div className="mx-auto max-w-6xl px-4 pt-5 pb-10 sm:px-6 lg:px-8">
         <BookingFlow
           {...flowProps}
           bookedRanges={bookedRanges ?? []}
           bookedRangesLoading={loadingRanges || !bookedRanges}
+          carBar={
+            <BookingCarShowcase
+              fleet={fleet}
+              onSelect={selectVehicle}
+              vehicle={vehicle}
+            />
+          }
+          datesTaken={Boolean(clashDay)}
           onDatesChange={setDates}
+          tripNotice={
+            clashDay && fromKey && toKey ? (
+              <BookingDateClashNotice
+                clashDay={clashDay}
+                from={fromKey}
+                key={vehicle.id}
+                onChoose={selectVehicle}
+                to={toKey}
+                vehicleId={vehicle.id}
+                vehicleName={vehicle.name}
+              />
+            ) : null
+          }
           vehicle={vehicle}
         />
       </div>

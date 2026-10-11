@@ -117,6 +117,13 @@ export async function registerWithEmail(
       throw new RegistrationError(error.status === 429 ? "rate_limit" : "signup");
     }
 
+    // With email confirmation on, Supabase answers an existing email with a
+    // look-alike user and sends nothing, so it can't be told apart from a new
+    // one. That user has no identities: say so instead of "check your inbox".
+    if (data.user && data.user.identities?.length === 0) {
+      throw new RegistrationError("already_registered");
+    }
+
     if (!data.session) return { status: "verification_required" };
 
     const { error: provisioningError } = await supabase.rpc(

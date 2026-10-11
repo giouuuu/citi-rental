@@ -259,6 +259,95 @@ describe("buildRentalTimeline", () => {
       "No email address on file for this customer.",
     );
   });
+
+  describe("resending emails", () => {
+    const note = (
+      overrides: Partial<RentalTimelineNotification>,
+    ): RentalTimelineNotification => ({
+      id: "n1",
+      kind: "rental_released",
+      status: "failed",
+      recipient: "maria@exmaple.com",
+      attempts: 5,
+      lastError: "Resend 422: invalid to address",
+      createdAt: "2026-10-01T05:00:00Z",
+      lastAttemptAt: "2026-10-01T05:00:02Z",
+      sentAt: null,
+      ...overrides,
+    });
+    const emails = (
+      notifications: RentalTimelineNotification[],
+      customerEmail: string | null = "maria@example.com",
+    ) =>
+      buildRentalTimeline({
+        rental: { ...rental, customerEmail },
+        now,
+        audit: [],
+        payments: [],
+        notifications,
+      }).filter((event) => event.kind === "email");
+
+    it("offers the newest email of each kind, to the customer's saved address", () => {
+      const [failed] = emails([note({})]);
+      expect(failed.resend).toEqual({
+        notificationId: "n1",
+        label: "Rental agreement email",
+        recipient: "maria@example.com",
+        customerEmail: "maria@example.com",
+      });
+    });
+
+    it("falls back to where it last went when the customer has no email", () => {
+      const [failed] = emails([note({})], null);
+      expect(failed.resend?.recipient).toBe("maria@exmaple.com");
+    });
+
+    it("shows a resend as the staff member's, and only it can be resent again", () => {
+      const events = emails([
+        note({}),
+        note({
+          id: "n2",
+          status: "sent",
+          recipient: "maria@example.com",
+          attempts: 1,
+          lastError: null,
+          createdAt: "2026-10-01T06:00:00Z",
+          lastAttemptAt: "2026-10-01T06:00:01Z",
+          sentAt: "2026-10-01T06:00:02Z",
+          resendOf: "n1",
+          requestedByName: "Giou",
+        }),
+      ]);
+      expect(events.map((event) => event.title)).toEqual([
+        "Rental agreement email failed",
+        "Rental agreement email resent",
+      ]);
+      expect(events[0].resend).toBeUndefined();
+      expect(events[1].resend?.notificationId).toBe("n2");
+      expect(rentalTimelineTrigger(events[1])).toBe("By Giou");
+      expect(rentalTimelineTrigger(events[0])).toBe("Automatically, by the system");
+    });
+
+    it("waits for an email still on its way", () => {
+      const events = emails([
+        note({}),
+        note({
+          id: "n2",
+          status: "pending",
+          attempts: 0,
+          lastError: null,
+          createdAt: "2026-10-01T06:00:00Z",
+          lastAttemptAt: null,
+          resendOf: "n1",
+        }),
+      ]);
+      expect(events.map((event) => event.title)).toEqual([
+        "Rental agreement email failed",
+        "Rental agreement email resending",
+      ]);
+      expect(events.some((event) => event.resend)).toBe(false);
+    });
+  });
 });
 
 describe("previewRentalTimeline", () => {

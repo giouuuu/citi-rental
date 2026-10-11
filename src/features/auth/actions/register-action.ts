@@ -19,7 +19,7 @@ export type RegisterActionResult = ActionResult<RegistrationData>;
 const errorMessages: Record<RegistrationError["code"], string> = {
   already_authenticated: "You are already signed in. Open your dashboard to continue.",
   already_registered:
-    "This email already has an account. Sign in instead, or use Forgot password if you don't remember it.",
+    "This email already has an account, maybe from a booking. Sign in with an email code instead; you can set a password from your account page.",
   captcha: "The security check expired or failed. Please try again.",
   invalid_email: "That email address can't receive mail. Check it for typos.",
   configuration: "Registration is not available until Supabase is configured.",

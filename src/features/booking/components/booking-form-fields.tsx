@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ImageUp } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { type ReactNode, useEffect, useMemo } from "react";
 import {
   Controller,
@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageDropzone } from "@/features/shared/components/image-dropzone";
+import { cn } from "@/lib/utils";
 
 /** Red asterisk after a required field's label; the input carries aria-required. */
 export function RequiredMark() {
@@ -76,7 +77,12 @@ export function BookingTextField<T extends FieldValues, TOut extends FieldValues
               aria-invalid={fieldState.invalid}
               aria-required={required || undefined}
               autoComplete={autoComplete}
-              className={withCalendarIcon ? "h-11 pl-10" : "h-11"}
+              // Example text stays clearly fainter than an answer, so an
+              // empty field never passes for a filled one.
+              className={cn(
+                "h-11 placeholder:text-muted-foreground/55",
+                withCalendarIcon && "pl-10",
+              )}
               disabled={disabled}
               id={String(name)}
               inputMode={inputMode}
@@ -131,8 +137,8 @@ export function BookingNotesField<T extends FieldValues, TOut extends FieldValue
 }
 
 /**
- * One image upload held as a File in form state. Shows a thumbnail so the
- * renter can check the photo is readable before submitting.
+ * One image upload held as a File in form state. Compact until a photo is
+ * chosen; then a thumbnail shows so the renter can check it is readable.
  */
 export function BookingPhotoField<T extends FieldValues, TOut extends FieldValues = T>({
   control,
@@ -168,6 +174,7 @@ export function BookingPhotoField<T extends FieldValues, TOut extends FieldValue
                 ? (field.value as File)
                 : null
             }
+            label={label}
           />
           <ImageDropzone
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
@@ -194,7 +201,7 @@ export function BookingPhotoField<T extends FieldValues, TOut extends FieldValue
   );
 }
 
-function PhotoPreview({ file }: { file: File | null }) {
+function PhotoPreview({ file, label }: { file: File | null; label: string }) {
   const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
 
   useEffect(() => {
@@ -202,14 +209,11 @@ function PhotoPreview({ file }: { file: File | null }) {
     return () => URL.revokeObjectURL(url);
   }, [url]);
 
+  if (!url) return null;
   return (
-    <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/40">
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img alt="" className="size-full object-contain" src={url} />
-      ) : (
-        <ImageUp aria-hidden="true" className="size-8 text-muted-foreground" />
-      )}
+    <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/40">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img alt={label} className="size-full object-contain" src={url} />
     </div>
   );
 }

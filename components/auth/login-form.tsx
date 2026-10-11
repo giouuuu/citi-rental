@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Info } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
@@ -19,6 +20,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { finishEmailCodeSignInAction } from "@/features/auth/actions/email-code-actions";
+import { EmailCodePanel } from "@/features/auth/components/email-code-panel";
 import { GoogleSignInButton } from "@/features/auth/components/google-sign-in-button";
 import {
   CAPTCHA_LOAD_ERROR,
@@ -47,16 +50,40 @@ export function LoginForm({
   /** Compact layout for intercepting-route modals */
   embedded?: boolean;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string>();
   const safeNext = sanitizeNextPath(nextPath);
   const isBookingReturn = isBookingNextPath(safeNext);
+  // Customers sign in with an emailed code (they may never have set a
+  // password); someone sent here from an ops page starts on the password.
+  const [mode, setMode] = useState<"code" | "password">(
+    safeNext && !isBookingReturn && safeNext !== "/" && !safeNext.startsWith("/account")
+      ? "password"
+      : "code",
+  );
+  /** The email a code was sent to; swaps the form for the code boxes. */
+  const [codeEmail, setCodeEmail] = useState<string>();
   const captcha = useAuthCaptcha();
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
+
+  async function sendCode() {
+    if (!(await form.trigger("email", { shouldFocus: true }))) return;
+    setMessage(undefined);
+    setCodeEmail(form.getValues("email").trim().toLowerCase());
+  }
+
+  async function onCodeVerified() {
+    const result = await finishEmailCodeSignInAction({ next: safeNext });
+    if (!result.success) return result.message;
+    if (!result.data) return "Something went wrong. Please try again.";
+    router.replace(result.data.redirectTo);
+    router.refresh();
+  }
 
   function onSubmit(values: LoginInput) {
     if (!captcha.ready) return;
@@ -108,10 +135,31 @@ export function LoginForm({
         </div>
       </div>
 
+      {codeEmail ? (
+        <div className="mt-5">
+          <EmailCodePanel
+            email={codeEmail}
+            emailRedirectTo={`${window.location.origin}/auth/callback?next=${encodeURIComponent(
+              safeNext ?? "/",
+            )}`}
+            key={codeEmail}
+            onChangeEmail={() => setCodeEmail(undefined)}
+            onVerified={onCodeVerified}
+            verifyLabel="Verify and sign in"
+          />
+        </div>
+      ) : (
       <form
         className="mt-5 space-y-5"
         noValidate
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={
+          mode === "code"
+            ? (event) => {
+                event.preventDefault();
+                void sendCode();
+              }
+            : form.handleSubmit(onSubmit)
+        }
       >
         <FieldGroup>
           <Controller
@@ -135,6 +183,7 @@ export function LoginForm({
               </Field>
             )}
           />
+          {mode === "password" ? (
           <Controller
             control={form.control}
             name="password"
@@ -162,9 +211,10 @@ export function LoginForm({
               </Field>
             )}
           />
+          ) : null}
         </FieldGroup>
-        {captcha.widget}
-        {message || captcha.failed ? (
+        {mode === "password" ? captcha.widget : null}
+        {message || (mode === "password" && captcha.failed) ? (
           <div
             className="flex gap-2 rounded-xl border border-warning/20 bg-warning-surface p-3 text-sm leading-5 text-warning"
             role="alert"
@@ -173,20 +223,60 @@ export function LoginForm({
             <span>{message ?? CAPTCHA_LOAD_ERROR}</span>
           </div>
         ) : null}
-        <Button
-          className="h-12 w-full rounded-xl text-base active:scale-[0.99]"
-          disabled={pending || !captcha.ready}
-          size="lg"
-          type="submit"
-        >
-          {pending || !captcha.ready ? <Spinner /> : null}
-          {pending
-            ? "Signing in..."
-            : captcha.ready
-              ? "Sign in"
-              : captcha.pendingLabel}
-        </Button>
+        {mode === "code" ? (
+          <Button
+            className="h-12 w-full rounded-xl text-base active:scale-[0.99]"
+            size="lg"
+            type="submit"
+          >
+            Email me a code
+          </Button>
+        ) : (
+          <Button
+            className="h-12 w-full rounded-xl text-base active:scale-[0.99]"
+            disabled={pending || !captcha.ready}
+            size="lg"
+            type="submit"
+          >
+            {pending || !captcha.ready ? <Spinner /> : null}
+            {pending
+              ? "Signing in..."
+              : captcha.ready
+                ? "Sign in"
+                : captcha.pendingLabel}
+          </Button>
+        )}
+        <p className="text-center text-sm text-muted-foreground">
+          {mode === "code" ? (
+            <>
+              No password needed: we email you a 6-digit code.{" "}
+              <button
+                className="font-medium text-teal-700 underline-offset-4 hover:underline"
+                onClick={() => {
+                  setMessage(undefined);
+                  setMode("password");
+                }}
+                type="button"
+              >
+                Use a password instead
+              </button>
+            </>
+          ) : (
+            <button
+              className="font-medium text-teal-700 underline-offset-4 hover:underline"
+              onClick={() => {
+                setMessage(undefined);
+                form.clearErrors("password");
+                setMode("code");
+              }}
+              type="button"
+            >
+              Email me a code instead
+            </button>
+          )}
+        </p>
       </form>
+      )}
 
       <LoginFormFooter
         embedded={embedded}

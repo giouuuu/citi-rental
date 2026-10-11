@@ -91,9 +91,14 @@ export function BookingTermsField<
         const hasRead = read || field.value === true;
         return (
           <>
-            <Field data-invalid={fieldState.invalid} orientation="horizontal">
+            <Field
+              className="rounded-lg border border-border bg-card p-3.5 data-[invalid=true]:border-destructive/50"
+              data-invalid={fieldState.invalid}
+              orientation="horizontal"
+            >
               <Checkbox
                 aria-invalid={fieldState.invalid}
+                className="size-5"
                 checked={field.value === true}
                 disabled={disabled}
                 id={String(name)}

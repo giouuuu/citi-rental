@@ -19,7 +19,7 @@ Same Supabase project and data; different routes, UX, and roles.
 
 | Role | Surface | Job |
 |------|---------|-----|
-| **Customer** | Public site + booking | Browse available cars → fill in the booking → sign in (Google) on Confirm → reserve. Guests fill the form, but only signed-in accounts can submit. |
+| **Customer** | Public site + booking | Browse available cars → fill in the booking → confirm their email with an emailed 6-digit code on Confirm → reserve. No password or Google needed; the code quietly creates/opens their account. |
 | **Staff** | No ops UI yet | Role exists in data/RLS; cannot enter `app/(protected)` |
 | **Owner / admin** | Ops app (`app/(protected)`) | Fleet, GPS, geofences, users, customers, rentals, alerts, org settings |
 | **Owner only** | `/finance` | Expenses, fixed assets, 2307s, tax settings, BIR-oriented statement (`private.is_finance_user()`) |
@@ -30,7 +30,7 @@ Authorization is always `profiles.role` + RLS/RPCs. Never authorize from JWT `us
 
 ## Core loops
 
-**Customer:** Find dates/location → see available fleet → fill in the booking → sign in when they press Confirm (draft kept in the browser across sign-in) → submit reservation → confirmation (soft commit; staff confirms pickup; no payments yet).
+**Customer:** Find dates/location → see available fleet → fill in the booking → press Confirm, type the 6-digit code we email (Supabase `signInWithOtp` / `verifyOtp` in the browser, `ensure_customer_profile` gives the account a customer profile) → submit reservation → confirmation (soft commit; staff confirms pickup). Coming back later: `/login` → "Email me a code" (or Google / password) shows the same account's bookings.
 
 **Ops (owner/admin):** Manage vehicles/customers/rentals → transition rental (`draft → reserved → active → completed/cancelled`) with booking gates → watch map/geofences/alerts → acknowledge issues → tune org tracking settings.
 
@@ -55,7 +55,7 @@ GPS tracking (parked — see `GPS_TRACKING_FEATURES.md`) · online payments · o
 
 - Brand naming still splits across Zeke (public) and City Rentals (ops) — prefer Zeke for customer UI, City Rentals for ops UI unless unifying.
 - `/register` by email makes the **first** account on an empty system admin; every later signup is a **customer** (`complete_self_service_registration`). The booking sign-in dialog links to it with `?next=` so the guest returns to their saved booking.
-- Booking requires sign-in at submit (Google or email signup); a “my bookings” portal is not complete yet.
+- Booking requires a verified email at submit: guests get a 6-digit code (email checks in `src/features/auth/lib/email-checks.ts` + an MX lookup; throwaway inboxes are refused). The hosted Supabase project needs custom SMTP (Resend) and the Magic Link template from `supabase/templates/magic-link.html` showing `{{ .Token }}`. A “my bookings” portal is not complete yet.
 - Self-drive / with-driver is landing UX only — not a rental domain field yet.
 - `staff` role exists in the schema but cannot access `app/(protected)` yet (owner/admin only).
 - Tracking surfaces (map, devices, geofences, alerts) exist in code but are **parked** — they are not part of the current rental-first scope.

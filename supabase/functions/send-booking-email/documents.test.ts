@@ -1,5 +1,5 @@
-import { PDFDocument } from "pdf-lib";
-import { describe, expect, it } from "vitest";
+import { PDFDocument, PDFPage } from "pdf-lib";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   type DocumentInput,
@@ -117,6 +117,39 @@ describe("buildAgreementPdf", () => {
     });
     expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThanOrEqual(1);
   });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("prints the policies the owner added after the cancellation policy", async () => {
+    const drawn: string[] = [];
+    vi.spyOn(PDFPage.prototype, "drawText").mockImplementation(function (text) {
+      drawn.push(String(text));
+    });
+    const base = input();
+    await buildAgreementPdf({
+      ...base,
+      agreement: {
+        ...base.agreement,
+        terms: {
+          ...normalizeTerms(base.agreement.terms),
+          policies: [
+            {
+              title: "Extension Policy",
+              intro: "Notify us 12 hours before the rental ends.",
+              sections: [],
+              closing: "",
+            },
+            { title: "", intro: "", sections: [], closing: "" },
+          ],
+        },
+      },
+    });
+    const cancellation = drawn.indexOf("CAR RENTAL CANCELLATION POLICY");
+    const extension = drawn.indexOf("EXTENSION POLICY");
+    expect(cancellation).toBeGreaterThan(-1);
+    expect(extension).toBeGreaterThan(cancellation);
+    expect(drawn).toContain("Notify us 12 hours before the rental ends.");
+  });
 });
 
 describe("normalizeTerms", () => {
@@ -129,6 +162,13 @@ describe("normalizeTerms", () => {
       "Prohibited use",
       "Additional reminders",
     ]);
+    expect(terms.policies).toEqual([]);
+  });
+
+  it("gives an edited agreement signed before policies an empty list", () => {
+    const { policies, ...withoutPolicies } = normalizeTerms(input().agreement.terms);
+    expect(policies).toEqual([]);
+    expect(normalizeTerms(withoutPolicies).policies).toEqual([]);
   });
 });
 

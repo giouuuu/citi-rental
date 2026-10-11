@@ -1,15 +1,23 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { CarFront } from "lucide-react";
+import { useRef, useState } from "react";
+import { CarFront, Images } from "lucide-react";
 
 import {
   GalleryArrow,
   GalleryPhotoStack,
   GalleryThumbnails,
 } from "@/components/landing/vehicle-gallery-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatPhp } from "@/features/shared/lib/money";
+import { vehicleModelLine } from "@/features/vehicles/lib/vehicle-model-line";
 import type {
   PublicListedVehicle,
   PublicVehiclePhoto,
@@ -28,8 +36,9 @@ export function vehiclePhotos(vehicle: PublicListedVehicle): PublicVehiclePhoto[
 }
 
 /**
- * The booking page's car: its photos to page through, and the rest of the
- * fleet underneath to switch to without leaving the form.
+ * The booking page's car as one compact row: cover, name and day rate, with
+ * its photos and the rest of the fleet a tap away in a dialog. Switching
+ * keeps everything already typed in the form.
  */
 export function BookingCarShowcase({
   vehicle,
@@ -40,49 +49,108 @@ export function BookingCarShowcase({
   fleet: PublicListedVehicle[];
   onSelect: (vehicle: PublicListedVehicle) => void;
 }) {
-  const listRef = useRef<HTMLUListElement>(null);
-
-  // Bring a car picked from elsewhere (the free-cars list) into the strip's
-  // view. Sideways only: the page itself must not jump.
-  useEffect(() => {
-    const list = listRef.current;
-    const chosen = list?.querySelector<HTMLElement>('[aria-pressed="true"]');
-    if (!list || !chosen) return;
-    const bounds = list.getBoundingClientRect();
-    const box = chosen.getBoundingClientRect();
-    if (box.left < bounds.left || box.right > bounds.right) {
-      list.scrollLeft += box.left - bounds.left - 16;
-    }
-  }, [vehicle.id]);
+  const [view, setView] = useState<"photos" | "cars" | null>(null);
+  const photos = vehiclePhotos(vehicle);
+  const cover = vehicle.photo_url ?? vehicle.gallery[0]?.url;
+  const modelLine = vehicleModelLine(vehicle);
 
   return (
     <section
-      aria-label="Car photos"
-      className="overflow-hidden rounded-xl border border-border bg-card"
+      aria-label="Your car"
+      className="flex items-center gap-3 rounded-xl border border-border bg-card p-2.5 pr-3"
     >
-      {/* Keyed so a newly chosen car starts on its cover angle. */}
-      <CarPhotos key={vehicle.id} vehicle={vehicle} />
+      <button
+        aria-label={`See photos of the ${vehicle.name}`}
+        className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-brand-50 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        disabled={!photos.length}
+        onClick={() => setView("photos")}
+        type="button"
+      >
+        {cover ? (
+          <Image alt="" className="object-cover" fill sizes="96px" src={cover} />
+        ) : (
+          <CarFront
+            aria-hidden="true"
+            className="absolute inset-0 m-auto size-7 text-brand-300"
+          />
+        )}
+        {photos.length > 1 ? (
+          <span className="absolute right-1 bottom-1 inline-flex items-center gap-0.5 rounded-full bg-brand-950/65 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums">
+            <Images aria-hidden="true" className="size-2.5" />
+            {photos.length}
+          </span>
+        ) : null}
+      </button>
 
-      {fleet.length > 1 ? (
-        <div className="border-t border-border px-4 pt-3 pb-4">
-          <p className="text-sm font-medium text-brand-950">Switch car</p>
-          <ul
-            aria-label="Cars"
-            ref={listRef}
-            className="-mx-4 mt-2 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-1"
-          >
-            {fleet.map((car) => (
-              <li className="w-36 shrink-0 snap-start" key={car.id}>
-                <CarChoice
-                  car={car}
-                  onSelect={() => onSelect(car)}
-                  selected={car.id === vehicle.id}
-                />
-              </li>
-            ))}
-          </ul>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold text-brand-950">{vehicle.name}</p>
+        <p className="truncate text-sm text-muted-foreground tabular-nums">
+          {modelLine ? `${modelLine} · ` : null}
+          {formatPhp(vehicle.daily_rate)}/day
+        </p>
+        <div className="mt-0.5 flex gap-4 text-sm">
+          {photos.length ? (
+            <button
+              className="-my-1 py-1 font-medium text-teal-700 underline-offset-4 hover:underline"
+              onClick={() => setView("photos")}
+              type="button"
+            >
+              Photos
+            </button>
+          ) : null}
+          {fleet.length > 1 ? (
+            <button
+              className="-my-1 py-1 font-medium text-teal-700 underline-offset-4 hover:underline"
+              onClick={() => setView("cars")}
+              type="button"
+            >
+              Change car
+            </button>
+          ) : null}
         </div>
-      ) : null}
+      </div>
+
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) setView(null);
+        }}
+        open={view !== null}
+      >
+        <DialogContent className="max-h-[min(90vh,760px)] gap-0 overflow-y-auto p-0 sm:max-w-2xl">
+          <DialogHeader className="px-5 pt-5 pb-3">
+            <DialogTitle>
+              {view === "cars" ? "Change car" : vehicle.name}
+            </DialogTitle>
+            <DialogDescription>
+              {view === "cars"
+                ? "Your dates and details stay as they are."
+                : `${photos.length} ${photos.length === 1 ? "photo" : "photos"}`}
+            </DialogDescription>
+          </DialogHeader>
+          {view === "cars" ? (
+            <ul
+              aria-label="Cars"
+              className="grid grid-cols-2 gap-3 px-5 pb-5 sm:grid-cols-3"
+            >
+              {fleet.map((car) => (
+                <li key={car.id}>
+                  <CarChoice
+                    car={car}
+                    onSelect={() => {
+                      onSelect(car);
+                      setView(null);
+                    }}
+                    selected={car.id === vehicle.id}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            // Keyed so a newly chosen car starts on its cover angle.
+            <CarPhotos key={vehicle.id} vehicle={vehicle} />
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

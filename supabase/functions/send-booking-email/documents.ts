@@ -27,22 +27,27 @@ export type AgreementSection =
   | { kind: "fines"; heading: string; items: { label: string; amount: number }[] }
   | { kind: "labeled"; heading: string; items: { label: string; text: string }[] };
 
+/** A titled policy printed after the signatures: cancellation, extension… */
+export type AgreementPolicy = {
+  title: string;
+  intro: string;
+  sections: { heading: string; body: string }[];
+  closing: string;
+};
+
 export type AgreementTerms = {
   title: string;
   intro: string;
   clauses: string[];
   sections: AgreementSection[];
   acknowledgement: string;
-  cancellation: {
-    title: string;
-    intro: string;
-    sections: { heading: string; body: string }[];
-    closing: string;
-  };
+  cancellation: AgreementPolicy;
+  /** More policies the owner added, printed after the cancellation policy. */
+  policies: AgreementPolicy[];
 };
 
 /** Agreements signed before the template became editable: fixed sections. */
-type LegacyAgreementTerms = Omit<AgreementTerms, "sections"> & {
+type LegacyAgreementTerms = Omit<AgreementTerms, "sections" | "policies"> & {
   penalties: { heading: string; items: string[] };
   fines: { label: string; amount: number }[];
   otherCharges: { label: string; detail: string }[];
@@ -50,9 +55,17 @@ type LegacyAgreementTerms = Omit<AgreementTerms, "sections"> & {
   reminders: { label: string; text: string }[];
 };
 
-/** Terms in the section-list shape, whichever shape they were signed in. */
-export function normalizeTerms(terms: AgreementTerms | LegacyAgreementTerms): AgreementTerms {
-  if ("sections" in terms && Array.isArray(terms.sections)) return terms as AgreementTerms;
+/**
+ * Terms in the section-list shape, whichever shape they were signed in. Ones
+ * signed before policies could be added have none beyond cancellation.
+ */
+export function normalizeTerms(
+  terms: AgreementTerms | LegacyAgreementTerms | Omit<AgreementTerms, "policies">,
+): AgreementTerms {
+  if ("sections" in terms && Array.isArray(terms.sections)) {
+    const current = terms as AgreementTerms;
+    return Array.isArray(current.policies) ? current : { ...current, policies: [] };
+  }
   const legacy = terms as LegacyAgreementTerms;
   return {
     title: legacy.title,
@@ -86,11 +99,12 @@ export function normalizeTerms(terms: AgreementTerms | LegacyAgreementTerms): Ag
     ],
     acknowledgement: legacy.acknowledgement,
     cancellation: legacy.cancellation,
+    policies: [],
   };
 }
 
 export type EmailAgreement = {
-  terms: AgreementTerms | LegacyAgreementTerms;
+  terms: AgreementTerms | LegacyAgreementTerms | Omit<AgreementTerms, "policies">;
   companyName: string;
   companyAddress: string | null;
   companyPhone: string | null;
@@ -674,15 +688,22 @@ function agreementSection(context: Context, agreement: EmailAgreement) {
     },
   ]);
 
-  const policy = terms.cancellation;
-  if (
-    !policy.sections.length &&
-    !policy.title &&
-    !policy.intro &&
-    !policy.closing
-  ) {
-    return;
+  // The cancellation policy, then any the owner added; empty ones are skipped.
+  for (const policy of [terms.cancellation, ...terms.policies]) {
+    if (
+      !policy ||
+      (!policy.sections?.length &&
+        !policy.title?.trim() &&
+        !policy.intro?.trim() &&
+        !policy.closing?.trim())
+    ) {
+      continue;
+    }
+    policySection(layout, policy);
   }
+}
+
+function policySection(layout: Layout, policy: AgreementPolicy) {
   layout.space(18);
   layout.ensure(180);
   if (policy.title) {
@@ -690,7 +711,7 @@ function agreementSection(context: Context, agreement: EmailAgreement) {
     layout.rule(INK);
   }
   if (policy.intro) layout.text(policy.intro);
-  policy.sections.forEach((section, index) => {
+  (policy.sections ?? []).forEach((section, index) => {
     layout.text(`${index + 1}. ${section.heading}`, { font: "bold", gap: 1 });
     layout.text(section.body, { indent: 12 });
   });

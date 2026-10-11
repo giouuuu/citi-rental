@@ -79,6 +79,7 @@
   --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
   --shadow-md: 0 8px 24px rgb(15 23 42 / 0.08);
   --shadow-lg: 0 16px 40px rgb(15 23 42 / 0.12);
+  --animate-caret-blink: caret-blink 1.25s ease-out infinite;
 }
 
 :root {
@@ -506,6 +507,20 @@
   border-radius: inherit;
   animation: progress-indeterminate 1100ms cubic-bezier(0.2, 0.8, 0.2, 1)
     infinite;
+}
+
+/* The fake caret in the email-code boxes (components/ui/input-otp.tsx).
+   Starts visible, so the reduced-motion freeze at frame 0 leaves it shown. */
+@keyframes caret-blink {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  50% {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

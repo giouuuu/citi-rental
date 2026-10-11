@@ -30,6 +30,7 @@ import {
   type HandoverLeg,
   handoverLabel,
   handoverPrice,
+  handoverShortLabel,
   parseHandoverMethod,
 } from "@/features/booking/lib/handover";
 
@@ -61,6 +62,8 @@ export function HandoverField<T extends FieldValues, TOut extends FieldValues = 
   fees,
   officeAddress,
   disabled,
+  compact = false,
+  legend,
 }: {
   control: Control<T, unknown, TOut>;
   leg: HandoverLeg;
@@ -70,6 +73,10 @@ export function HandoverField<T extends FieldValues, TOut extends FieldValues = 
   /** Settings → operating address; shown when the customer picks the office. */
   officeAddress?: string | null;
   disabled?: boolean;
+  /** Three across at every width with short labels; the legend names the leg. */
+  compact?: boolean;
+  /** Replaces the leg's question, e.g. when it also sets the return. */
+  legend?: string;
 }) {
   const copy = legCopy[leg];
   const method = parseHandoverMethod(useWatch({ control, name: methodName }));
@@ -82,12 +89,14 @@ export function HandoverField<T extends FieldValues, TOut extends FieldValues = 
         render={({ field, fieldState }) => (
           <FieldSet data-invalid={fieldState.invalid}>
             <FieldLegend variant="label">
-              {copy.legend}
+              {legend ?? copy.legend}
               <RequiredMark />
             </FieldLegend>
             <RadioGroup
               aria-invalid={fieldState.invalid}
-              className="grid gap-2 sm:grid-cols-3"
+              className={
+                compact ? "grid grid-cols-3 gap-2" : "grid gap-2 sm:grid-cols-3"
+              }
               disabled={disabled}
               name={field.name}
               onValueChange={field.onChange}
@@ -96,16 +105,36 @@ export function HandoverField<T extends FieldValues, TOut extends FieldValues = 
               {HANDOVER_METHODS.map((option) => {
                 const id = `${String(methodName)}-${option}`;
                 return (
-                  <FieldLabel htmlFor={id} key={option}>
-                    <Field orientation="horizontal">
-                      <FieldContent>
-                        <FieldTitle>{handoverLabel(leg, option)}</FieldTitle>
+                  <FieldLabel
+                    className={
+                      compact
+                        ? "cursor-pointer has-focus-visible:ring-2 has-focus-visible:ring-ring/40 has-data-[state=checked]:border-primary has-data-[state=checked]:ring-1 has-data-[state=checked]:ring-primary"
+                        : undefined
+                    }
+                    htmlFor={id}
+                    key={option}
+                  >
+                    <Field
+                      className={compact ? "min-h-16" : undefined}
+                      orientation="horizontal"
+                    >
+                      <FieldContent className={compact ? "gap-0.5" : undefined}>
+                        <FieldTitle className={compact ? "text-sm leading-tight" : undefined}>
+                          {compact
+                            ? handoverShortLabel(option)
+                            : handoverLabel(leg, option)}
+                        </FieldTitle>
                         <FieldDescription className="tabular-nums">
-                          {handoverPrice(option, fees)}
+                          {compact
+                            ? handoverPrice(option, fees)
+                                .replace(" per way", "/way")
+                                .replace("Fee confirmed by staff", "Staff quote")
+                            : handoverPrice(option, fees)}
                         </FieldDescription>
                       </FieldContent>
                       <RadioGroupItem
                         aria-invalid={fieldState.invalid}
+                        className={compact ? "sr-only" : undefined}
                         id={id}
                         value={option}
                       />

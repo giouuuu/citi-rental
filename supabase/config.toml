@@ -236,7 +236,8 @@ max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# 10 minutes: customers type the code from the booking dialog right away.
+otp_expiry = 600
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
@@ -247,6 +248,12 @@ otp_expiry = 3600
 # pass = "env(SENDGRID_API_KEY)"
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
+
+# Email-code booking and sign-in: shows the 6-digit {{ .Token }}.
+# Paste the same file into the hosted project's Magic Link template.
+[auth.email.template.magic_link]
+subject = "Your Zeke booking code: {{ .Token }}"
+content_path = "./supabase/templates/magic-link.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

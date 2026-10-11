@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/features/shared/types/resource";
-import { isBookingUserSignedIn } from "@/features/booking/lib/is-booking-user-signed-in";
+import {
+  DISPOSABLE_EMAIL_MESSAGE,
+  emailDomain,
+  isDisposableEmailDomain,
+} from "@/features/auth/lib/email-checks";
+import { bookingUserEmail } from "@/features/booking/lib/is-booking-user-signed-in";
 import { publicBookingSchema } from "@/features/booking/schemas/public-booking-schema";
 import { createPublicBooking } from "@/features/booking/services/public-booking-service";
 import type { PublicBookingResult } from "@/features/booking/types/booking-payment";
@@ -13,12 +18,19 @@ export type CreatePublicBookingResult = ActionResult<PublicBookingResult>;
 export async function createPublicBookingAction(
   formData: FormData,
 ): Promise<CreatePublicBookingResult> {
-  // Booking needs an account; create_public_booking is closed to anon too.
-  if (!(await isBookingUserSignedIn())) {
+  // Booking needs an account (a Google sign-in or a verified email code);
+  // create_public_booking is closed to anon too.
+  const accountEmail = await bookingUserEmail();
+  if (accountEmail === null) {
     return {
       success: false,
-      message: "Sign in to book. Your session may have expired.",
+      message: "Confirm your email to book. Your session may have expired.",
     };
+  }
+  // The code proves the inbox is theirs, but a throwaway one is gone by
+  // pickup. The form checks this first; this catches direct API sign-ups.
+  if (accountEmail && isDisposableEmailDomain(emailDomain(accountEmail))) {
+    return { success: false, message: DISPOSABLE_EMAIL_MESSAGE };
   }
 
   const parsed = publicBookingSchema.safeParse({

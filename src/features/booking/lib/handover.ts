@@ -61,6 +61,17 @@ export function handoverLabel(leg: HandoverLeg, method: HandoverMethod) {
   return copy[leg][method];
 }
 
+const shortCopy = {
+  office: "Our office",
+  within_city: "Cebu City",
+  outside_city: "Outside Cebu City",
+} as const;
+
+/** The choice in a three-across picker, where the legend names the leg. */
+export function handoverShortLabel(method: HandoverMethod) {
+  return shortCopy[method];
+}
+
 /** What the choice costs, for the picker: "Free", "₱300 per way", "Fee confirmed by staff". */
 export function handoverPrice(
   method: HandoverMethod,
