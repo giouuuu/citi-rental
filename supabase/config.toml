@@ -255,6 +255,11 @@ otp_expiry = 600
 subject = "Your Zeke booking code: {{ .Token }}"
 content_path = "./supabase/templates/magic-link.html"
 
+# A new email booking with a code is signed up first, so it gets this one.
+[auth.email.template.confirmation]
+subject = "Your Zeke booking code: {{ .Token }}"
+content_path = "./supabase/templates/confirm-signup.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

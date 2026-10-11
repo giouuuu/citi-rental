@@ -55,7 +55,7 @@ GPS tracking (parked — see `GPS_TRACKING_FEATURES.md`) · online payments · o
 
 - Brand naming still splits across Zeke (public) and City Rentals (ops) — prefer Zeke for customer UI, City Rentals for ops UI unless unifying.
 - `/register` by email makes the **first** account on an empty system admin; every later signup is a **customer** (`complete_self_service_registration`). The booking sign-in dialog links to it with `?next=` so the guest returns to their saved booking.
-- Booking requires a verified email at submit: guests get a 6-digit code (email checks in `src/features/auth/lib/email-checks.ts` + an MX lookup; throwaway inboxes are refused). The hosted Supabase project needs custom SMTP (Resend) and the Magic Link template from `supabase/templates/magic-link.html` showing `{{ .Token }}`. A “my bookings” portal is not complete yet.
+- Booking requires a verified email at submit: guests get a 6-digit code (email checks in `src/features/auth/lib/email-checks.ts` + an MX lookup; throwaway inboxes are refused). The hosted Supabase project needs custom SMTP (Resend) and the Magic Link and Confirm signup templates (`supabase/templates/magic-link.html`, `confirm-signup.html`) both showing `{{ .Token }}` — a brand-new email gets Confirm signup. A “my bookings” portal is not complete yet.
 - Self-drive / with-driver is landing UX only — not a rental domain field yet.
 - `staff` role exists in the schema but cannot access `app/(protected)` yet (owner/admin only).
 - Tracking surfaces (map, devices, geofences, alerts) exist in code but are **parked** — they are not part of the current rental-first scope.
