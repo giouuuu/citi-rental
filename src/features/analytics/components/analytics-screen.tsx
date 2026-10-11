@@ -11,6 +11,7 @@ import {
 } from "@/features/analytics/lib/analytics-window";
 import { AnalyticsFrame } from "@/features/analytics/components/analytics-frame";
 import { AnalyticsKpis } from "@/features/analytics/components/analytics-kpis";
+import { BookingAnalytics } from "@/features/analytics/components/booking-analytics";
 import { AnalyticsTrends } from "@/features/analytics/components/analytics-trends";
 import { CustomerInsights } from "@/features/analytics/components/customer-insights";
 import { ForwardOccupancy } from "@/features/analytics/components/forward-occupancy";
@@ -71,6 +72,12 @@ export async function AnalyticsScreen({ searchParams }: { searchParams: Promise<
 /** Only the open tab renders, so switching tabs fetches just that tab's data. */
 function AnalyticsTabPanels({ tab, window }: { tab: AnalyticsTab; window: AnalyticsWindow }) {
   switch (tab) {
+    case "bookings":
+      return (
+        <Suspense fallback={<PanelSkeleton className="h-[720px]" label="booking analytics" />}>
+          <BookingAnalytics window={window} />
+        </Suspense>
+      );
     case "website":
       return <WebsiteAnalytics window={window} />;
     case "cars":

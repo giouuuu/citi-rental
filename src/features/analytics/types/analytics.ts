@@ -16,7 +16,7 @@ export type AnalyticsWindow = {
 export type AnalyticsPreset = "7d" | "30d" | "90d" | "12m" | "custom";
 
 /** Which slice of analytics is on screen (`?tab=`). */
-export type AnalyticsTab = "overview" | "website" | "cars" | "customers";
+export type AnalyticsTab = "overview" | "bookings" | "website" | "cars" | "customers";
 
 export type AnalyticsOverview = {
   bookingsCreated: number;
@@ -126,3 +126,44 @@ export type SiteTimeseriesPoint = {
 };
 
 export type SiteLive = { visitorsNow: number; facebookNow: number; visitorsToday: number };
+
+/**
+ * One booking from `analytics_booking_rows`: made or cancelled in the window.
+ * Cancellation fields are null unless the booking is cancelled.
+ */
+export type BookingRow = {
+  rentalId: string;
+  referenceNumber: string;
+  status: "draft" | "reserved" | "active" | "overdue" | "completed" | "cancelled";
+  bookingSource: string;
+  withDriver: boolean;
+  paymentStatus: string | null;
+  createdAt: string;
+  startAt: string;
+  expectedReturnAt: string;
+  actualReturnAt: string | null;
+  customerId: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  vehicleId: string | null;
+  vehiclePlate: string | null;
+  vehicleName: string | null;
+  vehicleCategory: string | null;
+  pickupLocation: string | null;
+  destination: string | null;
+  quotedTotal: number | null;
+  depositAmount: number | null;
+  /** Confirmed credits net of refunds, all time. */
+  paid: number;
+  refunded: number;
+  firstProofAt: string | null;
+  firstPaidAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  cancellationNote: string | null;
+  reservationFeeForfeited: boolean | null;
+  cancelledBy: "customer" | "staff" | null;
+  /** Confirmed credits dated at or before the cancellation. */
+  paidBeforeCancel: number;
+  proofBeforeCancel: boolean;
+};

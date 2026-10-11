@@ -338,6 +338,16 @@ Owner/admin only (`/analytics`). Filters: period preset or custom dates (Manila,
   rental length and lead time, charges billed.
 - Trends: collected revenue, bookings by source (website vs front desk), utilization.
 - Booked ahead: share of the fleet reserved for each of the next 30 days.
+- Bookings: bookings made (website/front desk/with driver), paid share, booked value, lead
+  time; cancellations, cancellation rate, cancelled before payment (vs payment sent but not
+  confirmed, vs after payment), value lost, refunded and kept. Charts: booked vs cancelled over
+  time, funnel (booked → sent payment → confirmed → picked up → returned), payment at
+  cancellation, reasons, who cancelled (customer online vs staff), notice before pickup, time
+  after booking, status now, how far ahead, trip length, pickup day, pickup location. Tables
+  by channel/service and by car, every cancelled booking, and every booking made — each
+  exports to Excel. Bookings made in the period are the cohort; cancellations count by
+  cancellation date. Rows come from `analytics_booking_rows`
+  (`20261101090000_analytics_booking_rows.sql`).
 - Cars: collected, utilization, revenue per day, charges per car; idle available cars.
 - Customers: active, first-time vs returning, repeat rate, blocked; top customers with lifetime
   value, balance owed, and late returns. Customer detail has a Rentals tab with the same figures.

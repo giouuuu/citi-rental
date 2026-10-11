@@ -2,9 +2,11 @@ import type {
   AnalyticsBucket,
   AnalyticsOverview,
   AnalyticsTimeseriesPoint,
+  BookingRow,
   TopCustomer,
   VehiclePerformance,
 } from "@/features/analytics/types/analytics";
+import { bucketStartOf } from "@/features/analytics/lib/analytics-window";
 import {
   demoCollected,
   type DemoPayment,
@@ -169,13 +171,6 @@ export function demoOverview(
   };
 }
 
-function bucketStartOf(key: string, bucket: AnalyticsBucket): string {
-  if (bucket === "day") return key;
-  if (bucket === "month") return `${key.slice(0, 7)}-01`;
-  const weekday = new Date(`${key}T00:00:00.000Z`).getUTCDay();
-  return addDaysToKey(key, -((weekday + 6) % 7));
-}
-
 export function demoTimeseries(
   workspace: DemoWorkspace,
   from: string,
@@ -304,4 +299,72 @@ export function demoTopCustomers(
         a.fullName.localeCompare(b.fullName),
     )
     .slice(0, Math.min(50, Math.max(1, limit)));
+}
+
+/**
+ * Demo stand-in for `analytics_booking_rows`: bookings made or cancelled in
+ * the window. Demo staff do all cancelling and nothing is ever left
+ * proof-pending, so those slices read zero here.
+ */
+export function demoBookingRows(workspace: DemoWorkspace, from: string, to: string): BookingRow[] {
+  const range = windowRange(from, to);
+  const ledger = paymentsByRental(workspace.payments);
+  const customers = new Map(workspace.customers.map((customer) => [customer.id, customer]));
+  const vehicles = new Map(workspace.vehicles.map((vehicle) => [vehicle.id, vehicle]));
+  const credit = (payment: DemoPayment) =>
+    payment.paymentType === "deposit" || payment.paymentType === "balance" || payment.paymentType === "adjustment";
+
+  return workspace.rentals
+    .filter(
+      (rental) =>
+        inRange(rental.createdAt, range) ||
+        (rental.status === "cancelled" && inRange(rental.cancelledAt, range)),
+    )
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map((rental) => {
+      const payments = ledger.get(rental.id) ?? [];
+      const credits = payments.filter(credit);
+      const refunded = sum(payments.filter((p) => p.paymentType === "refund").map((p) => p.amount));
+      const firstPaidAt = credits.map((p) => p.confirmedAt).sort()[0] ?? null;
+      const cancelled = rental.status === "cancelled";
+      const paidBeforeCancel = cancelled
+        ? sum(credits.filter((p) => p.confirmedAt <= (rental.cancelledAt ?? "")).map((p) => p.amount))
+        : 0;
+      const customer = customers.get(rental.customerId);
+      const vehicle = vehicles.get(rental.vehicleId);
+      return {
+        rentalId: rental.id,
+        referenceNumber: rental.referenceNumber,
+        status: rental.status,
+        bookingSource: rental.bookingSource,
+        withDriver: false,
+        paymentStatus: null,
+        createdAt: rental.createdAt,
+        startAt: rental.startAt,
+        expectedReturnAt: rental.expectedReturnAt,
+        actualReturnAt: rental.actualReturnAt,
+        customerId: rental.customerId,
+        customerName: customer?.fullName ?? null,
+        customerPhone: customer?.phoneNumber ?? null,
+        vehicleId: rental.vehicleId,
+        vehiclePlate: vehicle?.plateNumber ?? null,
+        vehicleName: vehicle?.name ?? null,
+        vehicleCategory: vehicle?.category ?? null,
+        pickupLocation: rental.pickupLocation,
+        destination: null,
+        quotedTotal: rental.quotedTotal,
+        depositAmount: null,
+        paid: round2(sum(credits.map((p) => p.amount)) - refunded),
+        refunded,
+        firstProofAt: firstPaidAt,
+        firstPaidAt,
+        cancelledAt: cancelled ? rental.cancelledAt : null,
+        cancellationReason: cancelled ? rental.cancellationReason : null,
+        cancellationNote: null,
+        reservationFeeForfeited: cancelled && paidBeforeCancel > 0 ? refunded === 0 : null,
+        cancelledBy: cancelled ? "staff" : null,
+        paidBeforeCancel,
+        proofBeforeCancel: paidBeforeCancel > 0,
+      };
+    });
 }

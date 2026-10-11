@@ -54,6 +54,28 @@ test.describe("analytics", () => {
     await expect(page.getByText("Booked ahead")).toBeVisible();
   });
 
+  test("Bookings shows the funnel, cancellations, and exportable booking lists", async ({ page }) => {
+    await page.goto("/analytics?tab=bookings");
+    await expect(page.getByRole("tab", { name: "Bookings" })).toHaveAttribute("aria-selected", "true");
+    for (const label of ["Bookings made", "Paid bookings", "Cancellations", "Cancelled before payment", "Value lost to cancellations"]) {
+      await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+    }
+    for (const title of ["Booked vs cancelled", "Booking funnel", "Payment at cancellation", "Reasons", "Notice before pickup", "Pickup day"]) {
+      await expect(page.getByText(title, { exact: true }).first()).toBeVisible();
+    }
+    await expect(page.getByLabel("Group by")).toBeVisible();
+    await expect(page.locator(".recharts-surface").first()).toBeVisible();
+
+    const all = page.getByText("All bookings made this period").locator("xpath=ancestor::*[@data-slot='card'][1]");
+    await expect(all.getByRole("link").first()).toHaveAttribute("href", /\/rentals\//);
+    const download = page.waitForEvent("download");
+    await all.getByRole("button", { name: "Export to Excel" }).click();
+    expect((await download).suggestedFilename()).toMatch(/^bookings-\d{4}-\d{2}-\d{2}\.xlsx$/);
+
+    const cancelled = page.getByText("Cancelled bookings", { exact: true }).locator("xpath=ancestor::*[@data-slot='card'][1]");
+    await expect(cancelled.getByRole("button", { name: "Export to Excel" })).toBeVisible();
+  });
+
   test("the tab survives a period change and the period survives a tab change", async ({ page }) => {
     await page.goto("/analytics?tab=website");
     await pickOption(page, "Period", "Last 90 days");
@@ -139,6 +161,7 @@ test.describe("analytics on a phone", () => {
   test("has no horizontal page scroll on any tab", async ({ page }) => {
     for (const [tab, marker] of [
       ["overview", "Booked ahead"],
+      ["bookings", "Booking funnel"],
       ["website", "Most viewed cars"],
       ["cars", "Performance by car"],
       ["customers", "Top customers"],

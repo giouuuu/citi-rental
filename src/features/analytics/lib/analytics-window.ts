@@ -42,6 +42,7 @@ export const DEFAULT_ANALYTICS_TAB: AnalyticsTab = "overview";
 
 export const ANALYTICS_TABS: { value: AnalyticsTab; label: string }[] = [
   { value: "overview", label: "Overview" },
+  { value: "bookings", label: "Bookings" },
   { value: "website", label: "Website & Facebook" },
   { value: "cars", label: "Cars" },
   { value: "customers", label: "Customers" },
@@ -56,7 +57,7 @@ export function resolveAnalyticsTab(value: string | null | undefined): Analytics
 
 /** Tabs whose panels chart over time, so "Group by" means something there. */
 export function tabUsesBucket(tab: AnalyticsTab): boolean {
-  return tab === "overview" || tab === "website";
+  return tab === "overview" || tab === "bookings" || tab === "website";
 }
 
 /** The bucket that keeps a chart readable: ≤ ~31 days → day, ≤ ~5 months → week. */
@@ -64,6 +65,14 @@ export function defaultBucketFor(days: number): AnalyticsBucket {
   if (days <= 31) return "day";
   if (days <= 150) return "week";
   return "month";
+}
+
+/** The first day of the bucket a date falls in. Weeks start Monday. */
+export function bucketStartOf(key: string, bucket: AnalyticsBucket): string {
+  if (bucket === "day") return key;
+  if (bucket === "month") return `${key.slice(0, 7)}-01`;
+  const weekday = new Date(`${key}T00:00:00.000Z`).getUTCDay();
+  return addDaysToKey(key, -((weekday + 6) % 7));
 }
 
 /**
