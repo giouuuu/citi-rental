@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Info } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
@@ -50,7 +49,6 @@ export function LoginForm({
   /** Compact layout for intercepting-route modals */
   embedded?: boolean;
 }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string>();
   const safeNext = sanitizeNextPath(nextPath);
@@ -81,8 +79,10 @@ export function LoginForm({
     const result = await finishEmailCodeSignInAction({ next: safeNext });
     if (!result.success) return result.message;
     if (!result.data) return "Something went wrong. Please try again.";
-    router.replace(result.data.redirectTo);
-    router.refresh();
+    // A full load, not router.replace: in the intercepted /login modal a soft
+    // navigation to "/" leaves the @modal slot as it was, so the dialog sat
+    // on "Signing you in" over a page that was already signed in.
+    window.location.replace(result.data.redirectTo);
   }
 
   function onSubmit(values: LoginInput) {
