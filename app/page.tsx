@@ -63,8 +63,12 @@ import { SEO_PAGES } from "@/features/seo/lib/seo-pages";
 import { formatPhp } from "@/features/shared/lib/money";
 import { ReviewWall } from "@/features/reviews/components/review-wall";
 import { listPublicReviews } from "@/features/reviews/services/list-public-reviews";
-import { buildContactChannels } from "@/features/settings/lib/contact-channels";
+import {
+  buildContactChannels,
+  facebookPageLinks,
+} from "@/features/settings/lib/contact-channels";
 import { getPublicContactChannels } from "@/features/settings/services/get-public-contact-channels";
+import { getPublicOperatingAddress } from "@/features/settings/services/get-public-operating-address";
 import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-public-available-vehicles";
 
 /**
@@ -138,6 +142,7 @@ export default async function HomePage({
     freeCancellationHours,
     driverDailyRate,
     bookingReminder,
+    operatingAddress,
   ] = await Promise.all([
     listPublicAvailableVehicles({
       startDate: trip.start,
@@ -149,20 +154,16 @@ export default async function HomePage({
     getPublicFreeCancellationHours(),
     getPublicDriverDailyRate(),
     getMyBookingReminder(),
+    getPublicOperatingAddress(),
   ]);
-  // The Messenger setting is the Facebook page username (m.me/<page>).
-  const facebookPage = contactValues.messenger?.trim().replace(/^@/, "");
-  const facebookReviewsUrl =
-    facebookPage && /^[A-Za-z0-9.]{5,50}$/.test(facebookPage)
-      ? `https://www.facebook.com/${facebookPage}/reviews`
-      : null;
-  const recommendationCount = reviews.filter(
-    (review) => review.source === "facebook" && review.body,
-  ).length;
   const contactChannels = buildContactChannels(
     contactValues,
     "Hi Zeke Car Rental & Services! I'd like to ask about renting a car.",
   );
+  const facebookReviewsUrl = facebookPageLinks(contactValues)?.reviews ?? null;
+  const recommendationCount = reviews.filter(
+    (review) => review.source === "facebook" && review.body,
+  ).length;
   const bookingParams = new URLSearchParams();
   if (trip.pickup) bookingParams.set("pickup", trip.pickup);
   if (trip.start) bookingParams.set("start", trip.start);
@@ -588,7 +589,9 @@ export default async function HomePage({
             <ContactCards
               channels={contactChannels}
               email={BUSINESS.email}
-              location={`${BUSINESS.locality}, ${BUSINESS.region}`}
+              location={
+                operatingAddress ?? `${BUSINESS.locality}, ${BUSINESS.region}`
+              }
             />
           </div>
         </div>

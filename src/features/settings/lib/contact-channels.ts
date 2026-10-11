@@ -11,6 +11,7 @@ export const CONTACT_CHANNEL_KEYS = [
   "line",
   "telegram",
   "messenger",
+  "facebook",
   "phone",
 ] as const;
 
@@ -66,7 +67,14 @@ export const contactChannelSettings: Record<
   messenger: {
     label: "Messenger page",
     placeholder: "zekecarrentals",
-    description: "Facebook page username, as in m.me/zekecarrentals.",
+    description:
+      "Facebook page username or ID, or paste the page's facebook.com link.",
+    kind: "handle",
+  },
+  facebook: {
+    label: "Facebook page",
+    placeholder: "https://www.facebook.com/zekecarrentals",
+    description: "Paste the page's link, or its username or ID.",
     kind: "handle",
   },
   phone: {
@@ -101,6 +109,7 @@ const brandLabels: Record<ContactChannelKey, string> = {
   line: "LINE",
   telegram: "Telegram",
   messenger: "Messenger",
+  facebook: "Facebook",
   phone: "Call us",
 };
 
@@ -118,6 +127,47 @@ function internationalDigits(value: string) {
 }
 const handle = (value: string) => value.replace(/^@/, "");
 
+/**
+ * The page's username or numeric ID from whatever the owner pasted: a bare
+ * name, a facebook.com page link (profile.php?id=… or /username), or an m.me
+ * link. Null for a link that is not Facebook's.
+ */
+function facebookPageId(value: string): string | null {
+  if (!isUrl(value)) return handle(value.trim()) || null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (!/(^|\.)(facebook\.com|m\.me)$/i.test(url.hostname)) return null;
+  const segment = url.pathname.split("/").filter(Boolean)[0];
+  if (segment === "profile.php") return url.searchParams.get("id");
+  return segment ?? null;
+}
+
+const facebookPageUrl = (id: string) =>
+  /^\d+$/.test(id)
+    ? `https://www.facebook.com/profile.php?id=${id}`
+    : `https://www.facebook.com/${id}`;
+
+/**
+ * The Facebook page and its reviews tab, from the Facebook setting or, when
+ * that is empty, the Messenger one (both name the same page).
+ */
+export function facebookPageLinks(
+  values: Partial<ContactChannelValues>,
+): { page: string; reviews: string } | null {
+  const raw = values.facebook?.trim() || values.messenger?.trim();
+  const id = raw ? facebookPageId(raw) : null;
+  if (!id || !/^[A-Za-z0-9.]{1,50}$/.test(id)) return null;
+  const page = facebookPageUrl(id);
+  return {
+    page,
+    reviews: /^\d+$/.test(id) ? `${page}&sk=reviews` : `${page}/reviews`,
+  };
+}
+
 function channelHref(
   key: ContactChannelKey,
   value: string,
@@ -132,8 +182,15 @@ function channelHref(
       return `tel:+${internationalDigits(value)}`;
     case "telegram":
       return isUrl(value) ? value : `https://t.me/${handle(value)}`;
-    case "messenger":
-      return isUrl(value) ? value : `https://m.me/${handle(value)}`;
+    // m.me opens a chat; a facebook.com link only opens the page.
+    case "messenger": {
+      const id = facebookPageId(value);
+      return id ? `https://m.me/${id}` : value;
+    }
+    case "facebook": {
+      const id = facebookPageId(value);
+      return id ? facebookPageUrl(id) : value;
+    }
     case "line":
       if (isUrl(value)) return value;
       // Official accounts keep their @; personal IDs take a ~ prefix.
@@ -162,7 +219,12 @@ export function buildContactChannels(
         label: brandLabels[key],
         nativeLabel: nativeLabels[key],
         // A link already says where it goes; show the ID only when it is the point.
-        detail: isUrl(value) ? "Open chat" : value,
+        detail:
+          key === "facebook"
+            ? "Visit our page"
+            : isUrl(value)
+              ? "Open chat"
+              : value,
         href,
       },
     ];

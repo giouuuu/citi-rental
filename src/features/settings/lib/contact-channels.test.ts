@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildContactChannels } from "./contact-channels";
+import { buildContactChannels, facebookPageLinks } from "./contact-channels";
 
 const hrefs = (values: Parameters<typeof buildContactChannels>[0]) =>
   Object.fromEntries(
@@ -56,6 +56,47 @@ describe("buildContactChannels", () => {
       telegram: "https://t.me/zekecars",
       messenger: "https://m.me/zekecarrentals",
     });
+  });
+
+  it("turns a pasted Facebook page link into its Messenger chat", () => {
+    expect(
+      hrefs({
+        messenger: "https://web.facebook.com/profile.php?id=61575009880226",
+      }).messenger,
+    ).toBe("https://m.me/61575009880226");
+    expect(
+      hrefs({ messenger: "https://www.facebook.com/zekecarrentals/" }).messenger,
+    ).toBe("https://m.me/zekecarrentals");
+    expect(hrefs({ messenger: "61575009880226" }).messenger).toBe(
+      "https://m.me/61575009880226",
+    );
+  });
+
+  it("links the Facebook page from a link, username, or ID", () => {
+    expect(
+      hrefs({ facebook: "https://web.facebook.com/profile.php?id=61575009880226" })
+        .facebook,
+    ).toBe("https://www.facebook.com/profile.php?id=61575009880226");
+    expect(hrefs({ facebook: "zeke.carrentals" }).facebook).toBe(
+      "https://www.facebook.com/zeke.carrentals",
+    );
+  });
+
+  it("finds the Facebook page and reviews from either setting", () => {
+    expect(facebookPageLinks({ messenger: "https://m.me/61575009880226" })).toEqual({
+      page: "https://www.facebook.com/profile.php?id=61575009880226",
+      reviews: "https://www.facebook.com/profile.php?id=61575009880226&sk=reviews",
+    });
+    expect(
+      facebookPageLinks({
+        facebook: "https://www.facebook.com/zekecarrentals",
+        messenger: "61575009880226",
+      }),
+    ).toEqual({
+      page: "https://www.facebook.com/zekecarrentals",
+      reviews: "https://www.facebook.com/zekecarrentals/reviews",
+    });
+    expect(facebookPageLinks({ facebook: "https://example.com/zeke" })).toBeNull();
   });
 
   it("uses the ~ form for personal LINE IDs", () => {

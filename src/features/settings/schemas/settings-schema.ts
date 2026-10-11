@@ -51,6 +51,7 @@ export const settingsSchema = z
     contact_line: handleChannel,
     contact_telegram: handleChannel,
     contact_messenger: handleChannel,
+    contact_facebook: handleChannel,
   })
   .refine(
     (value) =>

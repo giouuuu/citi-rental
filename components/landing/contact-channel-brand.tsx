@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Phone } from "lucide-react";
 import {
+  siFacebook,
   siKakaotalk,
   siLine,
   siMessenger,
@@ -31,6 +32,7 @@ const brands: Record<
   line: { icon: siLine, background: "#06C755", foreground: "#fff" },
   telegram: { icon: siTelegram, background: "#26A5E4", foreground: "#fff" },
   messenger: { icon: siMessenger, background: "#0866FF", foreground: "#fff" },
+  facebook: { icon: siFacebook, background: "#0866FF", foreground: "#fff" },
   phone: { icon: null, background: "var(--brand-950)", foreground: "#fff" },
 };
 

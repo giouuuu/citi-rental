@@ -1,6 +1,9 @@
 import { formatPhp } from "@/features/shared/lib/money";
 import { siteUrl } from "@/lib/site-url";
-import type { ContactChannelValues } from "@/features/settings/lib/contact-channels";
+import {
+  facebookPageLinks,
+  type ContactChannelValues,
+} from "@/features/settings/lib/contact-channels";
 
 /**
  * What Google and AI answer engines should know about the business. Keep the
@@ -77,7 +80,7 @@ export function businessJsonLd({
   const base = siteUrl();
   const rates = dailyRates.filter((rate) => rate > 0);
   const telephone = e164(contact.phone) ?? e164(contact.whatsapp);
-  const facebookPage = contact.messenger?.trim().replace(/^@/, "");
+  const facebookPage = facebookPageLinks(contact)?.page;
 
   return {
     "@context": "https://schema.org",
@@ -111,9 +114,7 @@ export function businessJsonLd({
               priceRange: `${formatPhp(Math.min(...rates))}–${formatPhp(Math.max(...rates))} per day`,
             }
           : {}),
-        ...(facebookPage && /^[A-Za-z0-9.]{5,50}$/.test(facebookPage)
-          ? { sameAs: [`https://www.facebook.com/${facebookPage}`] }
-          : {}),
+        ...(facebookPage ? { sameAs: [facebookPage] } : {}),
       },
       {
         "@type": "WebSite",
