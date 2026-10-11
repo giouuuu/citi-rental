@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { saveSettingsAction } from "@/features/settings/actions/actions";
+import { PaymentQrUpload } from "@/features/settings/components/payment-qr-upload";
 import {
   CONTACT_CHANNEL_KEYS,
   contactChannelField,
@@ -47,6 +48,12 @@ import { toast } from "sonner";
 
 type SettingsFormValues = z.input<typeof settingsSchema>;
 type SettingsParsed = z.output<typeof settingsSchema>;
+type TextFieldName =
+  | "name"
+  | "timezone"
+  | "tracker_online_threshold_minutes"
+  | "tracker_delayed_threshold_minutes"
+  | "location_retention_days";
 
 const GPS_PROVIDER_OPTIONS = [
   { value: "simulator", label: "Simulator" },
@@ -71,8 +78,8 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
       reservation_fee: settings.reservation_fee,
       driver_daily_rate: settings.driver_daily_rate,
       free_cancellation_hours: settings.free_cancellation_hours,
-      payment_qr_url: settings.payment_qr_url,
       payment_instructions: settings.payment_instructions,
+      operating_address: settings.operating_address,
       ...Object.fromEntries(
         CONTACT_CHANNEL_KEYS.map(contactChannelField).map((column) => [
           column,
@@ -94,6 +101,48 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
         router.refresh();
       }
     });
+  }
+
+  function renderTextField(
+    name: TextFieldName,
+    label: string,
+    type: "text" | "number",
+  ) {
+    return (
+      <Controller
+        control={form.control}
+        key={name}
+        name={name}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={name}>{label}</FieldLabel>
+            <Input
+              {...field}
+              aria-invalid={fieldState.invalid}
+              disabled={isPending}
+              id={name}
+              min={type === "number" ? 1 : undefined}
+              onChange={(event) =>
+                field.onChange(
+                  type === "number"
+                    ? event.target.valueAsNumber
+                    : event.target.value,
+                )
+              }
+              type={type}
+              value={
+                field.value === undefined || field.value === null
+                  ? ""
+                  : String(field.value)
+              }
+            />
+            {fieldState.invalid ? (
+              <FieldError errors={[fieldState.error]} />
+            ) : null}
+          </Field>
+        )}
+      />
+    );
   }
 
   return (
@@ -119,11 +168,43 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
               <AlertDescription>{state.message}</AlertDescription>
             </Alert>
           ) : null}
-          <FieldGroup className="grid gap-5 md:grid-cols-2">
+          <FieldGroup className="grid items-start gap-5 md:grid-cols-2">
             {(
               [
                 ["name", "Organization name", "text"],
                 ["timezone", "Timezone", "text"],
+              ] as const
+            ).map(([name, label, type]) => renderTextField(name, label, type))}
+            <Controller
+              control={form.control}
+              name="operating_address"
+              render={({ field, fieldState }) => (
+                <Field className="md:col-span-2" data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="operating_address">
+                    Operating address
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    autoComplete="off"
+                    disabled={isPending}
+                    id="operating_address"
+                    placeholder="Garage or office where the cars are kept, e.g. Lahug, Cebu City"
+                    value={field.value ?? ""}
+                  />
+                  <FieldDescription>
+                    Where the business currently operates. The registered
+                    business address on the rental agreement is set separately
+                    below.
+                  </FieldDescription>
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              )}
+            />
+            {(
+              [
                 [
                   "tracker_online_threshold_minutes",
                   "Online threshold (minutes)",
@@ -140,41 +221,7 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                   "number",
                 ],
               ] as const
-            ).map(([name, label, type]) => (
-              <Controller
-                control={form.control}
-                key={name}
-                name={name}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor={name}>{label}</FieldLabel>
-                    <Input
-                      {...field}
-                      aria-invalid={fieldState.invalid}
-                      disabled={isPending}
-                      id={name}
-                      min={type === "number" ? 1 : undefined}
-                      onChange={(event) =>
-                        field.onChange(
-                          type === "number"
-                            ? event.target.valueAsNumber
-                            : event.target.value,
-                        )
-                      }
-                      type={type}
-                      value={
-                        field.value === undefined || field.value === null
-                          ? ""
-                          : String(field.value)
-                      }
-                    />
-                    {fieldState.invalid ? (
-                      <FieldError errors={[fieldState.error]} />
-                    ) : null}
-                  </Field>
-                )}
-              />
-            ))}
+            ).map(([name, label, type]) => renderTextField(name, label, type))}
             <Controller
               control={form.control}
               name="gps_provider"
@@ -310,32 +357,7 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                 </Field>
               )}
             />
-            <Controller
-              control={form.control}
-              name="payment_qr_url"
-              render={({ field, fieldState }) => (
-                <Field className="md:col-span-2" data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="payment_qr_url">
-                    Payment QR image URL
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    aria-invalid={fieldState.invalid}
-                    disabled={isPending}
-                    id="payment_qr_url"
-                    placeholder="https://.../gcash-qr.png"
-                    value={field.value ?? ""}
-                  />
-                  <FieldDescription>
-                    Public image URL of your GCash/Maya/bank QR shown on the
-                    deposit page.
-                  </FieldDescription>
-                  {fieldState.invalid ? (
-                    <FieldError errors={[fieldState.error]} />
-                  ) : null}
-                </Field>
-              )}
-            />
+            <PaymentQrUpload qrUrl={settings.payment_qr_url} />
             <Controller
               control={form.control}
               name="payment_instructions"

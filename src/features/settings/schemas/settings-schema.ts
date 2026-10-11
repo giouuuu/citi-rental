@@ -37,10 +37,12 @@ export const settingsSchema = z
       .int("Use whole hours.")
       .min(0)
       .max(720, "Keep the window under 30 days (720 hours)."),
-    payment_qr_url: z
-      .union([z.url("Enter a valid QR image URL."), z.literal("")])
-      .optional(),
     payment_instructions: z.string().trim().max(2000).optional(),
+    operating_address: z
+      .string()
+      .trim()
+      .max(300, "Keep the address under 300 characters.")
+      .optional(),
     contact_phone: phoneChannel,
     contact_whatsapp: phoneChannel,
     contact_viber: phoneChannel,
