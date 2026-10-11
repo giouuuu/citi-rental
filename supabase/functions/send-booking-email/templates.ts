@@ -11,7 +11,7 @@ export type BookingEmailKind =
   | "booking_reminder"
   // Sent with the signed agreement as a PDF (documents.ts).
   | "rental_released"
-  // A thank-you with the final bill.
+  // A thank-you with the owner's note and Google/Facebook review links.
   | "rental_completed";
 
 export type BookingEmailBooking = {
@@ -40,16 +40,12 @@ export type BookingEmailCompany = {
   email: string | null;
   address: string | null;
   timezone: string | null;
-};
-
-/** The final bill, read from the payments ledger like the ops bill. */
-export type EmailBill = {
-  /** quoted_total: the car, and the driver on a with-driver rental. */
-  rent: number | string;
-  /** Confirmed charges in the order they were added; adjustments may be negative. */
-  charges: Array<{ label: string; amount: number | string }>;
-  /** Confirmed money in, less refunds. */
-  paid: number | string;
+  /** Settings › After the trip. Read by the rental_completed email. */
+  thankYouMessage?: string | null;
+  reviewGoogleUrl?: string | null;
+  reviewFacebookUrl?: string | null;
+  /** Facebook (or Messenger) page setting; its reviews tab is the fallback. */
+  facebookPage?: string | null;
 };
 
 export type BookingEmailInput = {
@@ -57,14 +53,16 @@ export type BookingEmailInput = {
   booking: BookingEmailBooking;
   company: BookingEmailCompany;
   siteUrl: string;
-  /** rental_completed only. */
-  bill?: EmailBill | null;
   now?: Date;
 };
 
 export type RenderedEmail = { subject: string; html: string; text: string };
 
 export const BRAND_NAME = "Zeke Car Rental & Services";
+
+/** Used when the owner has not written their own thank-you note. */
+export const DEFAULT_THANK_YOU_MESSAGE =
+  "Thank you for renting with Zeke Car Rental & Services! We hope you had a great trip. If you enjoyed it, a quick review on Google or Facebook helps other travelers find us.";
 
 const INK = "#0B1728";
 const MUTED = "#5B6B7F";
@@ -147,36 +145,42 @@ export function pickupDayWord(startAt: string, now: Date, timeZone: string) {
     : "tomorrow";
 }
 
-function signedPeso(value: number): string {
-  return value < 0 ? `-${formatPeso(-value)}` : formatPeso(value);
-}
-
-const round = (value: number) => Math.round(value * 100) / 100;
-
-type BillSummary = {
-  lines: Row[];
-  total: number;
-  paid: number;
-  balance: number;
+const httpUrl = (value: string | null | undefined) => {
+  const trimmed = value?.trim();
+  return trimmed && /^https?:\/\/\S+$/i.test(trimmed) ? trimmed : null;
 };
 
-/** Rent plus charges, less what was paid: the same formula as the ops bill. */
-export function summarizeBill(bill: EmailBill, withDriver: boolean): BillSummary {
-  const rent = amount(bill.rent) ?? 0;
-  const charges = bill.charges.map((charge) => ({
-    label: charge.label,
-    value: amount(charge.amount) ?? 0,
-  }));
-  const total = round(rent + charges.reduce((sum, charge) => sum + charge.value, 0));
-  const paid = round(amount(bill.paid) ?? 0);
+/**
+ * The Facebook page's reviews tab from a page username, numeric ID, or a
+ * pasted facebook.com / m.me link. Mirrors facebookPageLinks in
+ * src/features/settings/lib/contact-channels.ts (parity is tested).
+ */
+export function facebookReviewsUrl(value: string | null | undefined): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  let id: string | null = raw.replace(/^@/, "");
+  if (/^https?:\/\//i.test(raw)) {
+    let url: URL;
+    try {
+      url = new URL(raw);
+    } catch {
+      return null;
+    }
+    if (!/(^|\.)(facebook\.com|m\.me)$/i.test(url.hostname)) return null;
+    const segment = url.pathname.split("/").filter(Boolean)[0];
+    id = segment === "profile.php" ? url.searchParams.get("id") : (segment ?? null);
+  }
+  if (!id || !/^[A-Za-z0-9.]{1,50}$/.test(id)) return null;
+  return /^\d+$/.test(id)
+    ? `https://www.facebook.com/profile.php?id=${id}&sk=reviews`
+    : `https://www.facebook.com/${id}/reviews`;
+}
+
+/** Where the thank-you email's review buttons go; null hides a button. */
+export function reviewLinks(company: BookingEmailCompany) {
   return {
-    lines: [
-      { label: withDriver ? "Car rental with driver" : "Car rental", value: formatPeso(rent) },
-      ...charges.map((charge) => ({ label: charge.label, value: signedPeso(charge.value) })),
-    ],
-    total,
-    paid,
-    balance: Math.max(0, round(total - paid)),
+    google: httpUrl(company.reviewGoogleUrl),
+    facebook: httpUrl(company.reviewFacebookUrl) ?? facebookReviewsUrl(company.facebookPage),
   };
 }
 
@@ -232,7 +236,7 @@ function detailRows(
     rows.push({ label: "Destination", value: booking.destination.trim() });
   }
 
-  // The thank-you email shows the money in its bill instead.
+  // The trip is settled; the thank-you email leaves the money out.
   if (kind === "rental_completed") return rows;
 
   const total = amount(booking.total);
@@ -268,8 +272,6 @@ type Copy = {
   heading: string;
   paragraphs: string[];
   showBring: boolean;
-  /** Paragraphs after the details (and the bill). */
-  closing?: string[];
 };
 
 function copyFor(input: BookingEmailInput, timeZone: string): Copy {
@@ -335,33 +337,20 @@ function copyFor(input: BookingEmailInput, timeZone: string): Copy {
         ],
         showBring: false,
       };
-    case "rental_completed": {
-      const bill = input.bill ? summarizeBill(input.bill, booking.withDriver) : null;
+    case "rental_completed":
       return {
         subject: `Thank you for renting with us: ${car}${ref}`,
-        preheader: bill
-          ? `Your rental is complete. Your final bill comes to ${formatPeso(bill.total)}.`
-          : "Your rental is complete.",
+        preheader: "Your rental is complete. Thank you for riding with us!",
         heading: "Thank you for renting with us",
         paragraphs: [
-          `Thank you for choosing ${BRAND_NAME}. Your ${car} has been returned and your rental is now complete.`,
-          bill
-            ? "Below is your final bill for your records."
-            : "You can view your final bill on your booking page.",
+          `Your ${car} has been returned and your rental is now complete.`,
+          ...(input.company.thankYouMessage?.trim() || DEFAULT_THANK_YOU_MESSAGE)
+            .split(/\n\s*\n/)
+            .map((paragraph) => paragraph.trim())
+            .filter(Boolean),
         ],
         showBring: false,
-        closing: [
-          ...(bill == null
-            ? []
-            : bill.balance > 0
-              ? [
-                  `A balance of ${formatPeso(bill.balance)} remains on your bill. Please settle it with our staff, or reply to this email if you have any questions about your charges.`,
-                ]
-              : ["Your bill has been paid in full. No further payment is needed."]),
-          "We truly appreciate your business and look forward to serving you on your next trip.",
-        ],
       };
-    }
   }
 }
 
@@ -370,19 +359,13 @@ export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
   const copy = copyFor(input, timeZone);
   const rows = detailRows(input.booking, timeZone, input.kind);
   const bring = copy.showBring ? bringList(input.booking) : [];
-  const bill =
-    input.kind === "rental_completed" && input.bill
-      ? summarizeBill(input.bill, input.booking.withDriver)
-      : null;
-  const billRows: Row[] = bill
-    ? [
-        ...bill.lines,
-        { label: "Total", value: formatPeso(bill.total) },
-        { label: "Amount paid", value: formatPeso(bill.paid) },
-        { label: "Balance due", value: formatPeso(bill.balance) },
-      ]
-    : [];
-  const closing = copy.closing ?? [];
+  const reviews =
+    input.kind === "rental_completed"
+      ? [
+          { label: "Review us on Google", href: reviewLinks(input.company).google },
+          { label: "Review us on Facebook", href: reviewLinks(input.company).facebook },
+        ].filter((link): link is { label: string; href: string } => link.href != null)
+      : [];
   const name = firstName(input.booking.customerName);
   const greeting = name ? `Hi ${name},` : "Hi,";
   const bookingUrl = `${input.siteUrl.replace(/\/$/, "")}/account/bookings/${encodeURIComponent(input.booking.id)}`;
@@ -398,10 +381,9 @@ export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
     ...copy.paragraphs.flatMap((paragraph) => [paragraph, ""]),
     ...rows.map((row) => `${row.label}: ${row.value}`),
     "",
-    ...(billRows.length
-      ? ["Final bill", ...billRows.map((row) => `${row.label}: ${row.value}`), ""]
+    ...(reviews.length
+      ? [...reviews.map((link) => `${link.label}: ${link.href}`), ""]
       : []),
-    ...closing.flatMap((paragraph) => [paragraph, ""]),
     ...(bring.length
       ? ["Please bring:", ...bring.map((item) => `- ${item}`), ""]
       : []),
@@ -425,34 +407,21 @@ export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
         </tr>`,
     )
     .join("");
-  // Line items, then Total, Amount paid and Balance due set apart below a rule.
-  const totalsFrom = billRows.length - 3;
-  const billHtml = billRows.length
+  const reviewsHtml = reviews.length
     ? `
-      <p style="margin:24px 0 8px;color:${INK};font-size:15px;font-weight:600;">Final bill</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid ${LINE};">
-        ${billRows
-          .map((row, index) => {
-            const isTotal = index === totalsFrom;
-            const isTotals = index >= totalsFrom;
-            const border = isTotal ? `2px solid ${INK}` : `1px solid ${LINE}`;
-            // Total and Balance due are the two figures that matter.
-            const strong = isTotal || index === billRows.length - 1;
-            return `
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:20px;">
         <tr>
-          <td style="padding:10px 0;border-top:${border};color:${isTotals ? INK : MUTED};font-size:14px;font-weight:${strong ? 700 : 400};vertical-align:top;">${e(row.label)}</td>
-          <td align="right" style="padding:10px 0;border-top:${border};color:${INK};font-size:14px;font-weight:${strong ? 700 : 600};vertical-align:top;white-space:nowrap;">${e(row.value)}</td>
-        </tr>`;
-          })
-          .join("")}
+          ${reviews
+            .map(
+              (link, index) => `
+          <td style="padding:0 ${index < reviews.length - 1 ? 8 : 0}px 8px 0;">
+            <a href="${e(link.href)}" style="display:inline-block;padding:10px 16px;border:1px solid ${LINE};border-radius:8px;color:${INK};font-size:14px;font-weight:600;text-decoration:none;">${e(link.label)}</a>
+          </td>`,
+            )
+            .join("")}
+        </tr>
       </table>`
     : "";
-  const closingHtml = closing
-    .map(
-      (paragraph, index) =>
-        `<p style="margin:${index === 0 ? 20 : 0}px 0 12px;color:${INK};font-size:15px;line-height:1.6;">${e(paragraph)}</p>`,
-    )
-    .join("");
   const bringHtml = bring.length
     ? `
       <p style="margin:24px 0 8px;color:${INK};font-size:15px;font-weight:600;">Please bring</p>
@@ -490,8 +459,7 @@ export function renderBookingEmail(input: BookingEmailInput): RenderedEmail {
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;border-bottom:1px solid ${LINE};">
               ${rowHtml}
             </table>
-            ${billHtml}
-            ${closingHtml}
+            ${reviewsHtml}
             ${bringHtml}
             <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:28px;">
               <tr>

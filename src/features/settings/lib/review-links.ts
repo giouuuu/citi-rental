@@ -2,10 +2,11 @@ import {
   facebookPageLinks,
   type ContactChannelValues,
 } from "@/features/settings/lib/contact-channels";
+import { DEFAULT_THANK_YOU_MESSAGE } from "@/supabase/functions/send-booking-email/templates";
 
-/** Shown to the renter when the owner has not written their own note. */
-export const DEFAULT_THANK_YOU_MESSAGE =
-  "Thank you for renting with Zeke Car Rental & Services! We hope you had a great trip. If you enjoyed it, a quick review on Google or Facebook helps other travelers find us.";
+/** Shown to the renter when the owner has not written their own note; the
+ * thank-you email uses the same one. */
+export { DEFAULT_THANK_YOU_MESSAGE };
 
 /** Where the completed-rental review buttons go, and the note above them. */
 export type ReviewLinks = {

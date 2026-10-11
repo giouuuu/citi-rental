@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Save, TriangleAlert } from "lucide-react";
@@ -442,9 +443,15 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                 After the trip
               </h3>
               <p className="text-sm text-muted-foreground">
-                Once a rental is completed, the renter&apos;s booking page
-                shows this thank-you note with buttons to review you on Google
-                and Facebook. Empty links hide their button.
+                Once a rental is completed, the renter&apos;s booking page and
+                the thank-you email show this note with buttons to review you
+                on Google and Facebook. Empty links hide their button.{" "}
+                <Link
+                  className="font-medium text-foreground underline underline-offset-4"
+                  href="/settings/emails"
+                >
+                  Preview the email
+                </Link>
               </p>
             </div>
             <FieldGroup className="grid items-start gap-5 md:grid-cols-2">

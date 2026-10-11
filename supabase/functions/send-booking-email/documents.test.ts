@@ -8,7 +8,7 @@ import {
   pdfText,
   signaturePaths,
 } from "./documents";
-import { renderBookingEmail } from "./templates";
+import { DEFAULT_THANK_YOU_MESSAGE, renderBookingEmail } from "./templates";
 
 // A 1×1 transparent PNG.
 const PNG = Uint8Array.from(
@@ -147,43 +147,40 @@ describe("release and return emails", () => {
     expect(email.text).not.toContain("Please bring");
   });
 
-  it("thanks the renter with the final bill at completion", () => {
+  it("thanks the renter with the owner's note and review links, no bill", () => {
+    const email = renderBookingEmail({
+      kind: "rental_completed",
+      booking,
+      company: {
+        ...company,
+        thankYouMessage: "Salamat kaayo, Maria!\n\nSee you on your next trip.",
+        reviewGoogleUrl: "https://g.page/r/abc/review",
+        facebookPage: "https://www.facebook.com/zekecars",
+      },
+      siteUrl: "https://www.zekecebucarrental.com",
+    });
+    expect(email.subject).toBe("Thank you for renting with us: Toyota Vios 2024 (ZR-2026-0042)");
+    expect(email.text).toContain("Salamat kaayo, Maria!");
+    expect(email.text).toContain("See you on your next trip.");
+    expect(email.text).toContain("Review us on Google: https://g.page/r/abc/review");
+    expect(email.text).toContain(
+      "Review us on Facebook: https://www.facebook.com/zekecars/reviews",
+    );
+    expect(email.html).toContain('href="https://g.page/r/abc/review"');
+    for (const money of ["₱", "Balance", "Total", "Final bill"]) {
+      expect(email.text).not.toContain(money);
+      expect(email.html).not.toContain(money);
+    }
+  });
+
+  it("falls back to the default note and hides missing review links", () => {
     const email = renderBookingEmail({
       kind: "rental_completed",
       booking,
       company,
       siteUrl: "https://www.zekecebucarrental.com",
-      bill: {
-        rent: "4500.00",
-        charges: [
-          { label: "Fuel shortage", amount: "500.00" },
-          { label: "Bill adjustment", amount: -200 },
-        ],
-        paid: 3800,
-      },
     });
-    expect(email.subject).toBe("Thank you for renting with us: Toyota Vios 2024 (ZR-2026-0042)");
-    expect(email.text).toContain("Car rental: ₱4,500");
-    expect(email.text).toContain("Fuel shortage: ₱500");
-    expect(email.text).toContain("Bill adjustment: -₱200");
-    expect(email.text).toContain("Total: ₱4,800");
-    expect(email.text).toContain("Amount paid: ₱3,800");
-    expect(email.text).toContain("Balance due: ₱1,000");
-    expect(email.text).toContain("A balance of ₱1,000 remains");
-    expect(email.text).not.toContain("condition report");
-    expect(email.html).toContain("Final bill");
-  });
-
-  it("says a fully paid bill needs nothing more", () => {
-    const email = renderBookingEmail({
-      kind: "rental_completed",
-      booking: { ...booking, withDriver: true },
-      company,
-      siteUrl: "https://www.zekecebucarrental.com",
-      bill: { rent: 4500, charges: [], paid: 4500 },
-    });
-    expect(email.text).toContain("Car rental with driver: ₱4,500");
-    expect(email.text).toContain("Balance due: ₱0");
-    expect(email.text).toContain("paid in full");
+    expect(email.text).toContain(DEFAULT_THANK_YOU_MESSAGE);
+    expect(email.text).not.toContain("Review us on");
   });
 });

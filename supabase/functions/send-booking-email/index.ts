@@ -5,7 +5,7 @@
 // header. Claims the outbox row, renders the email from live booking data,
 // sends it through Resend, and records the result. The release and return
 // email carries a PDF of the signed agreement; the return email is a thank-you
-// with the final bill.
+// with the owner's note and Google/Facebook review links.
 //
 // Secrets: RESEND_API_KEY, BOOKING_EMAIL_SECRET; optional EMAIL_FROM, SITE_URL.
 
@@ -21,7 +21,6 @@ import {
   type BookingEmailBooking,
   type BookingEmailCompany,
   type BookingEmailKind,
-  type EmailBill,
   renderBookingEmail,
 } from "./templates.ts";
 
@@ -50,8 +49,6 @@ type Claim =
       company: BookingEmailCompany;
       /** Release email only: the signed agreement for the PDF. */
       documents?: EmailDocuments | null;
-      /** Return email only: the final bill. */
-      bill?: EmailBill | null;
       plateNumber?: string | null;
     };
 
@@ -188,7 +185,6 @@ Deno.serve(async (req) => {
       booking: claim.booking,
       company: claim.company,
       siteUrl,
-      bill: claim.bill ?? null,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

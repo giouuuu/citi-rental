@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { facebookReviewsUrl } from "@/supabase/functions/send-booking-email/templates";
+
+import { facebookPageLinks } from "./contact-channels";
 import { DEFAULT_THANK_YOU_MESSAGE, resolveReviewLinks } from "./review-links";
 
 describe("resolveReviewLinks", () => {
@@ -32,5 +35,20 @@ describe("resolveReviewLinks", () => {
     const links = resolveReviewLinks({ google: "g.page/r/abc", facebook: "  " }, {});
     expect(links.google).toBeNull();
     expect(links.facebook).toBeNull();
+  });
+});
+
+describe("facebookReviewsUrl (email) matches facebookPageLinks (site)", () => {
+  it.each([
+    "zekecars",
+    "@zekecars",
+    "https://www.facebook.com/zekecars",
+    "https://m.me/zekecars",
+    "https://www.facebook.com/profile.php?id=61550000000000",
+    "61550000000000",
+    "https://example.com/zekecars",
+    "not a page!",
+  ])("%s", (value) => {
+    expect(facebookReviewsUrl(value)).toBe(facebookPageLinks({ facebook: value })?.reviews ?? null);
   });
 });
