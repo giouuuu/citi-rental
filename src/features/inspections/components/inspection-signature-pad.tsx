@@ -189,18 +189,21 @@ function FullScreenSignature({
       </div>
 
       <div className="relative min-h-0 flex-1 p-3">
-        {/* Absolutely placed so its box comes from the container, never from
-            the backing-store size redraw() sets — otherwise tablets feed the
-            new height back through the ResizeObserver and the pad grows. */}
-        <canvas
-          ref={canvasRef}
-          aria-label={label}
-          className="absolute inset-3 block touch-none rounded-lg border border-border bg-white"
-          onPointerCancel={end}
-          onPointerDown={start}
-          onPointerMove={move}
-          onPointerUp={end}
-        />
+        {/* The wrapper's box comes from the insets; the canvas fills it at
+            100%. A canvas is a replaced element, so insets alone would size it
+            from the backing store redraw() sets — and every redraw would grow
+            it again through the ResizeObserver until the browser gives up. */}
+        <div className="absolute inset-3 overflow-hidden rounded-lg border border-border bg-white">
+          <canvas
+            ref={canvasRef}
+            aria-label={label}
+            className="block size-full touch-none"
+            onPointerCancel={end}
+            onPointerDown={start}
+            onPointerMove={move}
+            onPointerUp={end}
+          />
+        </div>
         {/* The signing line: a cue for where to sign, not part of the ink. */}
         <div
           aria-hidden
