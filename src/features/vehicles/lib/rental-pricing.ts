@@ -1,6 +1,6 @@
 import {
   driverDays,
-  quoteRent,
+  quoteDayRent,
   type RentQuote,
   type RentRates,
 } from "@/features/rentals/lib/rent-pricing";
@@ -33,18 +33,21 @@ function tripInstants(start?: string | null, end?: string | null) {
   return startAt && returnAt ? { startAt, returnAt } : null;
 }
 
+/** Customers are quoted per started 24 hours, so only the daily rate counts. */
+type CustomerRates = Pick<RentRates, "daily">;
+
 /**
  * The rent a customer will be quoted for a search or a picked trip: a date
  * key, a `YYYY-MM-DDTHH:mm` picker value, or a stored timestamp at each end.
  * Null when either end is missing or the return is not after pick-up.
  */
 export function quoteRentalTotal(
-  rates: RentRates,
+  rates: CustomerRates,
   start?: string | null,
   end?: string | null,
 ): RentQuote | null {
   const trip = tripInstants(start, end);
-  return trip ? quoteRent(trip.startAt, trip.returnAt, rates) : null;
+  return trip ? quoteDayRent(trip.startAt, trip.returnAt, rates.daily) : null;
 }
 
 export type TripQuote = {
@@ -61,13 +64,13 @@ export type TripQuote = {
  * no rate set adds nothing here; staff quote it when they confirm.
  */
 export function quoteTrip(
-  rates: RentRates,
+  rates: CustomerRates,
   start?: string | null,
   end?: string | null,
   withDriver?: { rate: number | null } | null,
 ): TripQuote | null {
   const trip = tripInstants(start, end);
-  const rent = trip ? quoteRent(trip.startAt, trip.returnAt, rates) : null;
+  const rent = trip ? quoteDayRent(trip.startAt, trip.returnAt, rates.daily) : null;
   if (!trip || !rent) return null;
   if (!withDriver) return { rent, driver: null, total: rent.total };
   const days = driverDays(trip.startAt, trip.returnAt);

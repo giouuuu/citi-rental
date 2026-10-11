@@ -123,11 +123,7 @@ export function QuickBookPanel({
       <div className="rounded-xl bg-brand-50/70 px-3.5 py-3">
         <VehicleRateQuote
           end={end}
-          rates={{
-            daily: vehicle.daily_rate,
-            halfDay: vehicle.half_day_rate,
-            hourly: vehicle.hourly_rate,
-          }}
+          rates={{ daily: vehicle.daily_rate }}
           reservationFee={reservationFee}
           start={start}
           withDriver={withDriver ? { rate: driverDailyRate ?? null } : null}

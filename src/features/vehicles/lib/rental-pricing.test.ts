@@ -8,7 +8,7 @@ import {
   quoteTrip,
 } from "./rental-pricing";
 
-const rates = { daily: 2000, halfDay: 1200, hourly: 200 };
+const rates = { daily: 2000 };
 
 describe("quoteRentalTotal", () => {
   it("prices search days as 24-hour periods", () => {
@@ -19,27 +19,31 @@ describe("quoteRentalTotal", () => {
     });
   });
 
-  it("prices a same-day search from 9 AM to 6 PM", () => {
+  it("prices a same-day search from 9 AM to 6 PM as one day", () => {
     expect(quoteRentalTotal(rates, "2026-07-27", "2026-07-27")).toMatchObject({
-      days: 0,
-      hours: 9,
-      total: 1200,
+      days: 1,
+      hours: 0,
+      total: 2000,
     });
   });
 
-  it("prices picked times on elapsed hours", () => {
+  it("bills every started 24 hours as a day, never hours", () => {
     expect(quoteRentalTotal(rates, "2026-07-27T09:00", "2026-07-28T11:00")).toMatchObject({
+      days: 2,
+      hours: 0,
+      total: 4000,
+    });
+    expect(quoteRentalTotal(rates, "2026-07-27T09:00", "2026-07-28T09:00")).toMatchObject({
       days: 1,
-      hours: 2,
-      total: 2400,
+      total: 2000,
     });
   });
 
   it("reads stored UTC timestamps", () => {
-    // Oct 8 12:00 AM → Oct 9 6:00 PM in Manila: 1 day 18 hours.
+    // Oct 8 12:00 AM → Oct 9 6:00 PM in Manila: 42 hours, two started days.
     expect(
       quoteRentalTotal({ daily: 1350 }, "2026-10-07T16:00:00+00:00", "2026-10-09T10:00:00+00:00"),
-    ).toMatchObject({ days: 1, hours: 18, total: 2700 });
+    ).toMatchObject({ days: 2, hours: 0, total: 2700 });
   });
 
   it("is null for missing or backwards trips", () => {
@@ -91,9 +95,9 @@ describe("quoteTrip", () => {
     expect(
       quoteTrip(rates, "2026-07-27T09:00", "2026-07-28T11:00", { rate: 1000 }),
     ).toMatchObject({
-      rent: { total: 2400 },
+      rent: { total: 4000 },
       driver: { days: 2, rate: 1000, fee: 2000 },
-      total: 4400,
+      total: 6000,
     });
   });
 

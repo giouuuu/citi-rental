@@ -105,11 +105,7 @@ export function BookingPaymentForm({
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">
               {describeRentLine({
-                rates: {
-                  daily: booking.quotedDailyRate,
-                  halfDay: booking.quotedHalfDayRate,
-                  hourly: booking.quotedHourlyRate,
-                },
+                rates: { daily: booking.quotedDailyRate },
                 days: booking.quotedDays,
                 hours: booking.quotedHours,
                 total: booking.quotedTotal,

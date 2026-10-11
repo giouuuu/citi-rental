@@ -122,6 +122,17 @@ export function describeBilledTime(quote: Pick<RentQuote, "days" | "hours">): st
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * Online bookings: every started 24 hours is a day at the daily rate, no
+ * 12-hour or hourly pricing. Mirrors create_public_booking. Null when the
+ * return is not after pick-up.
+ */
+export function quoteDayRent(startAt: Date, returnAt: Date, dailyRate: number): RentQuote | null {
+  if (billedHours(startAt, returnAt) == null) return null;
+  const days = Math.max(1, Math.ceil((returnAt.getTime() - startAt.getTime()) / DAY_MS));
+  return { days, hours: 0, leftover: { kind: "none", amount: 0 }, total: round(days * dailyRate) };
+}
+
+/**
  * A driver's billed days: every started 24 hours, at least one. Mirrors
  * `private.rental_driver_days`, which prices online bookings.
  */

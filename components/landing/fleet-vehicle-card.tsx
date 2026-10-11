@@ -181,11 +181,7 @@ export function FleetVehicleCard({
           <VehicleRateQuote
             className="min-w-0"
             end={tripQuery.end}
-            rates={{
-              daily: vehicle.daily_rate,
-              halfDay: vehicle.half_day_rate,
-              hourly: vehicle.hourly_rate,
-            }}
+            rates={{ daily: vehicle.daily_rate }}
             priceClassName="font-display text-xl tracking-[-0.015em]"
             reservationFee={reservationFee}
             start={tripQuery.start}

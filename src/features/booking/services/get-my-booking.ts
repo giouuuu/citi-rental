@@ -133,14 +133,8 @@ export async function getMyBooking(rentalId: string): Promise<CustomerBookingDet
       driversLicenseNumber: text(customer.drivers_license_number),
     },
     bill: buildRentalBill({
-      quotedRates:
-        daily != null
-          ? {
-              daily,
-              halfDay: num(row.quoted_half_day_rate),
-              hourly: num(row.quoted_hourly_rate),
-            }
-          : null,
+      // Customers see per-day pricing only; the 12-hour and hourly rates are staff's.
+      quotedRates: daily != null ? { daily } : null,
       quotedDays: num(row.quoted_days),
       quotedHours: num(row.quoted_hours),
       quotedTotal: num(row.quoted_total),

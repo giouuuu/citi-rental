@@ -7,7 +7,8 @@ import {
 } from "@/features/vehicles/lib/rental-pricing";
 
 type VehicleRateQuoteProps = {
-  rates: RentRates;
+  /** Customers see the daily rate only; online trips bill per started 24 hours. */
+  rates: Pick<RentRates, "daily">;
   start?: string | null;
   end?: string | null;
   /** Flat fee to hold the booking; omit to hide the line. */
@@ -33,10 +34,6 @@ export function VehicleRateQuote({
     quote && reservationFee
       ? quoteReservationFee(quote.total, reservationFee)
       : null;
-  const shortRates = [
-    rates.halfDay ? `${formatPhp(rates.halfDay)} / 12 hrs` : null,
-    rates.hourly ? `${formatPhp(rates.hourly)} / hr` : null,
-  ].filter(Boolean);
 
   return (
     <div className={className}>
@@ -45,9 +42,6 @@ export function VehicleRateQuote({
           {formatPhp(rates.daily)}
         </span>
         <span> / day</span>
-        {shortRates.length > 0 ? (
-          <span className="tabular-nums"> · {shortRates.join(" · ")}</span>
-        ) : null}
       </p>
       {quote ? (
         <p className="mt-1 text-sm text-brand-950">
