@@ -17,6 +17,11 @@ import {
   compareInspections,
   summarizeInspectionDelta,
 } from "@/features/inspections/lib/compare-inspections";
+import {
+  lateReturn,
+  settleReturn,
+  type ReturnBillContext,
+} from "@/features/inspections/lib/return-settlement";
 import { submitRentalInspectionAction } from "@/features/inspections/actions/actions";
 import type {
   InspectionChecklist,
@@ -30,6 +35,14 @@ export type InspectionFormStep = "readings" | "condition" | "photos" | "signoff"
 /** What a submit is doing: uploading close-ups, waiting on the gallery, saving. */
 export type InspectionSubmitPhase = "idle" | "closeups" | "gallery" | "saving";
 
+export type ReturnPaymentMethod = "cash" | "gcash" | "maya" | "bank" | "other";
+
+/** Typed amounts read as 0 until they hold a number. */
+const amountOf = (value: string) => {
+  const amount = Number(value);
+  return value.trim() && Number.isFinite(amount) ? amount : 0;
+};
+
 export function useInspectionFormState(options: {
   rentalId: string;
   inspectionType: InspectionType;
@@ -38,6 +51,8 @@ export function useInspectionFormState(options: {
   startingOdometer?: number | null;
   referenceInspection?: RentalInspection | null;
   agreementDraft?: AgreementDraft | null;
+  /** Return only: the bill the sign-off settles. */
+  returnBill?: ReturnBillContext | null;
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -67,6 +82,20 @@ export function useInspectionFormState(options: {
   const [fuelChargeNote, setFuelChargeNote] = useState("");
   const [damageChargeAmount, setDamageChargeAmount] = useState("");
   const [damageChargeNote, setDamageChargeNote] = useState("");
+  const returnBill =
+    options.inspectionType === "return" ? (options.returnBill ?? null) : null;
+  // Lateness is priced once, when the inspection opens.
+  const [late] = useState(() =>
+    returnBill ? lateReturn(returnBill, new Date()) : null,
+  );
+  const [lateChargeAmount, setLateChargeAmount] = useState(() =>
+    late ? String(late.suggested) : "",
+  );
+  const [lateChargeWaived, setLateChargeWaived] = useState(false);
+  const [lateChargeNote, setLateChargeNote] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<ReturnPaymentMethod>("cash");
+  const [paymentReference, setPaymentReference] = useState("");
   const gallery = useInspectionMedia({ rentalId: options.rentalId });
   const agreementDraft =
     options.inspectionType === "pickup" ? (options.agreementDraft ?? null) : null;
@@ -151,6 +180,20 @@ export function useInspectionFormState(options: {
     ).newDamage.length;
   }, [options.inspectionType, options.referenceInspection, provisionalReturn]);
 
+  const lateCharge = late && !lateChargeWaived ? amountOf(lateChargeAmount) : 0;
+  const settlement = returnBill
+    ? settleReturn({
+        billTotal: returnBill.billTotal,
+        paid: returnBill.paid,
+        charges: [
+          amountOf(fuelChargeAmount),
+          amountOf(damageChargeAmount),
+          lateCharge,
+        ],
+        payment: amountOf(paymentAmount),
+      })
+    : null;
+
   function patchItem(areaCode: string, patch: Partial<ChecklistDraftItem>) {
     setItems((prev) =>
       prev.map((item) =>
@@ -210,13 +253,14 @@ export function useInspectionFormState(options: {
     }
   }
 
-  async function submit() {
+  /** Everything a submit needs, checked before the review dialog opens. */
+  function validate() {
     setError("");
     for (const item of items.filter((entry) => isDamageStatus(entry.status))) {
       if (!damageFiles[item.areaCode]) {
         setError(`Add a close-up photo for ${item.label}.`);
         setStep("photos");
-        return;
+        return false;
       }
     }
     if (gallery.readyPhotoCount < MIN_INSPECTION_PHOTOS) {
@@ -226,20 +270,31 @@ export function useInspectionFormState(options: {
           : `Add at least ${MIN_INSPECTION_PHOTOS} photos of the car.`,
       );
       setStep("photos");
-      return;
+      return false;
     }
-    if (!validateSigning()) return;
-    if (
-      options.inspectionType === "return" &&
-      newDamageCount > 0 &&
-      !damageChargeAmount.trim()
-    ) {
-      setError(
-        "New damage was found. Enter a damage penalty amount (use 0 to waive).",
-      );
+    if (!validateSigning()) return false;
+    const returnError =
+      options.inspectionType !== "return"
+        ? null
+        : newDamageCount > 0 && !damageChargeAmount.trim()
+          ? "New damage was found. Enter a damage penalty amount (use 0 to waive)."
+          : late && !lateChargeWaived && !lateChargeAmount.trim()
+            ? "Enter the late-return penalty, or waive it."
+            : paymentAmount.trim() && !(amountOf(paymentAmount) > 0)
+              ? "Enter the payment received, or leave it blank."
+              : settlement && amountOf(paymentAmount) > settlement.balanceDue
+                ? "The payment is more than the balance due."
+                : null;
+    if (returnError) {
+      setError(returnError);
       setStep("signoff");
-      return;
+      return false;
     }
+    return true;
+  }
+
+  async function submit() {
+    if (!validate()) return;
 
     const formData = new FormData();
     formData.set("rental_id", options.rentalId);
@@ -258,6 +313,19 @@ export function useInspectionFormState(options: {
         formData.set("damage_charge_amount", damageChargeAmount);
       }
       if (damageChargeNote) formData.set("damage_charge_note", damageChargeNote);
+      if (late && !lateChargeWaived) {
+        formData.set("late_charge_amount", lateChargeAmount);
+        if (lateChargeNote.trim()) {
+          formData.set("late_charge_note", lateChargeNote.trim());
+        }
+      }
+      if (amountOf(paymentAmount) > 0) {
+        formData.set("payment_amount", paymentAmount);
+        formData.set("payment_method", paymentMethod);
+        if (paymentReference.trim()) {
+          formData.set("payment_reference", paymentReference.trim());
+        }
+      }
     }
     if (signature) formData.set("signature_data_url", signature);
     if (agreementDraft) {
@@ -401,6 +469,20 @@ export function useInspectionFormState(options: {
     setDamageChargeAmount,
     damageChargeNote,
     setDamageChargeNote,
+    late,
+    lateChargeAmount,
+    setLateChargeAmount,
+    lateChargeWaived,
+    setLateChargeWaived,
+    lateChargeNote,
+    setLateChargeNote,
+    paymentAmount,
+    setPaymentAmount,
+    paymentMethod,
+    setPaymentMethod,
+    paymentReference,
+    setPaymentReference,
+    settlement,
     gallery,
     renterAddress,
     setRenterAddress,
@@ -415,6 +497,7 @@ export function useInspectionFormState(options: {
     newDamageCount,
     patchItem,
     validateSigning,
+    validate,
     submit,
   };
 }

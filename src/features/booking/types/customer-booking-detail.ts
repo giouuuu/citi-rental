@@ -41,6 +41,8 @@ export type CustomerBookingDetail = {
   termsVersion: string | null;
   termsAcceptedAt: string | null;
   freeCancellationHours: number | null;
+  /** A draft with nothing paid: the renter can still edit their details and trip. */
+  detailsEditable: boolean;
   vehicle: {
     id: string;
     name: string;
@@ -56,6 +58,10 @@ export type CustomerBookingDetail = {
     fullName: string | null;
     phoneNumber: string | null;
     email: string | null;
+    /** Null unless the customer record is this account's own. */
+    address: string | null;
+    facebookAccount: string | null;
+    driversLicenseNumber: string | null;
   };
   /** Rent, driver, charges, paid and balance, from the payments ledger. */
   bill: RentalBill;

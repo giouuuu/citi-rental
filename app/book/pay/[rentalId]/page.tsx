@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { SiteHeader } from "@/components/landing/site-header";
 import { BookingPaymentForm } from "@/features/booking/components/booking-payment-form";
 import { CancelBookingButton } from "@/features/booking/components/cancel-booking-button";
+import { EditBookingDetailsDialog } from "@/features/booking/components/edit-booking-details-dialog";
 import {
   DEFAULT_FREE_CANCELLATION_HOURS,
   hoursPhrase,
@@ -15,6 +16,7 @@ import {
   type PaymongoReturn,
 } from "@/features/booking/components/paymongo-checkout-button";
 import { isPaymongoEnabled } from "@/features/booking/lib/paymongo";
+import { getMyBooking } from "@/features/booking/services/get-my-booking";
 import {
   getBookingPaymentDetails,
   getPublicFreeCancellationHours,
@@ -48,9 +50,11 @@ export default async function BookingPayPage({
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
-  const [booking, freeCancellationHours] = await Promise.all([
+  const [booking, freeCancellationHours, myBooking] = await Promise.all([
     getBookingPaymentDetails(rentalId, reference),
     getPublicFreeCancellationHours(),
+    // Its details, for editing what was typed until the fee is paid.
+    getMyBooking(rentalId),
   ]);
   if (!booking) notFound();
 
@@ -128,6 +132,27 @@ export default async function BookingPayPage({
             }
           />
         </div>
+
+        {myBooking?.detailsEditable ? (
+          <section
+            aria-labelledby="edit-booking-title"
+            className="mt-8 rounded-xl border border-border bg-card p-5"
+          >
+            <h2
+              className="text-base font-semibold text-brand-950"
+              id="edit-booking-title"
+            >
+              Typed something wrong?
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              You can edit your details and trip until you pay the reservation
+              fee.
+            </p>
+            <div className="mt-4">
+              <EditBookingDetailsDialog booking={myBooking} />
+            </div>
+          </section>
+        ) : null}
 
         {cancellable ? (
           <section

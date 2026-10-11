@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { publicBookingSchema } from "./public-booking-schema";
+import { bookingDetailsSchema, publicBookingSchema } from "./public-booking-schema";
 
 const photo = (name: string) =>
   new File([new Uint8Array([1, 2, 3])], name, { type: "image/jpeg" });
@@ -135,5 +135,46 @@ describe("publicBookingSchema", () => {
     expect(errorsFor({ ...valid, passengerCount: "0" }).passengerCount).toEqual([
       "Enter how many passengers.",
     ]);
+  });
+});
+
+describe("bookingDetailsSchema", () => {
+  const details = {
+    rentalId: "c0000000-0000-4000-8000-000000000009",
+    fullName: "Alex Rivera",
+    phoneNumber: "09171234567",
+    driversLicenseNumber: "N01-23-456789",
+    address: "Lahug, Cebu City",
+    facebookAccount: "facebook.com/alex.rivera",
+    pickupLocation: "Mactan Airport",
+    returnLocation: "IT Park",
+    destination: "Moalboal",
+    passengerCount: "3",
+  };
+
+  function detailErrors(input: Record<string, unknown>) {
+    const result = bookingDetailsSchema.safeParse(input);
+    return result.success ? {} : result.error.flatten().fieldErrors;
+  }
+
+  it("accepts edited details without dates, photos or terms", () => {
+    const result = bookingDetailsSchema.safeParse(details);
+    expect(result.success).toBe(true);
+    expect(result.data?.passengerCount).toBe(3);
+  });
+
+  it("needs a license on self-drive only", () => {
+    const noLicense = { ...details, driversLicenseNumber: "" };
+    expect(detailErrors(noLicense)).toHaveProperty("driversLicenseNumber");
+    expect(
+      bookingDetailsSchema.safeParse({ ...noLicense, drivingMode: "with-driver" })
+        .success,
+    ).toBe(true);
+  });
+
+  it("still requires the renter and trip fields", () => {
+    const errors = detailErrors({ ...details, fullName: "", destination: "" });
+    expect(errors).toHaveProperty("fullName");
+    expect(errors).toHaveProperty("destination");
   });
 });

@@ -4,7 +4,10 @@ import { cache } from "react";
 
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
-import type { PublicBookingInput } from "@/features/booking/schemas/public-booking-schema";
+import type {
+  BookingDetailsInput,
+  PublicBookingInput,
+} from "@/features/booking/schemas/public-booking-schema";
 import type {
   BookingPaymentDetails,
   PublicBookingResult,
@@ -258,9 +261,11 @@ export async function createPublicBooking(
       input.fullName
         ? `Customer: ${input.fullName} · ${input.phoneNumber || input.email}`
         : `Returning customer: ${input.email || input.phoneNumber}`,
-      `Pay page: ${payUrl}`,
-      `Ops: ${siteUrl()}/rentals/${result.rentalId}`,
     ].join("\n"),
+    buttons: [
+      { text: "Open rental", url: `${siteUrl()}/rentals/${result.rentalId}` },
+      { text: "Pay page", url: payUrl },
+    ],
   }).then((notify) => {
     if (!notify.sent) {
       console.error(
@@ -354,8 +359,8 @@ export async function submitBookingPaymentProof(input: {
       `Deposit: ${formatPhp(num(payload.deposit_amount, details.depositAmount))}`,
       `Pay ref: ${payload.payment_reference ?? input.paymentReference}`,
       `Customer: ${payload.customer_name ?? "—"} · ${payload.customer_phone ?? "—"}`,
-      `Ops: ${siteUrl()}/rentals/${input.rentalId}`,
     ].join("\n"),
+    buttons: [{ text: "Open rental", url: `${siteUrl()}/rentals/${input.rentalId}` }],
   }).then((notify) => {
     if (!notify.sent) {
       console.error(
@@ -427,12 +432,73 @@ export async function cancelMyBooking(
           ? `Reservation fee ${formatPhp(num(payload.deposit_amount))} kept (inside the free-cancellation window)`
           : `Reservation fee ${formatPhp(num(payload.deposit_amount))} to refund`
         : "Nothing was paid",
-      `Ops: ${siteUrl()}/rentals/${result.rentalId}`,
     ].join("\n"),
+    buttons: [{ text: "Open rental", url: `${siteUrl()}/rentals/${result.rentalId}` }],
   }).then((notify) => {
     if (!notify.sent) {
       console.error(
         "[telegram] cancellation notify not delivered:",
+        notify.reason ?? "unknown",
+        { rentalId: result.rentalId },
+      );
+    }
+  });
+
+  return result;
+}
+
+/**
+ * The signed-in owner fixes their details or trip on a booking that is not
+ * paid yet. update_my_booking_details re-checks ownership and the unpaid gate.
+ */
+export async function updateMyBookingDetails(
+  input: BookingDetailsInput,
+): Promise<{ rentalId: string; referenceNumber: string }> {
+  if (!isSupabaseConfigured()) {
+    throw new Error("Editing is unavailable until Supabase is configured.");
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("update_my_booking_details", {
+    p_rental_id: input.rentalId,
+    p_full_name: input.fullName,
+    p_phone_number: input.phoneNumber,
+    p_address: input.address,
+    p_facebook_account: input.facebookAccount,
+    p_drivers_license_number: input.driversLicenseNumber || null,
+    p_pickup_location: input.pickupLocation,
+    p_return_location: input.returnLocation,
+    p_destination: input.destination,
+    p_passenger_count: input.passengerCount,
+  });
+
+  if (error) {
+    throw new Error(error.message || "We could not save your changes.");
+  }
+
+  const payload = data as Record<string, unknown>;
+  if (!payload?.success) {
+    throw new Error("We could not save your changes. Please try again.");
+  }
+
+  const result = {
+    rentalId: String(payload.rental_id),
+    referenceNumber: String(payload.reference_number),
+  };
+
+  void notifyOwnerTelegram({
+    text: [
+      "Booking details edited by the customer",
+      `Ref: ${result.referenceNumber}`,
+      `Car: ${payload.vehicle_name ?? "—"}`,
+      `Customer: ${payload.customer_name ?? "—"} · ${payload.customer_phone ?? "—"}`,
+      `Trip: ${input.pickupLocation} → ${input.destination} · ${input.passengerCount} pax`,
+    ].join("\n"),
+    buttons: [{ text: "Open rental", url: `${siteUrl()}/rentals/${result.rentalId}` }],
+  }).then((notify) => {
+    if (!notify.sent) {
+      console.error(
+        "[telegram] details edit notify not delivered:",
         notify.reason ?? "unknown",
         { rentalId: result.rentalId },
       );

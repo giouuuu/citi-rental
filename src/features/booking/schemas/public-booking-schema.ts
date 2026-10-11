@@ -200,3 +200,35 @@ export const publicBookingSchema = bookingFields
   .superRefine(refineRenterIds, { when: () => true });
 
 export type PublicBookingInput = z.infer<typeof publicBookingSchema>;
+
+/**
+ * What the renter can still change on an unpaid booking: their details and
+ * the trip details. Car, dates and driving mode set the price and the hold,
+ * so they stay as booked; `drivingMode` only says whether a license is needed.
+ */
+export const bookingDetailsSchema = bookingFields
+  .pick({
+    drivingMode: true,
+    fullName: true,
+    phoneNumber: true,
+    address: true,
+    facebookAccount: true,
+    driversLicenseNumber: true,
+    pickupLocation: true,
+    returnLocation: true,
+    destination: true,
+    passengerCount: true,
+  })
+  .extend({ rentalId: z.uuid("Invalid booking.") })
+  .superRefine((value, context) => {
+    const license = value.driversLicenseNumber?.trim() ?? "";
+    if (value.drivingMode !== "with-driver" && license.length < 3) {
+      context.addIssue({
+        code: "custom",
+        path: ["driversLicenseNumber"],
+        message: "Enter your driver license number.",
+      });
+    }
+  });
+
+export type BookingDetailsInput = z.infer<typeof bookingDetailsSchema>;

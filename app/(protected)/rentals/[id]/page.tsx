@@ -35,7 +35,10 @@ import {
 import { getAgreementDraft } from "@/features/agreements/services/get-agreement-draft";
 import { getRentalAgreement } from "@/features/agreements/services/get-rental-agreement";
 import type { AgreementDraft } from "@/features/agreements/types";
-import type { RentalBillDriver } from "@/features/rentals/lib/rental-bill";
+import {
+  buildRentalBill,
+  type RentalBillDriver,
+} from "@/features/rentals/lib/rental-bill";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -267,6 +270,14 @@ export default async function Page({
     (payment) =>
       payment.paymentType === "deposit" && payment.status === "submitted",
   );
+  const bill = buildRentalBill({
+    quotedRates,
+    quotedDays,
+    quotedHours,
+    quotedTotal,
+    driver,
+    payments,
+  });
   const showConfirmCard = needsDepositConfirmation({
     status,
     paymentStatus,
@@ -279,6 +290,7 @@ export default async function Page({
       actions={
         <RentalWorkflowActions
           agreementDraft={agreementDraft}
+          bill={{ total: bill.total, paid: bill.paid }}
           cancellation={cancellation}
           checklist={checklist}
           id={id}

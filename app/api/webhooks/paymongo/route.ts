@@ -78,8 +78,10 @@ export async function POST(request: Request) {
         `Amount: ${formatPhp(Number(result.amount ?? 0))}`,
         `PayMongo: ${paid.paymentId}`,
         `Customer: ${result.customer_name ?? "—"} · ${result.customer_phone ?? "—"}`,
-        `Ops: ${siteUrl()}/rentals/${result.rental_id}`,
       ].join("\n"),
+      buttons: [
+        { text: "Open rental", url: `${siteUrl()}/rentals/${result.rental_id}` },
+      ],
     });
   } else if (result.result !== "duplicate") {
     console.warn("[paymongo] paid webhook not applied:", result.result, {

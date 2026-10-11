@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { BookingReviewForm } from "@/features/booking/components/booking-review-form";
 import { CancelBookingButton } from "@/features/booking/components/cancel-booking-button";
+import { EditBookingDetailsDialog } from "@/features/booking/components/edit-booking-details-dialog";
 import {
   customerCancellationLabel,
   customerPaymentLabel,
@@ -186,7 +187,7 @@ export function AccountBookingDetail({ booking }: { booking: CustomerBookingDeta
               <Detail label="Driving">{booking.withDriver ? "With driver" : "Self-drive"}</Detail>
             </dl>
 
-            {awaiting || cancellable || hasConditionReport ? (
+            {awaiting || booking.detailsEditable || cancellable || hasConditionReport ? (
               <div className="flex flex-wrap gap-2">
                 {awaiting ? (
                   <Button asChild size="sm">
@@ -197,6 +198,7 @@ export function AccountBookingDetail({ booking }: { booking: CustomerBookingDeta
                     </Link>
                   </Button>
                 ) : null}
+                {booking.detailsEditable ? <EditBookingDetailsDialog booking={booking} /> : null}
                 {hasConditionReport ? (
                   <Button asChild size="sm" variant="outline">
                     <Link href={`/account/bookings/${booking.id}/condition`}>

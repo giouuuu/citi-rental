@@ -58,6 +58,13 @@ export const submitInspectionSchema = z.object({
   fuel_charge_note: z.string().trim().max(1000).optional(),
   damage_charge_amount: z.coerce.number().min(0).optional(),
   damage_charge_note: z.string().trim().max(1000).optional(),
+  // Return only: a late penalty (absent when waived or on time) and the
+  // payment taken at the counter.
+  late_charge_amount: z.coerce.number().min(0).optional(),
+  late_charge_note: z.string().trim().max(500).optional(),
+  payment_amount: z.coerce.number().positive().optional(),
+  payment_method: z.enum(["cash", "gcash", "maya", "bank", "other"]).optional(),
+  payment_reference: z.string().trim().max(120).optional(),
   items: z.array(inspectionItemInputSchema).min(1),
   photos: z.array(inspectionPhotoInputSchema).max(80).default([]),
 });

@@ -9,6 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { AgreementDocument } from "@/features/agreements/components/agreement-document";
 import type { AgreementDraft } from "@/features/agreements/types";
 import { InspectionSignaturePad } from "@/features/inspections/components/inspection-signature-pad";
+import {
+  LateReturnSection,
+  ReturnPaymentSection,
+  type ReturnSettlementControls,
+} from "@/features/inspections/components/return-settlement-panel";
 import type { InspectionType } from "@/features/inspections/types/inspection";
 
 export type SignoffAgreement = {
@@ -105,6 +110,7 @@ export function InspectionSignoffStep({
   damageChargeAmount,
   damageChargeNote,
   newDamageCount = 0,
+  settle = null,
   onSignature,
   onAcknowledged,
   onFuelChargeAmount,
@@ -121,6 +127,8 @@ export function InspectionSignoffStep({
   damageChargeAmount: string;
   damageChargeNote: string;
   newDamageCount?: number;
+  /** Return only: late penalty and the payment taken at the counter. */
+  settle?: ReturnSettlementControls | null;
   onSignature: (value: string | null) => void;
   onAcknowledged: (value: boolean) => void;
   onFuelChargeAmount: (value: string) => void;
@@ -130,6 +138,10 @@ export function InspectionSignoffStep({
 }) {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      {inspectionType === "return" && settle ? (
+        <LateReturnSection settle={settle} />
+      ) : null}
+
       {inspectionType === "return" ? (
         <section className="space-y-3">
           <h3 className="text-sm font-semibold">Charges</h3>
@@ -186,6 +198,10 @@ export function InspectionSignoffStep({
             </div>
           </div>
         </section>
+      ) : null}
+
+      {inspectionType === "return" && settle ? (
+        <ReturnPaymentSection settle={settle} />
       ) : null}
 
       {agreement ? (

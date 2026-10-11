@@ -112,6 +112,7 @@ export async function getMyBooking(rentalId: string): Promise<CustomerBookingDet
     termsVersion: text(row.terms_version),
     termsAcceptedAt: text(row.terms_accepted_at),
     freeCancellationHours: num(row.free_cancellation_hours),
+    detailsEditable: row.details_editable === true,
     vehicle: {
       id: String(vehicle.id),
       name: text(vehicle.name) ?? "Vehicle",
@@ -127,6 +128,9 @@ export async function getMyBooking(rentalId: string): Promise<CustomerBookingDet
       fullName: text(customer.full_name),
       phoneNumber: text(customer.phone_number),
       email: text(customer.email),
+      address: text(customer.address),
+      facebookAccount: text(customer.facebook_account),
+      driversLicenseNumber: text(customer.drivers_license_number),
     },
     bill: buildRentalBill({
       quotedRates:

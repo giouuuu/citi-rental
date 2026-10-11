@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import type { AgreementDraft } from "@/features/agreements/types";
 import { RentalInspectionForm } from "@/features/inspections/components/rental-inspection-form";
+import type { ReturnBillContext } from "@/features/inspections/lib/return-settlement";
 import type {
   InspectionChecklist,
   InspectionType,
@@ -27,6 +28,7 @@ export function RentalInspectionSheet({
   startingOdometer,
   referenceInspection = null,
   agreementDraft = null,
+  returnBill = null,
   triggerLabel,
 }: {
   rentalId: string;
@@ -37,6 +39,8 @@ export function RentalInspectionSheet({
   referenceInspection?: RentalInspection | null;
   /** Release only: the rental agreement the renter signs. */
   agreementDraft?: AgreementDraft | null;
+  /** Return only: the bill the sign-off prices lateness against and settles. */
+  returnBill?: ReturnBillContext | null;
   triggerLabel: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -66,7 +70,7 @@ export function RentalInspectionSheet({
             <SheetDescription>
               {inspectionType === "pickup"
                 ? "Record odometer, fuel, condition, and photos and videos, then have the renter sign the rental agreement before starting this rental."
-                : "Record odometer, fuel, condition, and photos and videos before completing this rental."}
+                : "Record odometer, fuel, condition, and photos and videos, then settle any late penalty and balance before completing this rental."}
             </SheetDescription>
           </SheetHeader>
           <RentalInspectionForm
@@ -76,6 +80,7 @@ export function RentalInspectionSheet({
             knownDamages={knownDamages}
             referenceInspection={referenceInspection}
             rentalId={rentalId}
+            returnBill={returnBill}
             startingOdometer={startingOdometer}
             onDone={() => setOpen(false)}
           />

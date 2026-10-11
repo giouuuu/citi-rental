@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeftIcon, LoaderCircle } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,6 +13,15 @@ import {
   missingInspectionMedia,
 } from "@/features/inspections/components/inspection-media-step";
 import { InspectionReadingsStep } from "@/features/inspections/components/inspection-readings-step";
+import {
+  InspectionReviewDialog,
+  type InspectionReviewRow,
+} from "@/features/inspections/components/inspection-review-dialog";
+import {
+  RETURN_PAYMENT_METHODS,
+  describeLateness,
+  type ReturnSettlementControls,
+} from "@/features/inspections/components/return-settlement-panel";
 import { InspectionSignoffStep } from "@/features/inspections/components/inspection-signoff-step";
 import {
   InspectionStepNav,
@@ -24,6 +33,8 @@ import {
 } from "@/features/inspections/hooks/use-inspection-form-state";
 import { isDamageStatus } from "@/features/inspections/lib/checklist-areas";
 import { MIN_INSPECTION_PHOTOS } from "@/features/inspections/lib/inspection-media";
+import type { ReturnBillContext } from "@/features/inspections/lib/return-settlement";
+import { formatPhpExact } from "@/features/shared/lib/money";
 import type {
   InspectionChecklist,
   InspectionType,
@@ -39,6 +50,7 @@ export function RentalInspectionForm({
   startingOdometer,
   referenceInspection = null,
   agreementDraft = null,
+  returnBill = null,
   onDone,
 }: {
   rentalId: string;
@@ -48,10 +60,13 @@ export function RentalInspectionForm({
   startingOdometer?: number | null;
   referenceInspection?: RentalInspection | null;
   agreementDraft?: AgreementDraft | null;
+  returnBill?: ReturnBillContext | null;
   onDone: () => void;
 }) {
+  const [reviewOpen, setReviewOpen] = useState(false);
   const form = useInspectionFormState({
     agreementDraft,
+    returnBill,
     rentalId,
     inspectionType,
     checklist,
@@ -97,6 +112,37 @@ export function RentalInspectionForm({
       ?.querySelector(`[data-area="${CSS.escape(form.selectedZone)}"]`)
       ?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [form.selectedZone, form.step]);
+
+  const settle: ReturnSettlementControls | null =
+    returnBill && form.settlement
+      ? {
+          late: form.late,
+          lateChargeAmount: form.lateChargeAmount,
+          lateChargeWaived: form.lateChargeWaived,
+          lateChargeNote: form.lateChargeNote,
+          onLateChargeAmount: form.setLateChargeAmount,
+          onLateChargeWaived: form.setLateChargeWaived,
+          onLateChargeNote: form.setLateChargeNote,
+          billTotal: returnBill.billTotal,
+          paid: returnBill.paid,
+          settlement: form.settlement,
+          paymentAmount: form.paymentAmount,
+          paymentMethod: form.paymentMethod,
+          paymentReference: form.paymentReference,
+          onPaymentAmount: form.setPaymentAmount,
+          onPaymentMethod: form.setPaymentMethod,
+          onPaymentReference: form.setPaymentReference,
+        }
+      : null;
+
+  const reviewRows = buildReviewRows({
+    inspectionType,
+    form,
+    flaggedCount,
+    galleryCount: galleryTotal,
+    startingOdometer: startingOdometer ?? null,
+    settle,
+  });
 
   function goToStep(next: InspectionFormStep) {
     form.setStep(next);
@@ -199,6 +245,7 @@ export function RentalInspectionForm({
             fuelChargeNote={form.fuelChargeNote}
             inspectionType={inspectionType}
             newDamageCount={form.newDamageCount}
+            settle={settle}
             signature={form.signature}
             onAcknowledged={form.setAcknowledged}
             onDamageChargeAmount={form.setDamageChargeAmount}
@@ -264,7 +311,9 @@ export function RentalInspectionForm({
             <Button
               disabled={form.pending}
               type="button"
-              onClick={() => void form.submit()}
+              onClick={() => {
+                if (form.validate()) setReviewOpen(true);
+              }}
             >
               {form.pending ? <LoaderCircle className="animate-spin" /> : null}
               {inspectionType === "pickup"
@@ -282,6 +331,120 @@ export function RentalInspectionForm({
           </Button>
         )}
       </div>
+
+      <InspectionReviewDialog
+        confirmLabel={
+          inspectionType === "pickup" ? "Release the car" : "Complete the rental"
+        }
+        description={
+          inspectionType === "pickup"
+            ? "Check what will be saved before the car leaves."
+            : "Check the charges and payment before the rental closes."
+        }
+        open={reviewOpen}
+        rows={reviewRows}
+        title={
+          inspectionType === "pickup"
+            ? "Start this rental?"
+            : "Complete this rental?"
+        }
+        understanding={
+          inspectionType === "pickup"
+            ? "I understand that submitting releases the car to the renter and starts the rental, and that this condition report and the signed rental agreement are saved as the record of the car at pickup."
+            : "I understand that submitting completes the rental, adds the charges above to the bill, and records the payment on the ledger. This condition report is saved as the record of the car at return."
+        }
+        onConfirm={() => {
+          setReviewOpen(false);
+          void form.submit();
+        }}
+        onOpenChange={setReviewOpen}
+      />
     </div>
   );
+}
+
+const FUEL = (level: string) => `${Number(level) || 0}%`;
+
+function buildReviewRows({
+  inspectionType,
+  form,
+  flaggedCount,
+  galleryCount,
+  startingOdometer,
+  settle,
+}: {
+  inspectionType: InspectionType;
+  form: ReturnType<typeof useInspectionFormState>;
+  flaggedCount: number;
+  galleryCount: number;
+  startingOdometer: number | null;
+  settle: ReturnSettlementControls | null;
+}): InspectionReviewRow[] {
+  const odometer = Number(form.odometer) || 0;
+  const driven =
+    inspectionType === "return" && startingOdometer != null
+      ? ` (${(odometer - startingOdometer).toLocaleString("en-PH")} km driven)`
+      : "";
+  const rows: InspectionReviewRow[] = [
+    { label: "Odometer", value: `${odometer.toLocaleString("en-PH")} km${driven}` },
+    { label: "Fuel", value: FUEL(form.fuelLevel) },
+    {
+      label: inspectionType === "return" ? "New damage" : "Panels flagged",
+      value:
+        inspectionType === "return"
+          ? form.newDamageCount > 0
+            ? `${form.newDamageCount} panel${form.newDamageCount === 1 ? "" : "s"}`
+            : "None"
+          : flaggedCount > 0
+            ? `${flaggedCount} panel${flaggedCount === 1 ? "" : "s"}`
+            : "None",
+    },
+    { label: "Photos & videos", value: String(galleryCount) },
+  ];
+
+  if (inspectionType === "pickup") {
+    rows.push({ label: "Rental agreement", value: "Signed by the renter" });
+    return rows;
+  }
+
+  const money = (value: string) => Number(value) || 0;
+  if (money(form.fuelChargeAmount) > 0) {
+    rows.push({ label: "Fuel charge", value: formatPhpExact(money(form.fuelChargeAmount)) });
+  }
+  if (money(form.damageChargeAmount) > 0) {
+    rows.push({
+      label: "Damage penalty",
+      value: formatPhpExact(money(form.damageChargeAmount)),
+    });
+  }
+  if (form.late) {
+    rows.push({
+      label: `Late return (${describeLateness(form.late.hoursLate)})`,
+      value: form.lateChargeWaived
+        ? "Waived"
+        : formatPhpExact(money(form.lateChargeAmount)),
+    });
+  }
+  if (!settle) return rows;
+
+  const { settlement } = settle;
+  const payment = money(form.paymentAmount);
+  const method =
+    RETURN_PAYMENT_METHODS.find((entry) => entry.value === form.paymentMethod)?.label ??
+    form.paymentMethod;
+  rows.push(
+    { label: "Balance due", value: formatPhpExact(settlement.balanceDue), tone: "strong" },
+    {
+      label: "Payment received",
+      value: payment > 0 ? `${formatPhpExact(payment)} · ${method}` : "None",
+    },
+    settlement.balanceAfter > 0
+      ? {
+          label: "Still unpaid",
+          value: formatPhpExact(settlement.balanceAfter),
+          tone: "warn",
+        }
+      : { label: "Bill", value: "Paid in full", tone: "strong" },
+  );
+  return rows;
 }

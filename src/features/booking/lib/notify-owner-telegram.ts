@@ -1,13 +1,44 @@
 import "server-only";
 
+type TelegramButton = {
+  text: string;
+  url: string;
+};
+
 type TelegramNotifyInput = {
   text: string;
+  /** Tap-to-open links under the message, one per row. */
+  buttons?: TelegramButton[];
 };
 
 type TelegramNotifyResult = {
   sent: boolean;
   reason?: string;
 };
+
+/**
+ * Telegram rejects URL buttons that point at localhost or plain http, so in
+ * dev those links fall back to text lines instead of failing the whole send.
+ */
+function splitButtons(buttons: TelegramButton[]): {
+  inline: TelegramButton[];
+  textLines: string[];
+} {
+  const inline: TelegramButton[] = [];
+  const textLines: string[] = [];
+  for (const button of buttons) {
+    let usable = false;
+    try {
+      const url = new URL(button.url);
+      usable = url.protocol === "https:" && url.hostname !== "localhost";
+    } catch {
+      usable = false;
+    }
+    if (usable) inline.push(button);
+    else textLines.push(`${button.text}: ${button.url}`);
+  }
+  return { inline, textLines };
+}
 
 function maskSecret(value: string): string {
   if (value.length <= 8) return "***";
@@ -26,6 +57,9 @@ export async function notifyOwnerTelegram(
     return { sent: false, reason };
   }
 
+  const { inline, textLines } = splitButtons(input.buttons ?? []);
+  const text = [input.text, ...textLines].join("\n");
+
   try {
     const response = await fetch(
       `https://api.telegram.org/bot${token}/sendMessage`,
@@ -34,8 +68,13 @@ export async function notifyOwnerTelegram(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
-          text: input.text,
+          text,
           disable_web_page_preview: true,
+          ...(inline.length > 0 && {
+            reply_markup: {
+              inline_keyboard: inline.map((button) => [button]),
+            },
+          }),
         }),
       },
     );

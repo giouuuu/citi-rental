@@ -42,6 +42,7 @@ import type {
 } from "@/features/inspections/types/inspection";
 import { toast } from "sonner";
 import type { RentRates } from "@/features/rentals/lib/rent-pricing";
+import type { ReturnBillContext } from "@/features/inspections/lib/return-settlement";
 
 /** What the Cancel dialog needs to state the reservation-fee policy. */
 export type RentalCancellationContext = {
@@ -100,6 +101,7 @@ export function RentalWorkflowActions({
   schedule = null,
   cancellation = null,
   agreementDraft = null,
+  bill = null,
 }: {
   id: string;
   status: RentalWorkflowStatus;
@@ -116,6 +118,8 @@ export function RentalWorkflowActions({
   cancellation?: RentalCancellationContext | null;
   /** The rental agreement prefilled for release. */
   agreementDraft?: AgreementDraft | null;
+  /** The running bill; the return sign-off settles it. */
+  bill?: { total: number; paid: number } | null;
 }) {
   const [error, setError] = useState("");
   const [cancelReason, setCancelReason] = useState<CancellationReason | "">("");
@@ -127,6 +131,16 @@ export function RentalWorkflowActions({
   const hasPickup = inspections.some((row) => row.inspectionType === "pickup");
   const hasReturn = inspections.some((row) => row.inspectionType === "return");
   const pickup = inspections.find((row) => row.inspectionType === "pickup");
+  const returnBill: ReturnBillContext | null =
+    schedule && bill
+      ? {
+          startAt: schedule.startAt,
+          expectedReturnAt: schedule.expectedReturnAt,
+          rates: schedule.rates,
+          billTotal: bill.total,
+          paid: bill.paid,
+        }
+      : null;
 
   function transition(next: RentalTransitionTarget) {
     if (!canTransitionRental(status, next)) return;
@@ -197,6 +211,7 @@ export function RentalWorkflowActions({
           knownDamages={knownDamages}
           referenceInspection={pickup ?? null}
           rentalId={id}
+          returnBill={returnBill}
           startingOdometer={startingOdometer}
           triggerLabel="Complete with inspection"
         />

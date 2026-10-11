@@ -50,6 +50,11 @@ export async function submitRentalInspectionAction(
     fuel_charge_note: formData.get("fuel_charge_note") || undefined,
     damage_charge_amount: formData.get("damage_charge_amount") || undefined,
     damage_charge_note: formData.get("damage_charge_note") || undefined,
+    late_charge_amount: formData.get("late_charge_amount") || undefined,
+    late_charge_note: formData.get("late_charge_note") || undefined,
+    payment_amount: formData.get("payment_amount") || undefined,
+    payment_method: formData.get("payment_method") || undefined,
+    payment_reference: formData.get("payment_reference") || undefined,
     items,
     photos,
   });
@@ -206,9 +211,8 @@ export async function submitRentalInspectionAction(
       };
     }
 
-    const { data, error } = await supabase.rpc("submit_rental_inspection", {
+    const inspection = {
       p_rental_id: parsed.data.rental_id,
-      p_inspection_type: parsed.data.inspection_type,
       p_odometer: parsed.data.odometer,
       p_fuel_level: parsed.data.fuel_level,
       p_cleanliness: parsed.data.cleanliness,
@@ -223,8 +227,23 @@ export async function submitRentalInspectionAction(
       p_damage_charge_amount: parsed.data.damage_charge_amount ?? null,
       p_damage_charge_note: parsed.data.damage_charge_note ?? null,
       p_template_id: parsed.data.template_id ?? null,
-      p_agreement: agreement,
-    });
+    };
+    // A return also posts the late penalty and the counter payment, in the
+    // same transaction as the inspection.
+    const { data, error } = releasing
+      ? await supabase.rpc("submit_rental_inspection", {
+          ...inspection,
+          p_inspection_type: "pickup",
+          p_agreement: agreement,
+        })
+      : await supabase.rpc("complete_rental_return", {
+          ...inspection,
+          p_late_charge_amount: parsed.data.late_charge_amount ?? null,
+          p_late_charge_note: parsed.data.late_charge_note ?? null,
+          p_payment_amount: parsed.data.payment_amount ?? null,
+          p_payment_method: parsed.data.payment_method ?? "cash",
+          p_payment_reference: parsed.data.payment_reference ?? null,
+        });
     if (error) throw error;
 
     revalidateResource("/rentals");

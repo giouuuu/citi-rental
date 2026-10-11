@@ -48,8 +48,8 @@ export async function submitBookingReviewAction(input: {
       `New ${"★".repeat(parsed.data.rating)}${"☆".repeat(5 - parsed.data.rating)} review from ${payload.reviewer_name ?? "a renter"}`,
       `Ref: ${payload.reference_number ?? "—"} · ${payload.vehicle_name ?? "—"}`,
       `“${parsed.data.body.slice(0, 300)}”`,
-      `Publish it: ${siteUrl()}/reviews`,
     ].join("\n"),
+    buttons: [{ text: "Publish review", url: `${siteUrl()}/reviews` }],
   });
 
   revalidatePath("/account");
