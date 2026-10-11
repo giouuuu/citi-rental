@@ -26,6 +26,8 @@ import { createClient } from "@/lib/supabase/client";
 const CODE_LENGTH = 6;
 /** Supabase allows one code per email every 60 seconds. */
 const RESEND_AFTER_MS = 60_000;
+const VERIFIED_RETRY_MESSAGE =
+  "Your email is confirmed, but the next step did not go through. Check your connection and press the button again. No new code needed.";
 
 type SendState = "sending" | "sent" | "failed";
 
@@ -91,6 +93,8 @@ export function EmailCodePanel({
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const inFlight = useRef(false);
+  /** The code was accepted: this browser is signed in. */
+  const verified = useRef(false);
 
   const send = useCallback(async () => {
     if (inFlight.current) return;
@@ -159,19 +163,30 @@ export function EmailCodePanel({
     setVerifying(true);
     setError(undefined);
     try {
-      const { error: verifyError } = await createClient().auth.verifyOtp({
-        email,
-        token: value,
-        type: "email",
-      });
-      if (verifyError) {
-        setError(verifyErrorMessage(verifyError));
-        return;
+      // A code works once. After it is accepted, a retry only re-runs
+      // onVerified; checking it again would say "wrong or expired".
+      if (!verified.current) {
+        const { error: verifyError } = await createClient().auth.verifyOtp({
+          email,
+          token: value,
+          type: "email",
+        });
+        if (verifyError) {
+          setError(verifyErrorMessage(verifyError));
+          return;
+        }
+        verified.current = true;
       }
+    } catch {
+      setError("We could not check the code. Check your connection and try again.");
+      setVerifying(false);
+      return;
+    }
+    try {
       const message = await onVerified();
       if (message) setError(message);
     } catch {
-      setError("We could not check the code. Check your connection and try again.");
+      setError(VERIFIED_RETRY_MESSAGE);
     } finally {
       setVerifying(false);
     }

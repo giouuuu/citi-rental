@@ -252,12 +252,12 @@ otp_expiry = 600
 # Email-code booking and sign-in: shows the 6-digit {{ .Token }}.
 # Paste the same file into the hosted project's Magic Link template.
 [auth.email.template.magic_link]
-subject = "Your Zeke booking code: {{ .Token }}"
+subject = "Your Zeke's booking code: {{ .Token }}"
 content_path = "./supabase/templates/magic-link.html"
 
 # A new email booking with a code is signed up first, so it gets this one.
 [auth.email.template.confirmation]
-subject = "Your Zeke booking code: {{ .Token }}"
+subject = "Your Zeke's booking code: {{ .Token }}"
 content_path = "./supabase/templates/confirm-signup.html"
 
 # Uncomment to customize email template

@@ -1,6 +1,6 @@
 <!--
   Supabase Auth → Email Templates → Confirm signup.
-  Subject: Your Zeke booking code: {{ .Token }}
+  Subject: Your Zeke's booking code: {{ .Token }}
   A brand-new email that books with a code gets this template, not Magic Link
   (signInWithOtp signs the address up first when "Confirm email" is on), so it
   must show {{ .Token }} too. /register sign-ups get it as well; for them the
@@ -9,7 +9,7 @@
 <div style="margin:0;padding:24px 12px;background:#f8fafc;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a">
   <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden">
     <div style="padding:16px 24px;background:#0b1728;color:#ffffff;font-size:18px;font-weight:700">
-      Zeke <span style="font-size:13px;font-weight:400;color:#dce8f0">Car Rental &amp; Services</span>
+      Zeke's <span style="font-size:13px;font-weight:400;color:#dce8f0">Car Rental &amp; Services</span>
     </div>
     <div style="padding:24px">
       <p style="margin:0 0 16px;font-size:15px;line-height:1.5">Here is your code to confirm your email:</p>
@@ -18,10 +18,10 @@
         <div style="margin-top:6px;font-family:'IBM Plex Mono',Menlo,Consolas,monospace;font-size:34px;font-weight:600;letter-spacing:0.18em;color:#07111f">{{ .Token }}</div>
         <div style="margin-top:6px;font-size:13px;color:#475569">Expires in 10 minutes</div>
       </div>
-      <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#475569">Type it on the page you have open. Nobody from Zeke will ever ask you for this code.</p>
+      <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#475569">Type it on the page you have open. Nobody from Zeke's will ever ask you for this code.</p>
       <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#475569">On the same phone or computer you can also <a href="{{ .ConfirmationURL }}" style="color:#0f766e">tap here to continue</a>.</p>
       <p style="margin:0;font-size:14px;line-height:1.5;color:#475569">Didn't try to book or sign in? Ignore this email. Nothing happens without the code.</p>
     </div>
-    <div style="padding:14px 24px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b">Zeke Car Rental &amp; Services · Cebu, Philippines</div>
+    <div style="padding:14px 24px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b">Zeke's Car Rental &amp; Services · Cebu, Philippines</div>
   </div>
 </div>
