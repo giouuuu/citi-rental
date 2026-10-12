@@ -63,7 +63,6 @@ export async function saveChargeTypeAction(
       name: parsed.data.name,
       // A cleared amount means "type it each time", so store null.
       default_amount: parsed.data.default_amount ?? null,
-      add_to_bookings: parsed.data.add_to_bookings,
       is_active: parsed.data.is_active,
     };
     if (parsed.data.sort_order !== undefined)

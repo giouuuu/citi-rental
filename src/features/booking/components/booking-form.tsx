@@ -62,7 +62,6 @@ import { BookingTermsField } from "@/features/booking/components/booking-terms-f
 import type { AgreementTerms } from "@/features/agreements/lib/agreement-template";
 import { DrivingModeToggle } from "@/features/booking/components/driving-mode-toggle";
 import { HandoverField } from "@/features/booking/components/handover-field";
-import type { BookingFeeLine } from "@/features/booking/lib/booking-fees";
 import {
   type DeliveryFees,
   handoverLabel,
@@ -70,6 +69,10 @@ import {
   parseHandoverMethod,
 } from "@/features/booking/lib/handover";
 import type { DrivingMode } from "@/features/booking/lib/driving-mode";
+import {
+  vehicleBookingFees,
+  vehicleDailyRate,
+} from "@/features/vehicles/lib/driving-mode-pricing";
 import {
   type DriverTerms,
   NO_DRIVER_TERMS,
@@ -191,8 +194,6 @@ type BookingFormProps = {
   deliveryFees?: DeliveryFees | null;
   /** Settings → operating address, shown for an office pick-up or return. */
   officeAddress?: string | null;
-  /** Charge types added to every online booking; in the total. */
-  bookingFees?: BookingFeeLine[];
   initialFullName?: string;
   /** The signed-in account's email; the booking always uses it. */
   initialEmail?: string;
@@ -239,7 +240,6 @@ export function BookingForm({
   driverTerms = null,
   deliveryFees = null,
   officeAddress,
-  bookingFees = [],
   initialFullName,
   initialEmail,
   reservationFee,
@@ -303,15 +303,17 @@ export function BookingForm({
   const emailSuggestion = signedIn ? null : suggestEmailCorrection(emailValue);
   const withDriver = drivingMode === "with-driver";
   const idCopy = idPhotoCopy[drivingMode];
+  // The car's own rate and charges for the driving mode.
+  const dailyRate = vehicleDailyRate(vehicle, withDriver);
   const bill = bookingBill({
-    dailyRate: vehicle.daily_rate,
+    dailyRate,
     start: startAt,
     end: expectedReturnAt,
     withDriver: withDriver ? (driverTerms ?? NO_DRIVER_TERMS) : null,
     pickupMethod,
     returnMethod,
     deliveryFees,
-    bookingFees,
+    bookingFees: vehicleBookingFees(vehicle, withDriver),
     reservationFee,
   });
 
@@ -973,7 +975,7 @@ export function BookingForm({
           <ActionBar
             bill={bill}
             billOpen={billOpen}
-            dailyRate={vehicle.daily_rate}
+            dailyRate={dailyRate}
             onBack={
               step === "trip"
                 ? null

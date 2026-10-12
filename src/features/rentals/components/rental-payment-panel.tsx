@@ -313,7 +313,7 @@ export function RentalPaymentPanel({
           {bill.bookingFees.map((fee) => (
             <BillLine
               amount={formatPhpExact(fee.amount)}
-              detail="Added to every online booking"
+              detail="Added at booking"
               key={fee.name}
               label={fee.name}
             />

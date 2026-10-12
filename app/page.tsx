@@ -41,11 +41,9 @@ import { VehicleListing } from "@/components/landing/vehicle-listing";
 import { Button } from "@/components/ui/button";
 import { BookingReminderCard } from "@/features/booking/components/booking-reminder-card";
 import { bookingFormPath } from "@/features/booking/lib/booking-continue";
-import { bookingFeesTotal as sumBookingFees } from "@/features/booking/lib/booking-fees";
 import { getMyBookingReminder } from "@/features/booking/services/get-my-booking-reminder";
 import {
   getPublicAgreementTemplate,
-  getPublicBookingFees,
   getPublicDriverTerms,
   getPublicFreeCancellationHours,
   getPublicReservationFee,
@@ -147,7 +145,6 @@ export default async function HomePage({
     bookingReminder,
     operatingAddress,
     agreement,
-    bookingFees,
   ] = await Promise.all([
     listPublicAvailableVehicles({
       startDate: trip.start,
@@ -161,11 +158,8 @@ export default async function HomePage({
     getMyBookingReminder(),
     getPublicOperatingAddress(),
     getPublicAgreementTemplate(),
-    getPublicBookingFees(),
   ]);
   const driverDailyRate = driverTerms.dailyRate;
-  // Fees on every booking (the car wash) are quoted inside the car's rent.
-  const bookingFeesTotal = sumBookingFees(bookingFees.bookingFees);
   const contactChannels = buildContactChannels(
     contactValues,
     "Hi Zeke Car Rental & Services! I'd like to ask about renting a car.",
@@ -254,7 +248,6 @@ export default async function HomePage({
             trip: { ...trip, mode: query.mode },
             reservationFee,
             driverDailyRate,
-            bookingFeesTotal,
           },
         ]
       : [],
@@ -377,7 +370,6 @@ export default async function HomePage({
         bookingQuery={bookingQuery}
         initialCategory={query.type}
         key={query.type ?? "all"}
-        bookingFeesTotal={bookingFeesTotal}
         driverDailyRate={driverDailyRate}
         reservationFee={reservationFee}
         trip={trip}

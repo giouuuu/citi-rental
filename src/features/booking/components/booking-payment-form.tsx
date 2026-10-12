@@ -15,7 +15,6 @@ import { formatPhpExact } from "@/features/shared/lib/money";
 import {
   buildRentalBill,
   describeRentLine,
-  withBookingFeesInRent,
 } from "@/features/rentals/lib/rental-bill";
 import {
   type DriverTerms,
@@ -72,7 +71,7 @@ export function BookingPaymentForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   // The trip total split into car, driver and delivery; payments stay off
   // this summary, which shows the fee due and what is left at pick-up.
-  const bill = withBookingFeesInRent(buildRentalBill({
+  const bill = buildRentalBill({
     quotedRates: { daily: booking.quotedDailyRate },
     quotedDays: booking.quotedDays,
     quotedHours: booking.quotedHours,
@@ -81,7 +80,7 @@ export function BookingPaymentForm({
     handover: booking.handover,
     bookingFees: booking.bookingFees,
     payments: [],
-  }));
+  });
   const extraHours =
     bill.driver?.rate != null ? driverExtraHoursLine(driverTerms) : null;
   const itemized =

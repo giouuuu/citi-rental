@@ -36,7 +36,6 @@ import type { CustomerBookingDetail } from "@/features/booking/types/customer-bo
 import {
   describeRentLine,
   rentalBillStatus,
-  withBookingFeesInRent,
 } from "@/features/rentals/lib/rental-bill";
 import {
   type DriverTerms,
@@ -191,7 +190,7 @@ export function AccountBookingDetail({
 }) {
   const { vehicle } = booking;
   // Fees on every booking (the car wash) read as part of the rent.
-  const bill = withBookingFeesInRent(booking.bill);
+  const bill = booking.bill;
   const modelLine = vehicleModelLine(vehicle);
   // Once a car is booked, the bill (charges included) says where payment
   // stands; payment_status alone misses charges added after paying in full.

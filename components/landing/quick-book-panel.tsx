@@ -19,6 +19,10 @@ import {
   parseDrivingMode,
   type DrivingMode,
 } from "@/features/booking/lib/driving-mode";
+import {
+  vehicleBookingFees,
+  vehicleDailyRate,
+} from "@/features/vehicles/lib/driving-mode-pricing";
 import { VehicleRateQuote } from "@/features/vehicles/components/vehicle-rate-quote";
 import type { PublicListedVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 
@@ -40,15 +44,12 @@ export function QuickBookPanel({
   trip,
   reservationFee,
   driverDailyRate,
-  bookingFeesTotal = 0,
   onBook,
 }: {
   vehicle: PublicListedVehicle;
   trip: QuickBookTrip;
   reservationFee?: number | null;
   driverDailyRate?: number | null;
-  /** Fees on every online booking, quoted inside the rent. */
-  bookingFeesTotal?: number;
   /** Close the dialog: the booking step opens as its own modal. */
   onBook: () => void;
 }) {
@@ -125,9 +126,9 @@ export function QuickBookPanel({
 
       <div className="rounded-xl bg-brand-50/70 px-3.5 py-3">
         <VehicleRateQuote
-          bookingFeesTotal={bookingFeesTotal}
+          bookingFees={vehicleBookingFees(vehicle, withDriver)}
           end={end}
-          rates={{ daily: vehicle.daily_rate }}
+          rates={{ daily: vehicleDailyRate(vehicle, withDriver) }}
           reservationFee={reservationFee}
           start={start}
           withDriver={withDriver ? { rate: driverDailyRate ?? null } : null}

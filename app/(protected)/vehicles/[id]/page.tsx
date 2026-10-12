@@ -40,6 +40,8 @@ import {
   type VehicleLoanView,
 } from "@/features/vehicles/components/vehicle-financing-panel";
 import { VehicleWebsiteBadge } from "@/features/vehicles/components/vehicle-website-badge";
+import { VehicleBookingChargesPanel } from "@/features/vehicles/components/vehicle-booking-charges-panel";
+import { listVehicleBookingCharges } from "@/features/vehicles/services/list-vehicle-booking-charges";
 import { listVehicleSwitcher } from "@/features/vehicles/services/list-vehicle-switcher";
 import { VehicleHeaderActions } from "@/features/vehicles/components/vehicle-header-actions";
 import {
@@ -75,7 +77,7 @@ export default async function Page({
   const role = configured ? await getViewerRole() : null;
   const isOwner = role === "owner";
 
-  const [rentals, damages, photos, vehicle, booksResult, expenseReferences, maintenance, expenses, fleet] = await Promise.all([
+  const [rentals, damages, photos, vehicle, booksResult, expenseReferences, maintenance, expenses, fleet, bookingCharges] = await Promise.all([
     configured ? listVehicleRentals(id) : [],
     configured ? listVehicleKnownDamages(id, { includeResolved: true }) : [],
     configured ? listVehiclePhotos(id) : [],
@@ -101,6 +103,7 @@ export default async function Page({
     configured ? getVehicleMaintenance(id) : null,
     configured ? listVehicleExpenses(id) : [],
     configured ? listVehicleSwitcher(id) : [],
+    listVehicleBookingCharges(id),
   ]);
 
   const books = booksResult?.ok ? booksResult.data : null;
@@ -218,7 +221,17 @@ export default async function Page({
               />
             }
             costs={<VehicleCostsPanel expenses={expenses} />}
-            info={form}
+            info={
+              <div className="space-y-6">
+                {form}
+                <VehicleBookingChargesPanel
+                  charges={bookingCharges.charges}
+                  options={bookingCharges.options}
+                  vehicleId={id}
+                  vehicleLabel={vehicleLabel || "vehicle"}
+                />
+              </div>
+            }
             maintenance={
               maintenance === null ? undefined : maintenance.ok ? (
                 <VehicleMaintenancePanel

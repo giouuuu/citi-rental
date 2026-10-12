@@ -3,6 +3,10 @@ import "server-only";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { manilaDateKey } from "@/features/shared/lib/manila-time";
+import {
+  optionalRate,
+  parseVehicleBookingCharges,
+} from "@/features/vehicles/lib/driving-mode-pricing";
 import { VEHICLE_GALLERY_KINDS } from "@/features/vehicles/lib/vehicle-gallery";
 import type {
   PublicFleetVehicle,
@@ -22,6 +26,8 @@ type PublicFleetVehicleRow = {
   seating_capacity: number | null;
   photo_url: string | null;
   daily_rate: number | string;
+  with_driver_daily_rate?: number | string | null;
+  booking_charges?: unknown;
   // Optional until the showcase-image migration reaches the database.
   color?: string | null;
   showcase_image_url?: string | null;
@@ -83,6 +89,8 @@ export async function listPublicAvailableVehicles(
     seating_capacity: row.seating_capacity,
     photo_url: row.photo_url,
     daily_rate: Number(row.daily_rate),
+    with_driver_daily_rate: optionalRate(row.with_driver_daily_rate),
+    booking_charges: parseVehicleBookingCharges(row.booking_charges),
     color: row.color ?? null,
     showcase_image_url: row.showcase_image_url ?? null,
     gallery: galleries.get(row.id) ?? [],

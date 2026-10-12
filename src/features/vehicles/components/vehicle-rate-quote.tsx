@@ -1,4 +1,8 @@
 import { cn } from "@/lib/utils";
+import {
+  type BookingFeeLine,
+  bookingFeesTotal,
+} from "@/features/booking/lib/booking-fees";
 import { describeBilledTime, type RentRates } from "@/features/rentals/lib/rent-pricing";
 import {
   formatPhp,
@@ -17,8 +21,8 @@ type VehicleRateQuoteProps = {
   withDriver?: { rate: number | null } | null;
   /** Delivery plus collection fees, already summed. */
   delivery?: number;
-  /** Fees added to every online booking (the car wash), quoted inside the car's rent. */
-  bookingFeesTotal?: number;
+  /** The car's charges for the driving mode (vehicleBookingFees). */
+  bookingFees?: BookingFeeLine[];
   className?: string;
   /** Extra classes for the daily price figure, e.g. a larger display size. */
   priceClassName?: string;
@@ -31,7 +35,7 @@ export function VehicleRateQuote({
   reservationFee,
   withDriver,
   delivery = 0,
-  bookingFeesTotal = 0,
+  bookingFees = [],
   className,
   priceClassName,
 }: VehicleRateQuoteProps) {
@@ -41,15 +45,16 @@ export function VehicleRateQuote({
     end,
     withDriver,
     delivery,
-    bookingFeesTotal,
+    bookingFeesTotal(bookingFees),
   );
   const parts = quote
     ? [
-        `Car ${formatPhp(quote.rent.total + quote.fees)}`,
+        `Car ${formatPhp(quote.rent.total)}`,
         quote.driver?.rate != null
           ? `driver ${formatPhp(quote.driver.rate)} × ${quote.driver.days} ${quote.driver.days === 1 ? "day" : "days"}`
           : null,
         quote.delivery > 0 ? `delivery ${formatPhp(quote.delivery)}` : null,
+        ...bookingFees.map((fee) => `${fee.name.toLowerCase()} ${formatPhp(fee.amount)}`),
       ].filter(Boolean)
     : [];
   const deposit =

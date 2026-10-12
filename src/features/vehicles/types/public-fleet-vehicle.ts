@@ -1,3 +1,10 @@
+/** A charge added to every online booking of a car in one driving mode. */
+export type VehicleBookingCharge = {
+  name: string;
+  amount: number;
+  driving_mode: "self_drive" | "with_driver";
+};
+
 export type PublicFleetVehicle = {
   id: string;
   name: string;
@@ -9,8 +16,12 @@ export type PublicFleetVehicle = {
   fuel_type: "gasoline" | "diesel" | "hybrid" | "electric" | "other" | null;
   seating_capacity: number | null;
   photo_url: string | null;
-  /** Base daily rental rate in PHP. */
+  /** Self-drive rate per 24 hours in PHP. */
   daily_rate: number;
+  /** Rate per 24 hours on a with-driver trip, before the driver; null: daily_rate. */
+  with_driver_daily_rate: number | null;
+  /** Charges added to every online booking of this car, per driving mode. */
+  booking_charges: VehicleBookingCharge[];
   color: string | null;
   /** Front-view cutout for the landing-page hero; null when none was uploaded. */
   showcase_image_url: string | null;

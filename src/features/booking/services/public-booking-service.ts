@@ -15,6 +15,10 @@ import type {
 } from "@/features/booking/types/booking-payment";
 import type { PublicFleetVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 import {
+  optionalRate,
+  parseVehicleBookingCharges,
+} from "@/features/vehicles/lib/driving-mode-pricing";
+import {
   notifyOwnerTelegram,
   siteUrl,
 } from "@/features/booking/lib/notify-owner-telegram";
@@ -28,10 +32,7 @@ import {
   AGREEMENT_TEMPLATE_VERSION,
 } from "@/features/agreements/lib/agreement-template";
 import { parseAgreementTemplate } from "@/features/agreements/schemas/agreement-template-schema";
-import {
-  type BookingFeeLine,
-  parseBookingFees,
-} from "@/features/booking/lib/booking-fees";
+import { parseBookingFees } from "@/features/booking/lib/booking-fees";
 import {
   type DeliveryFees,
   handoverBillLine,
@@ -175,20 +176,11 @@ export type PublicBookingFees = {
   delivery: DeliveryFees;
   /** Settings → operating address, where office pick-ups happen. */
   officeAddress: string | null;
-  /** Charge types → Car wash default amount; charged if returned unwashed. */
-  carWashFee: number | null;
-  /** The wash is charged on every booking, so the car can come back unwashed. */
-  carWashIncluded: boolean;
-  /** Charge types ticked "Add to every online booking". */
-  bookingFees: BookingFeeLine[];
 };
 
 const NO_BOOKING_FEES: PublicBookingFees = {
   delivery: { withinCity: null, outsideCity: null },
   officeAddress: null,
-  carWashFee: null,
-  carWashIncluded: false,
-  bookingFees: [],
 };
 
 /** The fees a customer sees while booking. Cached per request. */
@@ -210,9 +202,6 @@ export const getPublicBookingFees = cache(
       },
       officeAddress:
         typeof row.office_address === "string" ? row.office_address : null,
-      carWashFee: optionalNum(row.car_wash_fee),
-      carWashIncluded: row.car_wash_included === true,
-      bookingFees: parseBookingFees(row.booking_fees),
     };
   },
 );
@@ -285,6 +274,8 @@ export const getPublicVehicle = cache(async function getPublicVehicle(
     seating_capacity: row.seating_capacity,
     photo_url: row.photo_url,
     daily_rate: Number(row.daily_rate),
+    with_driver_daily_rate: optionalRate(row.with_driver_daily_rate),
+    booking_charges: parseVehicleBookingCharges(row.booking_charges),
     color: row.color ?? null,
     showcase_image_url: row.showcase_image_url ?? null,
     status: row.status,

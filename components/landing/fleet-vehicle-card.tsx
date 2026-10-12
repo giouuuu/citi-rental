@@ -16,6 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { bookingFormPath } from "@/features/booking/lib/booking-continue";
 import { VehicleRateQuote } from "@/features/vehicles/components/vehicle-rate-quote";
+import {
+  vehicleBookingFees,
+  vehicleDailyRate,
+} from "@/features/vehicles/lib/driving-mode-pricing";
 import { vehicleModelLine } from "@/features/vehicles/lib/vehicle-model-line";
 import type { PublicListedVehicle } from "@/features/vehicles/types/public-fleet-vehicle";
 import { cn } from "@/lib/utils";
@@ -55,8 +59,6 @@ type FleetVehicleCardProps = {
   reservationFee?: number | null;
   /** Settings → driver day rate, for the with-driver quote. */
   driverDailyRate?: number | null;
-  /** Fees on every online booking, quoted inside the rent. */
-  bookingFeesTotal?: number;
 };
 
 export function FleetVehicleCard({
@@ -64,7 +66,6 @@ export function FleetVehicleCard({
   bookingQuery,
   reservationFee,
   driverDailyRate,
-  bookingFeesTotal,
 }: FleetVehicleCardProps) {
   // Lifted above its neighbours while the photo is in (or flying back from) the gallery.
   const [raised, setRaised] = useState(false);
@@ -79,6 +80,8 @@ export function FleetVehicleCard({
     mode: query.mode,
   };
   const hasTripDates = Boolean(tripQuery.start && tripQuery.end);
+  // The landing search's driving choice prices the card.
+  const withDriver = tripQuery.mode === "with-driver";
   const coverUrl = vehicle.photo_url ?? vehicle.gallery[0]?.url ?? null;
   const href = bookingFormPath(vehicle.id, tripQuery);
   const photoLayoutId = `fleet-photo-${vehicle.id}`;
@@ -112,7 +115,6 @@ export function FleetVehicleCard({
       {coverUrl && vehicle.gallery.length ? (
         <VehicleGalleryDialog
           cover={{ src: coverUrl, sizes: PHOTO_SIZES }}
-          bookingFeesTotal={bookingFeesTotal}
           driverDailyRate={driverDailyRate}
           layoutId={photoLayoutId}
           onExitComplete={() => setRaised(false)}
@@ -183,13 +185,14 @@ export function FleetVehicleCard({
 
         <div className="mt-auto flex items-end justify-between gap-4 pt-5">
           <VehicleRateQuote
+            bookingFees={vehicleBookingFees(vehicle, withDriver)}
             className="min-w-0"
             end={tripQuery.end}
-            rates={{ daily: vehicle.daily_rate }}
+            rates={{ daily: vehicleDailyRate(vehicle, withDriver) }}
             priceClassName="font-display text-xl tracking-[-0.015em]"
-            bookingFeesTotal={bookingFeesTotal}
             reservationFee={reservationFee}
             start={tripQuery.start}
+            withDriver={withDriver ? { rate: driverDailyRate ?? null } : null}
           />
           <Button asChild className="shrink-0" size="lg">
             <Link href={href}>Book this car</Link>

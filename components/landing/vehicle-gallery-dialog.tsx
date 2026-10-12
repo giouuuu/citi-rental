@@ -37,8 +37,6 @@ type VehicleGalleryDialogProps = {
   reservationFee?: number | null;
   /** Settings → driver day rate, for the with-driver quote. */
   driverDailyRate?: number | null;
-  /** Fees on every online booking, quoted inside the rent. */
-  bookingFeesTotal?: number;
   /**
    * The opener's photo frame `layoutId`. When set, the stage morphs out of
    * that frame and back into it on close; otherwise it fades and scales in.
@@ -75,7 +73,6 @@ export function VehicleGalleryDialog({
   trip,
   reservationFee,
   driverDailyRate,
-  bookingFeesTotal,
   layoutId,
   cover,
   onOpenChange,
@@ -103,7 +100,6 @@ export function VehicleGalleryDialog({
           {open ? (
             <GalleryBody
               cover={cover}
-              bookingFeesTotal={bookingFeesTotal}
               driverDailyRate={driverDailyRate}
               index={index}
               key="gallery"
@@ -126,7 +122,6 @@ function GalleryBody({
   trip,
   reservationFee,
   driverDailyRate,
-  bookingFeesTotal,
   layoutId,
   cover,
   index,
@@ -339,7 +334,6 @@ function GalleryBody({
             </DialogPrimitive.Description>
             <div className="mt-4">
               <QuickBookPanel
-                bookingFeesTotal={bookingFeesTotal}
                 driverDailyRate={driverDailyRate}
                 onBook={onClose}
                 reservationFee={reservationFee}

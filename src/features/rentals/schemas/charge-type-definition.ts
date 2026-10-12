@@ -15,25 +15,16 @@ export const chargeTypeDefinition: ResourceDefinition = {
   titleField: "name",
   searchColumn: "name",
   description:
-    "Fees staff can add to a rental bill, such as car wash, delivery, extension, or other income. Tick “Add to every online booking” to charge one on each booking automatically.",
+    "Fees staff can add to a rental bill, such as car wash, delivery, extension, or other income. To charge one on every online booking of a car, add it under that car's Booking charges.",
   writeRoles: ["owner", "admin"],
   archive: { field: "is_active", value: false, label: "Archive charge type" },
   parent: { label: "Settings", href: "/settings" },
-  schema: z
-    .object({
-      name: requiredText("Name", 80),
-      default_amount: optionalNumber(0),
-      sort_order: optionalNumber(0).pipe(z.number().int().max(999).optional()),
-      add_to_bookings: z.boolean().default(false),
-      is_active: z.boolean().default(true),
-    })
-    .refine(
-      (value) => !value.add_to_bookings || (value.default_amount ?? 0) > 0,
-      {
-        path: ["default_amount"],
-        message: "Set the amount to add it to every booking.",
-      },
-    ),
+  schema: z.object({
+    name: requiredText("Name", 80),
+    default_amount: optionalNumber(0),
+    sort_order: optionalNumber(0).pipe(z.number().int().max(999).optional()),
+    is_active: z.boolean().default(true),
+  }),
   fields: [
     {
       name: "name",
@@ -57,32 +48,23 @@ export const chargeTypeDefinition: ResourceDefinition = {
       description: "Lower numbers show first.",
     },
     {
-      name: "add_to_bookings",
-      label: "Add to every online booking",
-      type: "checkbox",
-      description:
-        "Charged on each new online booking at the default amount. Customers see it in their total and bill before they pay. Bookings already made keep their price.",
-      className: "md:col-span-2",
-    },
-    {
       name: "is_active",
       label: "Active",
       type: "checkbox",
       description:
-        "Untick to hide it from Add charge and from new bookings. Past bills keep it.",
+        "Untick to hide it from Add charge and from cars' booking charges. Past bills keep it.",
       className: "md:col-span-2",
     },
   ],
   columns: [
     { key: "name", label: "Charge" },
     { key: "default_amount", label: "Default amount", format: "money" },
-    { key: "add_to_bookings", label: "Every booking", format: "boolean" },
     { key: "is_active", label: "Active", format: "boolean" },
     { key: "updated_at", label: "Last updated", format: "datetime" },
   ],
   demoRows: [
-    { id: "demo-charge-car-wash", name: "Car wash", default_amount: 300, add_to_bookings: false, is_active: true, updated_at: "2026-10-09T02:00:00Z" },
-    { id: "demo-charge-delivery", name: "Delivery", default_amount: 500, add_to_bookings: false, is_active: true, updated_at: "2026-10-09T02:00:00Z" },
-    { id: "demo-charge-other", name: "Other income", default_amount: null, add_to_bookings: false, is_active: true, updated_at: "2026-10-09T02:00:00Z" },
+    { id: "demo-charge-car-wash", name: "Car wash", default_amount: 300, is_active: true, updated_at: "2026-10-09T02:00:00Z" },
+    { id: "demo-charge-delivery", name: "Delivery", default_amount: 500, is_active: true, updated_at: "2026-10-09T02:00:00Z" },
+    { id: "demo-charge-other", name: "Other income", default_amount: null, is_active: true, updated_at: "2026-10-09T02:00:00Z" },
   ],
 };

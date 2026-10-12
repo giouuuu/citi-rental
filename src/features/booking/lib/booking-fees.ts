@@ -1,7 +1,7 @@
 /**
- * Fees the owner adds to every online booking (Settings → Charge types →
- * "Add to every online booking"). A booking keeps the fees it was made with,
- * in rentals.booking_fees; their sum is inside quoted_total.
+ * Charges added to every online booking of a car in its driving mode
+ * (Fleet → vehicle → Booking charges). A booking keeps the fees it was made
+ * with, in rentals.booking_fees; their sum is inside quoted_total.
  */
 export type BookingFeeLine = { name: string; amount: number };
 
@@ -22,12 +22,3 @@ export function bookingFeesTotal(lines: BookingFeeLine[]): number {
   return Math.round(lines.reduce((sum, line) => sum + line.amount, 0) * 100) / 100;
 }
 
-/** "₱300 car wash", joined with " + ": the fees inside the rent, on its detail. */
-export function describeBookingFees(
-  lines: BookingFeeLine[],
-  format: (amount: number) => string,
-): string {
-  return lines
-    .map((line) => `${format(line.amount)} ${line.name.toLowerCase()}`)
-    .join(" + ");
-}

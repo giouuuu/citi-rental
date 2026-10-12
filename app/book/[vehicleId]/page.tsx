@@ -151,7 +151,6 @@ export default async function BookVehiclePage({
       <BookingWorkspace
         agreementTerms={agreementTerms}
         bookedRanges={bookedRanges}
-        bookingFees={bookingFees.bookingFees}
         deliveryFees={bookingFees.delivery}
         driverTerms={driverTerms}
         fleet={fleet}

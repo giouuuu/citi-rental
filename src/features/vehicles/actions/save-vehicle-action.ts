@@ -36,6 +36,7 @@ export async function saveVehicleAction(
     fuel_type: formData.get("fuel_type") || undefined,
     seating_capacity: formData.get("seating_capacity") || undefined,
     daily_rate: formData.get("daily_rate") ?? undefined,
+    with_driver_daily_rate: formData.get("with_driver_daily_rate") || undefined,
     half_day_rate: formData.get("half_day_rate") || undefined,
     hourly_rate: formData.get("hourly_rate") || undefined,
     current_odometer: formData.get("current_odometer") || undefined,
@@ -78,6 +79,7 @@ export async function saveVehicleAction(
     Object.entries(parsed.data).filter(([, value]) => value !== undefined),
   );
   // A cleared optional rate is saved as "none", not left as it was.
+  payload.with_driver_daily_rate = parsed.data.with_driver_daily_rate ?? null;
   payload.half_day_rate = parsed.data.half_day_rate ?? null;
   payload.hourly_rate = parsed.data.hourly_rate ?? null;
   // Cleared back to Automatic: the calendar assigns a palette colour.

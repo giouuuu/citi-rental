@@ -19,7 +19,7 @@ describe("bookingBill", () => {
     expect(bookingBill({ ...base, end: "" })).toBeNull();
   });
 
-  it("bills the days with the booking fees inside, and a delivery each way", () => {
+  it("bills the days, a delivery each way, and the car's charges as their own lines", () => {
     const bill = bookingBill({
       ...base,
       pickupMethod: "within_city",
@@ -27,12 +27,13 @@ describe("bookingBill", () => {
       bookingFees: [{ name: "Car wash", amount: 250 }],
     });
     expect(bill?.lines.map((line) => [line.key, line.amount])).toEqual([
-      ["rent", 7150],
+      ["rent", 6900],
       ["pickup", 300],
       ["return", 300],
+      ["fee-Car wash", 250],
     ]);
-    expect(bill?.lines[0]?.label).toBe("Car rental · 3 days");
-    expect(bill?.lines[0]?.detail).toBe("₱2,300 × 3 days + ₱250 car wash");
+    expect(bill?.lines[0]?.label).toBe("₱2,300 × 3 days");
+    expect(bill?.lines[3]?.label).toBe("Car wash");
     expect(bill?.quote.total).toBe(7750);
     expect(bill?.deposit).toBe(500);
   });
@@ -66,18 +67,17 @@ describe("bookingBill", () => {
     expect(bill?.quote.total).toBe(9900);
   });
 
-  it("bills the Vios with a driver as rent with the wash, plus the driver's 10 hours", () => {
+  it("bills the Vios with a driver at its with-driver rate, plus the driver's 10 hours", () => {
     const bill = bookingBill({
       ...base,
-      dailyRate: 1500,
+      dailyRate: 1800,
       end: "2026-10-14T19:00",
       withDriver: { dailyRate: 1500, hoursPerDay: 10, overtimeRate: 250 },
-      bookingFees: [{ name: "Car wash", amount: 300 }],
     });
     expect(
       bill?.lines.map((line) => [line.label, line.detail, line.amountText ?? line.amount]),
     ).toEqual([
-      ["Car rental · 1 day", "₱1,500 × 1 day + ₱300 car wash", 1800],
+      ["₱1,800 × 1 day", "Car rental", 1800],
       ["Driver (1 day)", "₱1,500 / 10 hours of driving", 1500],
       [
         "Extra driving hours",
