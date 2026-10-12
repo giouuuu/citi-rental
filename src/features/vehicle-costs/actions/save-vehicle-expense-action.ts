@@ -61,9 +61,13 @@ export async function saveVehicleExpenseAction(
 
     const idValue = formData.get("__id");
     const id = typeof idValue === "string" && idValue ? idValue : undefined;
-    const payload = Object.fromEntries(
-      Object.entries(parsed.data).filter(([, value]) => value !== undefined),
-    );
+    const payload = {
+      ...Object.fromEntries(
+        Object.entries(parsed.data).filter(([, value]) => value !== undefined),
+      ),
+      // Clearing the rental on edit untags it (and voids its Finance row).
+      rental_id: parsed.data.rental_id ?? null,
+    };
 
     let savedId: string;
     let previousReceiptPath: string | null = null;
@@ -91,9 +95,15 @@ export async function saveVehicleExpenseAction(
     }
 
     if (receiptFile) {
+      // A blank vehicle took the rental's car in the database.
+      const { data: saved } = await supabase
+        .from("vehicle_expenses")
+        .select("vehicle_id")
+        .eq("id", savedId)
+        .single();
       const path = await uploadExpenseReceipt({
         supabase,
-        vehicleId: String(parsed.data.vehicle_id),
+        vehicleId: String(saved?.vehicle_id ?? parsed.data.vehicle_id),
         file: receiptFile,
       });
       const { error: receiptError } = await supabase
@@ -113,6 +123,11 @@ export async function saveVehicleExpenseAction(
 
     revalidateResource("/expenses");
     revalidateResource("/vehicles");
+    // Rental-tagged costs also land on the rental's bill and in Finance.
+    if (payload.rental_id || id) {
+      revalidateResource("/rentals");
+      revalidateResource("/finance");
+    }
     return {
       success: true,
       data: {
@@ -123,9 +138,10 @@ export async function saveVehicleExpenseAction(
   } catch (error) {
     return {
       success: false,
+      // Supabase errors are plain objects, not Error instances.
       message:
-        error instanceof Error
-          ? error.message
+        error && typeof error === "object" && "message" in error && String(error.message)
+          ? String(error.message)
           : "The expense could not be saved.",
     };
   }

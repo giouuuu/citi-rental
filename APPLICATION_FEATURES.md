@@ -297,6 +297,13 @@ Business rules:
 - Any expense can be tagged to a rental in /finance (Rental picker, by reference number); a
   blank Vehicle takes the rental's car. A cost entered on a rental's bill cannot be moved to
   another rental from /finance.
+- A vehicle expense (Expenses page) can be tagged to a rental the same way. Tagged, it also
+  writes a Finance expense (`expenses.vehicle_expense_id`), filed under its category's BIR line
+  (`vehicle_expense_categories.expense_category_id`, else Miscellaneous), so the car wash or
+  delivery it paid for cancels that income on the statement. The vehicle expense is the source:
+  edits follow to Finance, and untagging or deleting it voids the Finance row
+  (`20261122090000_vehicle_expense_rental_finance.sql`). The rental's bill lists it and links
+  to it; "Add an expense for this rental" opens Expenses with the rental picked.
 - A blocked customer cannot start a new rental.
 - Every transition validates the current state on the server. Disabling a button is a hint;
   the action and the database re-validate.

@@ -3,10 +3,12 @@ import { z } from "zod";
 import {
   optionalNumber,
   optionalText,
+  optionalUuid,
   requiredNumber,
   requiredText,
 } from "@/features/shared/schemas/schema-helpers";
 import type { ResourceDefinition } from "@/features/shared/types/resource";
+import { RENTAL_EXPENSE_REFERENCE } from "@/features/rentals/schemas/rental-expense-reference";
 
 export const vehicleExpenseDefinition: ResourceDefinition = {
   key: "expense",
@@ -29,6 +31,7 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
   // should actually select.
   detailColumns: [
     "id",
+    "rental_id",
     "vehicle_id",
     "category_id",
     "amount",
@@ -39,27 +42,42 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
     "receipt_path",
     "notes",
   ],
-  schema: z.object({
-    vehicle_id: z.uuid("Select a vehicle."),
-    category_id: z.uuid("Select a category."),
-    amount: requiredNumber("Amount", 0.01),
-    incurred_on: requiredText("Date", 40),
-    odometer_km: optionalNumber(0),
-    vendor: optionalText(120),
-    reference: optionalText(120),
-    notes: optionalText(4000),
-  }),
+  schema: z
+    .object({
+      rental_id: optionalUuid,
+      vehicle_id: optionalUuid,
+      category_id: z.uuid("Select a category."),
+      amount: requiredNumber("Amount", 0.01),
+      incurred_on: requiredText("Date", 40),
+      odometer_km: optionalNumber(0),
+      vendor: optionalText(120),
+      reference: optionalText(120),
+      notes: optionalText(4000),
+    })
+    .refine((value) => value.vehicle_id || value.rental_id, {
+      message: "Select a vehicle, or pick the rental it was for.",
+      path: ["vehicle_id"],
+    }),
   fields: [
+    {
+      name: "rental_id",
+      label: "Rental",
+      type: "select",
+      reference: RENTAL_EXPENSE_REFERENCE,
+      description:
+        "Optional. Type the reference number when this cost was for one booking, like its car wash or delivery. It also goes to Finance as an expense for that rental, so don't enter it there again.",
+    },
     {
       name: "vehicle_id",
       label: "Vehicle",
       type: "select",
-      required: true,
       reference: {
         table: "vehicles",
         labelColumn: "plate_number",
         secondaryColumn: "name",
       },
+      description:
+        "Leave it blank when you pick a rental: it takes the rental's car.",
     },
     {
       name: "category_id",
@@ -117,6 +135,14 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
   ],
   filters: [
     {
+      param: "rental",
+      column: "rental_id",
+      op: "eq",
+      label: "Rental",
+      picker: true,
+      reference: RENTAL_EXPENSE_REFERENCE,
+    },
+    {
       param: "category",
       column: "category_id",
       op: "eq",
@@ -135,6 +161,11 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
     { key: "amount", label: "Amount", format: "number" },
     { key: "vendor", label: "Vendor" },
     { key: "reference", label: "Reference" },
+    {
+      key: "rental_reference",
+      label: "Rental",
+      reference: { table: "rentals", column: "reference_number" },
+    },
   ],
   demoRows: [
     {

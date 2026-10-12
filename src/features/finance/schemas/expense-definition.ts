@@ -9,6 +9,7 @@ import {
 } from "@/features/shared/schemas/schema-helpers";
 import type { ResourceDefinition } from "@/features/shared/types/resource";
 import { optionalTin, requiredDate } from "@/features/finance/schemas/finance-schema-helpers";
+import { RENTAL_EXPENSE_REFERENCE } from "@/features/rentals/schemas/rental-expense-reference";
 
 const DOCUMENT_TYPE_VALUES = [
   "vat_invoice",
@@ -38,14 +39,6 @@ export const PAYMENT_METHODS: { value: (typeof PAYMENT_METHOD_VALUES)[number]; l
   { value: "check", label: "Check" },
   { value: "other", label: "Other" },
 ];
-
-/** Rentals in pickers: newest first, "WEB-… · customer · plate · start date". */
-const RENTAL_REFERENCE = {
-  table: "rental_expense_options",
-  labelColumn: "reference_number",
-  secondaryColumn: "summary",
-  orderBy: { column: "start_at", ascending: false },
-};
 
 const lockedUnlessWithholding = {
   field: "withholding_required",
@@ -91,7 +84,7 @@ export const expenseDefinition: ResourceDefinition = {
       op: "eq",
       label: "Rental",
       picker: true,
-      reference: RENTAL_REFERENCE,
+      reference: RENTAL_EXPENSE_REFERENCE,
     },
     { param: "from", column: "expense_date", op: "gte", label: "From", showValue: true },
     { param: "to", column: "expense_date", op: "lte", label: "To", showValue: true },
@@ -180,7 +173,7 @@ export const expenseDefinition: ResourceDefinition = {
       name: "rental_id",
       label: "Rental",
       type: "select",
-      reference: RENTAL_REFERENCE,
+      reference: RENTAL_EXPENSE_REFERENCE,
       description:
         "Optional. Type the reference number to tie a cost to one booking, like the car wash or delivery you paid for. Blank Vehicle takes the rental's car.",
     },

@@ -11,6 +11,8 @@ export type RentalCost = {
   paymentId: string | null;
   /** The bill line this is the cost of: `pickup`, `return` or `fee:<charge type id>`. */
   line: string | null;
+  /** The vehicle expense (Expenses page) it was written from, when tagged there. */
+  vehicleExpenseId: string | null;
   description: string;
   category: string;
   amount: number;
@@ -124,6 +126,7 @@ export function parseRentalCosts(value: unknown): RentalCosts {
           expenseId,
           paymentId: text(entry.payment_id),
           line: text(entry.line),
+          vehicleExpenseId: text(entry.vehicle_expense_id),
           description: text(entry.description) ?? "Expense",
           category: text(entry.category) ?? "",
           amount,
@@ -132,4 +135,10 @@ export function parseRentalCosts(value: unknown): RentalCosts {
       ];
     }),
   };
+}
+
+/** Where a cost opens: its vehicle expense, else its Finance row for the owner. */
+export function rentalCostHref(cost: RentalCost, canOpenFinance: boolean): string | null {
+  if (cost.vehicleExpenseId) return `/expenses/${cost.vehicleExpenseId}`;
+  return canOpenFinance ? `/finance/expenses/${cost.expenseId}` : null;
 }

@@ -6,6 +6,7 @@ import type { RentalPayment } from "@/features/rentals/types/rental-payment";
 import {
   costableLines,
   parseRentalCosts,
+  rentalCostHref,
   type RentalCost,
   summarizeRentalCosts,
 } from "./rental-costs";
@@ -38,6 +39,7 @@ function cost(overrides: Partial<RentalCost>): RentalCost {
     expenseId: crypto.randomUUID(),
     paymentId: null,
     line: null,
+    vehicleExpenseId: null,
     description: "Expense",
     category: "Miscellaneous",
     amount: 0,
@@ -128,6 +130,7 @@ describe("parseRentalCosts", () => {
             expense_id: "e1",
             payment_id: null,
             line: "pickup",
+            vehicle_expense_id: null,
             description: "Delivery · WEB-1",
             category: "Transportation and travel",
             amount: "250.00",
@@ -143,6 +146,7 @@ describe("parseRentalCosts", () => {
           expenseId: "e1",
           paymentId: null,
           line: "pickup",
+          vehicleExpenseId: null,
           description: "Delivery · WEB-1",
           category: "Transportation and travel",
           amount: 250,
@@ -154,5 +158,16 @@ describe("parseRentalCosts", () => {
 
   it("is empty for anyone the RPC refuses", () => {
     expect(parseRentalCosts(null)).toEqual({ costs: [], canOpenFinance: false });
+  });
+});
+
+describe("rentalCostHref", () => {
+  it("opens a cost from Expenses there, for owners and admins", () => {
+    expect(rentalCostHref(cost({ expenseId: "e1", vehicleExpenseId: "v1" }), false)).toBe("/expenses/v1");
+  });
+
+  it("opens other costs in Finance, for the owner only", () => {
+    expect(rentalCostHref(cost({ expenseId: "e1" }), true)).toBe("/finance/expenses/e1");
+    expect(rentalCostHref(cost({ expenseId: "e1" }), false)).toBeNull();
   });
 });

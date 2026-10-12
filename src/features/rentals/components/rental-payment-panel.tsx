@@ -42,6 +42,7 @@ import {
 import {
   costableLines,
   costFor,
+  rentalCostHref,
   type RentalCosts,
   summarizeRentalCosts,
 } from "@/features/rentals/lib/rental-costs";
@@ -440,7 +441,7 @@ export function RentalPaymentPanel({
             label="Balance"
             strong
           />
-          {costSummary || costs.canOpenFinance ? (
+          {costSummary || canAddCharges ? (
             <div className="mt-2 space-y-1 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
               {costSummary && costSummary.charged > 0 ? (
                 <p className="tabular-nums">
@@ -460,45 +461,44 @@ export function RentalPaymentPanel({
                     </span>
                   </p>
                   <ul className="mt-0.5 space-y-0.5">
-                    {costSummary.other.map((cost) => (
-                      <li
-                        className="flex items-start justify-between gap-3"
-                        key={cost.expenseId}
-                      >
-                        {costs.canOpenFinance ? (
-                          <Link
-                            className="min-w-0 break-words underline-offset-2 hover:text-brand-950 hover:underline"
-                            href={`/finance/expenses/${cost.expenseId}`}
-                          >
-                            {cost.description}
-                          </Link>
-                        ) : (
-                          <span className="min-w-0 break-words">
-                            {cost.description}
+                    {costSummary.other.map((cost) => {
+                      const href = rentalCostHref(cost, costs.canOpenFinance);
+                      return (
+                        <li
+                          className="flex items-start justify-between gap-3"
+                          key={cost.expenseId}
+                        >
+                          {href ? (
+                            <Link
+                              className="min-w-0 break-words underline-offset-2 hover:text-brand-950 hover:underline"
+                              href={href}
+                            >
+                              {cost.description}
+                            </Link>
+                          ) : (
+                            <span className="min-w-0 break-words">
+                              {cost.description}
+                            </span>
+                          )}
+                          <span className="shrink-0 tabular-nums">
+                            {formatPhpExact(cost.amount)}
                           </span>
-                        )}
-                        <span className="shrink-0 tabular-nums">
-                          {formatPhpExact(cost.amount)}
-                        </span>
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ) : null}
               <p>
                 Costs are recorded as expenses in Finance. They are not on the
                 renter&apos;s bill.
-                {costs.canOpenFinance ? (
-                  <>
-                    {" "}
-                    <Link
-                      className="font-medium text-brand-950 underline-offset-2 hover:underline"
-                      href={`/finance/expenses/new?rental_id=${rentalId}`}
-                    >
-                      Add a cost in Finance
-                    </Link>
-                  </>
-                ) : null}
+                {" "}
+                <Link
+                  className="font-medium text-brand-950 underline-offset-2 hover:underline"
+                  href={`/expenses/new?rental_id=${rentalId}`}
+                >
+                  Add an expense for this rental
+                </Link>
               </p>
             </div>
           ) : null}
