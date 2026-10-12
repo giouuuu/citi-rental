@@ -39,6 +39,14 @@ export const PAYMENT_METHODS: { value: (typeof PAYMENT_METHOD_VALUES)[number]; l
   { value: "other", label: "Other" },
 ];
 
+/** Rentals in pickers: newest first, "WEB-… · customer · plate · start date". */
+const RENTAL_REFERENCE = {
+  table: "rental_expense_options",
+  labelColumn: "reference_number",
+  secondaryColumn: "summary",
+  orderBy: { column: "start_at", ascending: false },
+};
+
 const lockedUnlessWithholding = {
   field: "withholding_required",
   values: ["false", ""],
@@ -77,6 +85,14 @@ export const expenseDefinition: ResourceDefinition = {
       picker: true,
       reference: { table: "vehicles", labelColumn: "plate_number", secondaryColumn: "name" },
     },
+    {
+      param: "rental",
+      column: "rental_id",
+      op: "eq",
+      label: "Rental",
+      picker: true,
+      reference: RENTAL_REFERENCE,
+    },
     { param: "from", column: "expense_date", op: "gte", label: "From", showValue: true },
     { param: "to", column: "expense_date", op: "lte", label: "To", showValue: true },
     {
@@ -96,6 +112,7 @@ export const expenseDefinition: ResourceDefinition = {
       gross_amount: requiredNumber("Amount paid", 0.01),
       input_vat: optionalNumber(0).default(0),
       vehicle_id: optionalUuid,
+      rental_id: optionalUuid,
       supplier_name: optionalText(200),
       supplier_tin: optionalTin,
       supplier_vat_registered: z.boolean(),
@@ -158,6 +175,14 @@ export const expenseDefinition: ResourceDefinition = {
       type: "select",
       reference: { table: "vehicles", labelColumn: "plate_number", secondaryColumn: "name" },
       description: "Optional. Tags the cost to one unit for per-vehicle margin.",
+    },
+    {
+      name: "rental_id",
+      label: "Rental",
+      type: "select",
+      reference: RENTAL_REFERENCE,
+      description:
+        "Optional. Type the reference number to tie a cost to one booking, like the car wash or delivery you paid for. Blank Vehicle takes the rental's car.",
     },
     {
       name: "payment_method",
@@ -224,6 +249,7 @@ export const expenseDefinition: ResourceDefinition = {
     "gross_amount",
     "input_vat",
     "vehicle_id",
+    "rental_id",
     "payment_method",
     "supplier_name",
     "supplier_tin",

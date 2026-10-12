@@ -82,7 +82,8 @@ count=0
 for f in "$ROOT"/supabase/migrations/*.sql; do
   base="$(basename "$f")"
   printf '    %s\n' "$base"
-  run_sql postgres "$f" >/dev/null
+  # One transaction per file, as hosted migrations run (`on commit drop` temp tables).
+  run_sql postgres "$f" --single-transaction >/dev/null
   count=$((count + 1))
 done
 echo "    $count migrations applied"

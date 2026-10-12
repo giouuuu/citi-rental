@@ -259,9 +259,12 @@ Features:
 - Add optional charges from the owner-maintained charge types (Settings → Charge types):
   car wash, delivery, extension, fuel shortage, damage, other income. Owners/admins can
   remove a charge.
-- Record what a charge cost the business (e.g. ₱300 paid to the delivery driver on a ₱500
-  delivery charge), when adding it or later from the charge's cost button. The bill shows
-  charges, costs paid out, and what you keep. Owners and admins only.
+- Record what a bill line cost the business (e.g. ₱300 paid to the delivery driver on a ₱500
+  delivery charge), from the receipt button on the line: charges, the delivery and collection
+  legs chosen at booking, and booking fees such as the car wash. Charges can also take it when
+  added. The bill shows those lines, costs paid out, and what you keep, plus any other costs
+  tagged to the rental in Finance. Owners and admins only; the owner also gets "Add a cost in
+  Finance", which opens a new expense tagged to the rental.
 - Extend an active or overdue rental: move the return date (blocked by the next booking) and
   optionally add an Extension charge, suggested as extra days × the daily rate.
 - View rental payments.
@@ -287,7 +290,13 @@ Business rules:
   (`charge_payment_id`, `rental_id`), filed under the charge type's BIR line
   (`rental_charge_types.expense_category_id`, else Miscellaneous). Removing the charge voids
   its cost; the expense row is the one source of the amount, so edits in /finance show on the
-  rental.
+  rental. Delivery legs and booking fees are not charges: their cost is an expense with
+  `rental_line` = `pickup` / `return` / `fee:<charge type id>` (`set_rental_line_cost`),
+  filed where the Delivery or that fee's charge type files. The billed amount stays income and
+  the expense cancels it on the statement.
+- Any expense can be tagged to a rental in /finance (Rental picker, by reference number); a
+  blank Vehicle takes the rental's car. A cost entered on a rental's bill cannot be moved to
+  another rental from /finance.
 - A blocked customer cannot start a new rental.
 - Every transition validates the current state on the server. Disabling a button is a hint;
   the action and the database re-validate.

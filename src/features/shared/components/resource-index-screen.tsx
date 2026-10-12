@@ -84,7 +84,7 @@ export async function ResourceIndexScreen({
       from,
       to: from + resourceQuery.pageSize,
     }),
-    loadResourceReferences(supabase, referenceFilters),
+    loadResourceReferences(supabase, referenceFilters, { selected: resourceQuery.filters }),
   ]);
 
   return (

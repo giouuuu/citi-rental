@@ -38,6 +38,8 @@ export type ResourceField = {
     statusColumn?: string;
     excludeStatuses?: string[];
     equals?: Record<string, string | number | boolean>;
+    /** Which rows a long list shows first (it loads the first 200), e.g. newest rentals. */
+    orderBy?: { column: string; ascending?: boolean };
   };
   step?: string;
   className?: string;
@@ -143,7 +145,12 @@ export type ResourceFilter = {
    */
   picker?: boolean;
   /** A `picker` whose choices are the rows of `table`, as reference fields label them. */
-  reference?: { table: string; labelColumn: string; secondaryColumn?: string };
+  reference?: {
+    table: string;
+    labelColumn: string;
+    secondaryColumn?: string;
+    orderBy?: { column: string; ascending?: boolean };
+  };
   /**
    * The column is a timestamp: a `YYYY-MM-DD` value is a whole Philippine day,
    * so `gte` starts at its first instant and `lte` runs through its last.

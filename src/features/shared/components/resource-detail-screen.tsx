@@ -13,7 +13,10 @@ import { ResourceForm } from "@/features/shared/components/resource-form";
 import { ResourceSwitcher } from "@/features/shared/components/resource-switcher";
 import type { ResourceFormProps } from "@/features/shared/types/resource-form";
 import { loadResourceBlockedRanges } from "@/features/shared/services/load-resource-blocked-ranges";
-import { loadResourceReferences } from "@/features/shared/services/load-resource-references";
+import {
+  addSelectedReferences,
+  loadResourceReferences,
+} from "@/features/shared/services/load-resource-references";
 import type {
   ActionResult,
   AppRole,
@@ -120,6 +123,8 @@ export async function ResourceDetailScreen({
     blockedRanges = blocked;
     if (error) throw new Error(error.message);
     row = data as ResourceRow | null;
+    // A linked record past the picker's first rows (an old rental) stays labelled.
+    await addSelectedReferences(supabase, definition.fields, references, row);
   }
 
   if (!row) notFound();

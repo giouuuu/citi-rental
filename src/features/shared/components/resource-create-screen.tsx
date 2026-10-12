@@ -66,7 +66,7 @@ export async function ResourceCreateScreen({
     role = profile.role as AppRole;
 
     [references, blockedRanges] = await Promise.all([
-      loadResourceReferences(supabase, definition.fields),
+      loadResourceReferences(supabase, definition.fields, { selected: initialValues }),
       loadResourceBlockedRanges(supabase, definition.fields),
     ]);
   }

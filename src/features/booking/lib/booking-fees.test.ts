@@ -9,7 +9,7 @@ describe("booking fees", () => {
       { name: "Sanitation", amount: "150.50" },
     ]);
     expect(lines).toEqual([
-      { name: "Booking fee", amount: 200 },
+      { name: "Booking fee", amount: 200, chargeTypeId: "x" },
       { name: "Sanitation", amount: 150.5 },
     ]);
     expect(bookingFeesTotal(lines)).toBe(350.5);

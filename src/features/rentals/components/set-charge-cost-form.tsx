@@ -6,24 +6,24 @@ import { LoaderCircle, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import type { SetRentalChargeCostInput } from "@/features/rentals/actions/rental-charge-actions";
 import { formatPhpExact } from "@/features/shared/lib/money";
 
-/** Sets or changes what one charge cost the business; blank or 0 clears it. */
+/**
+ * Sets or changes what one bill line (a charge, a delivery leg, the car wash)
+ * cost the business; blank or 0 clears it.
+ */
 export function SetChargeCostForm({
-  paymentId,
   chargeName,
   chargeAmount,
   currentCost,
   pending,
   onSubmit,
 }: {
-  paymentId: string;
   chargeName: string;
   chargeAmount: number;
   currentCost: number | null;
   pending: boolean;
-  onSubmit: (input: SetRentalChargeCostInput) => void;
+  onSubmit: (cost: number) => void;
 }) {
   const [cost, setCost] = useState(currentCost != null ? String(currentCost) : "");
 
@@ -34,7 +34,7 @@ export function SetChargeCostForm({
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit({ paymentId, cost: cost ? Number(cost) : 0 });
+    onSubmit(cost ? Number(cost) : 0);
   }
 
   return (

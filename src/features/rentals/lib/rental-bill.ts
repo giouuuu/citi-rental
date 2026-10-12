@@ -11,6 +11,7 @@ import {
 } from "@/features/booking/lib/booking-fees";
 import {
   handoverBillLine,
+  type HandoverLeg,
   type HandoverMethod,
 } from "@/features/booking/lib/handover";
 import { formatPhpExact } from "@/features/shared/lib/money";
@@ -41,6 +42,7 @@ export type RentalBillHandover = {
 };
 
 export type RentalBillHandoverLine = {
+  leg: HandoverLeg;
   label: string;
   detail: string;
   fee: number;
@@ -97,11 +99,16 @@ export function buildRentalBill({
   const received = payments.filter((payment) => payment.paymentType !== "penalty");
 
   const quoted = quotedTotal ?? 0;
-  const handoverLines = handover
-    ? [
-        handoverBillLine("pickup", handover.pickupMethod, handover.pickupFee, driver != null),
-        handoverBillLine("return", handover.returnMethod, handover.returnFee, driver != null),
-      ].filter((line) => line !== null)
+  const handoverLines: RentalBillHandoverLine[] = handover
+    ? (
+        [
+          ["pickup", handover.pickupMethod, handover.pickupFee],
+          ["return", handover.returnMethod, handover.returnFee],
+        ] as const
+      ).flatMap(([leg, method, fee]) => {
+        const line = handoverBillLine(leg, method, fee, driver != null);
+        return line ? [{ leg, ...line }] : [];
+      })
     : [];
   // quoted_total holds the car, the driver, delivery and the booking fees;
   // the bill shows them apart.
@@ -154,29 +161,4 @@ export function rentalBillStatus(bill: RentalBill, paymentStatus?: string | null
   if (bill.paid > 0) return "Partly paid";
   if (paymentStatus === "proof_submitted") return "Payment proof to check";
   return "Unpaid";
-}
-
-export type ChargeCostSummary = {
-  /** Charges that carry a cost, as billed to the renter. */
-  charged: number;
-  /** What the business paid out to deliver them. */
-  costs: number;
-  /** charged − costs; negative when a charge cost more than it brought in. */
-  kept: number;
-};
-
-/**
- * Charges set against what they cost the business, counting only charges with
- * a cost entered, so a ₱1,000 extension with no cost does not inflate "kept".
- * Null when no charge has a cost. Internal: never part of the renter's bill.
- */
-export function summarizeChargeCosts(
-  charges: RentalPayment[],
-  costs: Record<string, number>,
-): ChargeCostSummary | null {
-  const withCost = charges.filter((charge) => (costs[charge.id] ?? 0) > 0);
-  if (withCost.length === 0) return null;
-  const charged = round(withCost.reduce((sum, charge) => sum + charge.amount, 0));
-  const paidOut = round(withCost.reduce((sum, charge) => sum + costs[charge.id], 0));
-  return { charged, costs: paidOut, kept: round(charged - paidOut) };
 }

@@ -86,15 +86,28 @@ export async function addRentalChargeAction(
   }
 }
 
-const chargeCostSchema = z.object({
-  paymentId: z.uuid("That charge was not found."),
-  // 0 clears the cost.
-  cost: z.coerce.number().min(0, "The cost cannot be negative."),
-});
+// 0 clears the cost.
+const costAmount = z.coerce.number().min(0, "The cost cannot be negative.");
+
+const chargeCostSchema = z.union([
+  z.object({ paymentId: z.uuid("That charge was not found."), cost: costAmount }),
+  z.object({
+    rentalId: z.uuid("Select a rental."),
+    // A delivery leg, or a booking fee by its charge type (rentals.booking_fees).
+    line: z
+      .string()
+      .regex(/^(pickup|return|fee:[0-9a-f-]{36})$/, "Choose a line on the bill."),
+    cost: costAmount,
+  }),
+]);
 
 export type SetRentalChargeCostInput = z.input<typeof chargeCostSchema>;
 
-/** Sets, changes, or (with 0) clears what a charge cost; the finance expense follows. */
+/**
+ * Sets, changes, or (with 0) clears what a bill line cost: a charge, a
+ * delivery leg, or a booking fee such as the car wash. The finance expense
+ * follows.
+ */
 export async function setRentalChargeCostAction(
   input: SetRentalChargeCostInput,
 ): Promise<ActionResult> {
@@ -109,10 +122,17 @@ export async function setRentalChargeCostAction(
     if (!isAdminRole(role))
       throw new Error("Only owners and admins can record what a charge cost.");
 
-    const { error } = await supabase.rpc("set_rental_charge_cost", {
-      p_payment_id: parsed.data.paymentId,
-      p_cost: parsed.data.cost,
-    });
+    const { error } =
+      "paymentId" in parsed.data
+        ? await supabase.rpc("set_rental_charge_cost", {
+            p_payment_id: parsed.data.paymentId,
+            p_cost: parsed.data.cost,
+          })
+        : await supabase.rpc("set_rental_line_cost", {
+            p_rental_id: parsed.data.rentalId,
+            p_line: parsed.data.line,
+            p_cost: parsed.data.cost,
+          });
     if (error) throw error;
 
     revalidateResource("/rentals");

@@ -26,7 +26,8 @@ import { needsDepositConfirmation } from "@/features/rentals/lib/needs-deposit-c
 import type { RentRates } from "@/features/rentals/lib/rent-pricing";
 import { listRentalPayments } from "@/features/rentals/services/list-rental-payments";
 import { listRentalChargeTypes } from "@/features/rentals/services/list-rental-charge-types";
-import { listRentalChargeCosts } from "@/features/rentals/services/list-rental-charge-costs";
+import { listRentalCosts } from "@/features/rentals/services/list-rental-costs";
+import type { RentalCosts } from "@/features/rentals/lib/rental-costs";
 import { RENTAL_QUICK_CREATE } from "@/features/rentals/lib/rental-quick-create";
 import {
   getInspectionChecklistForRental,
@@ -74,7 +75,7 @@ export default async function Page({
     rates: RentRates | null;
   } | null = null;
   let chargeTypes: Awaited<ReturnType<typeof listRentalChargeTypes>> = [];
-  let chargeCosts: Record<string, number> = {};
+  let costs: RentalCosts | undefined;
   let depositAmount: number | null = null;
   let depositPercent: number | null = null;
   let paymentReference: string | null = null;
@@ -100,7 +101,7 @@ export default async function Page({
       inspectionRows,
       checklistData,
       chargeTypeRows,
-      chargeCostRows,
+      costRows,
       { data: company },
     ] = await Promise.all([
       supabase
@@ -147,7 +148,7 @@ export default async function Page({
       listRentalInspections(id),
       getInspectionChecklistForRental(id),
       listRentalChargeTypes(),
-      listRentalChargeCosts(id),
+      listRentalCosts(id),
       supabase
         .from("company_profile")
         .select("free_cancellation_hours")
@@ -155,7 +156,7 @@ export default async function Page({
     ]);
     payments = paymentRows;
     chargeTypes = chargeTypeRows;
-    chargeCosts = chargeCostRows;
+    costs = costRows;
     inspections = inspectionRows;
     checklist = checklistData;
     if (data?.status) status = data.status as RentalWorkflowStatus;
@@ -389,7 +390,7 @@ export default async function Page({
           }
           payments={
             <RentalPaymentPanel
-              chargeCosts={chargeCosts}
+              costs={costs}
               chargeTypes={chargeTypes}
               depositAmount={depositAmount}
               depositPercent={depositPercent}
