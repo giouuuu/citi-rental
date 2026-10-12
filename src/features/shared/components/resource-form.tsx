@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, LoaderCircle, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -154,6 +154,18 @@ export function ResourceForm({
         {definition.fields.map((fieldDef) => {
           if (hidden.has(fieldDef.name) || rangeEnds.has(fieldDef.name))
             return null;
+          const heading = fieldDef.section ? (
+            <div className="border-t pt-5 md:col-span-2">
+              <h3 className="text-base font-semibold text-foreground">
+                {fieldDef.section.title}
+              </h3>
+              {fieldDef.section.description ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {fieldDef.section.description}
+                </p>
+              ) : null}
+            </div>
+          ) : null;
           const lockSource = fieldDef.lockWhen
             ? String(
                 watchedValues[fieldDef.lockWhen.field] ??
@@ -167,53 +179,59 @@ export function ResourceForm({
           if (fieldDef.type === "date-range" && fieldDef.range) {
             const keyField = fieldDef.range.blockedBy?.field;
             return (
-              <ResourceRangeField
-                blocked={blockedRanges[fieldDef.name]}
-                blockedByKey={
-                  keyField ? String(watchedValues[keyField] ?? "") : ""
-                }
-                control={form.control}
-                definitionKey={definition.key}
-                fieldDef={{
-                  ...fieldDef,
-                  range: fieldDef.range,
-                  ...(locked && fieldDef.lockWhen?.message
-                    ? { description: fieldDef.lockWhen.message }
-                    : {}),
-                }}
-                isPending={isPending}
-                key={fieldDef.name}
-                readOnly={readOnly || locked}
-              />
+              <Fragment key={fieldDef.name}>
+                {heading}
+                <ResourceRangeField
+                  blocked={blockedRanges[fieldDef.name]}
+                  blockedByKey={
+                    keyField ? String(watchedValues[keyField] ?? "") : ""
+                  }
+                  control={form.control}
+                  definitionKey={definition.key}
+                  fieldDef={{
+                    ...fieldDef,
+                    range: fieldDef.range,
+                    ...(locked && fieldDef.lockWhen?.message
+                      ? { description: fieldDef.lockWhen.message }
+                      : {}),
+                  }}
+                  isPending={isPending}
+                  key={fieldDef.name}
+                  readOnly={readOnly || locked}
+                />
+              </Fragment>
             );
           }
           return (
-            <ResourceFormField
-              control={form.control}
-              definitionKey={definition.key}
-              fieldDef={
-                locked && fieldDef.lockWhen?.message
-                  ? {
-                      ...fieldDef,
-                      description: fieldDef.lockWhen.message,
-                    }
-                  : fieldDef
-              }
-              isPending={isPending}
-              key={fieldDef.name}
-              onQuickCreate={
-                quickCreate?.[fieldDef.name]
-                  ? (search) => setCreating({ field: fieldDef.name, search })
-                  : undefined
-              }
-              options={withCreated(
-                references[fieldDef.name] ?? fieldDef.options ?? [],
-                created[fieldDef.name],
-              )}
-              quickCreateLabel={quickCreate?.[fieldDef.name]?.label}
-              readOnly={readOnly || locked}
-              row={row}
-            />
+            <Fragment key={fieldDef.name}>
+              {heading}
+              <ResourceFormField
+                control={form.control}
+                definitionKey={definition.key}
+                fieldDef={
+                  locked && fieldDef.lockWhen?.message
+                    ? {
+                        ...fieldDef,
+                        description: fieldDef.lockWhen.message,
+                      }
+                    : fieldDef
+                }
+                isPending={isPending}
+                key={fieldDef.name}
+                onQuickCreate={
+                  quickCreate?.[fieldDef.name]
+                    ? (search) => setCreating({ field: fieldDef.name, search })
+                    : undefined
+                }
+                options={withCreated(
+                  references[fieldDef.name] ?? fieldDef.options ?? [],
+                  created[fieldDef.name],
+                )}
+                quickCreateLabel={quickCreate?.[fieldDef.name]?.label}
+                readOnly={readOnly || locked}
+                row={row}
+              />
+            </Fragment>
           );
         })}
       </FieldGroup>

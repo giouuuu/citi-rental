@@ -43,6 +43,11 @@ export type ResourceField = {
   };
   step?: string;
   className?: string;
+  /**
+   * Starts a titled group of fields: a heading is drawn above the first field
+   * of each new section, in field order.
+   */
+  section?: { title: string; description?: string };
   accept?: string;
   /** For `image`: the row column holding the current image URL. Defaults to `photo_url`. */
   previewColumn?: string;

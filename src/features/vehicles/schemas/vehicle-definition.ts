@@ -142,43 +142,6 @@ export const vehicleDefinition: ResourceDefinition = {
     },
     { name: "seating_capacity", label: "Seating capacity", type: "number" },
     {
-      name: "daily_rate",
-      label: "Self-drive daily rate (PHP)",
-      type: "number",
-      required: true,
-      placeholder: "2000",
-      step: "1",
-      description:
-        "Price per 24 hours when the customer drives. Rate changes are blocked while this car has an active or reserved booking.",
-    },
-    {
-      name: "with_driver_daily_rate",
-      label: "With-driver daily rate (PHP)",
-      type: "number",
-      placeholder: "Same as self-drive",
-      step: "1",
-      description:
-        "Price per 24 hours for the car on a with-driver trip. The driver's own fee (Settings) is added on top. Leave blank to use the self-drive rate.",
-    },
-    {
-      name: "half_day_rate",
-      label: "12-hour rate (PHP)",
-      type: "number",
-      placeholder: "1200",
-      step: "1",
-      description:
-        "Charged when the leftover hours past the whole days are 12 or fewer and it is cheaper than hourly. Leave blank to skip.",
-    },
-    {
-      name: "hourly_rate",
-      label: "Hourly rate (PHP)",
-      type: "number",
-      placeholder: "150",
-      step: "1",
-      description:
-        "Charged per leftover hour. Leftover hours never cost more than one day. Leave blank to skip.",
-    },
-    {
       name: "current_odometer",
       label: "Current odometer (km)",
       type: "number",
@@ -224,6 +187,48 @@ export const vehicleDefinition: ResourceDefinition = {
       label: "Notes",
       type: "textarea",
       className: "md:col-span-2",
+    },
+    {
+      name: "daily_rate",
+      label: "Self-drive daily rate (PHP)",
+      section: {
+        title: "Pricing",
+        description:
+          "What this car costs to rent. Charges added to every booking are under Booking charges, below.",
+      },
+      type: "number",
+      required: true,
+      placeholder: "2000",
+      step: "1",
+      description:
+        "Price per 24 hours when the customer drives. Rate changes are blocked while this car has an active or reserved booking.",
+    },
+    {
+      name: "with_driver_daily_rate",
+      label: "With-driver daily rate (PHP)",
+      type: "number",
+      placeholder: "Same as self-drive",
+      step: "1",
+      description:
+        "Price per 24 hours for the car on a with-driver trip. The driver's own fee (Settings) is added on top. Leave blank to use the self-drive rate.",
+    },
+    {
+      name: "half_day_rate",
+      label: "12-hour rate (PHP)",
+      type: "number",
+      placeholder: "1200",
+      step: "1",
+      description:
+        "Charged when the leftover hours past the whole days are 12 or fewer and it is cheaper than hourly. Leave blank to skip.",
+    },
+    {
+      name: "hourly_rate",
+      label: "Hourly rate (PHP)",
+      type: "number",
+      placeholder: "150",
+      step: "1",
+      description:
+        "Charged per leftover hour. Leftover hours never cost more than one day. Leave blank to skip.",
     },
   ],
   columns: [
