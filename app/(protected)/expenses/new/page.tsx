@@ -3,6 +3,7 @@ import {
   vehicleExpenseDefinition,
 } from "@/features/vehicle-costs";
 import { ResourceCreateScreen } from "@/features/shared";
+import { manilaDateKey } from "@/features/shared/lib/manila-time";
 import { initialValuesFromSearchParams } from "@/features/shared/lib/resource-initial-values";
 
 export default async function Page({
@@ -14,10 +15,14 @@ export default async function Page({
     <ResourceCreateScreen
       action={saveVehicleExpenseAction}
       definition={vehicleExpenseDefinition}
-      initialValues={initialValuesFromSearchParams(
-        vehicleExpenseDefinition.fields,
-        await searchParams,
-      )}
+      initialValues={{
+        // Most costs are logged the day they're paid.
+        incurred_on: manilaDateKey(new Date()),
+        ...initialValuesFromSearchParams(
+          vehicleExpenseDefinition.fields,
+          await searchParams,
+        ),
+      }}
     />
   );
 }

@@ -7,7 +7,12 @@ export type { AppRole };
 
 export type ResourceRow = Record<string, unknown> & { id: string };
 
-export type ResourceOption = { label: string; value: string };
+export type ResourceOption = {
+  label: string;
+  value: string;
+  /** Values picking this option sets on other form fields; see `reference.fills`. */
+  fill?: Record<string, string>;
+};
 
 export type ResourceField = {
   name: string;
@@ -40,6 +45,11 @@ export type ResourceField = {
     equals?: Record<string, string | number | boolean>;
     /** Which rows a long list shows first (it loads the first 200), e.g. newest rentals. */
     orderBy?: { column: string; ascending?: boolean };
+    /**
+     * Picking a row also sets other fields from its columns, as
+     * `{ formField: column }`, e.g. a rental sets `vehicle_id` to its car.
+     */
+    fills?: Record<string, string>;
   };
   step?: string;
   className?: string;
@@ -90,10 +100,14 @@ export type ResourceField = {
       };
     };
   };
-  /** Disable this field when another form field matches one of these values. */
+  /**
+   * Disable this field when another form field matches one of `values`, or
+   * with `whenSet`, whenever it has any value (a rental decides the car).
+   */
   lockWhen?: {
     field: string;
-    values: string[];
+    values?: string[];
+    whenSet?: boolean;
     message?: string;
   };
 };

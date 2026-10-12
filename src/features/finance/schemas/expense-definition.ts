@@ -9,7 +9,10 @@ import {
 } from "@/features/shared/schemas/schema-helpers";
 import type { ResourceDefinition } from "@/features/shared/types/resource";
 import { optionalTin, requiredDate } from "@/features/finance/schemas/finance-schema-helpers";
-import { RENTAL_EXPENSE_REFERENCE } from "@/features/rentals/schemas/rental-expense-reference";
+import {
+  RENTAL_EXPENSE_REFERENCE,
+  VEHICLE_FROM_RENTAL_LOCK,
+} from "@/features/rentals/schemas/rental-expense-reference";
 
 const DOCUMENT_TYPE_VALUES = [
   "vat_invoice",
@@ -168,6 +171,7 @@ export const expenseDefinition: ResourceDefinition = {
       type: "select",
       reference: { table: "vehicles", labelColumn: "plate_number", secondaryColumn: "name" },
       description: "Optional. Tags the cost to one unit for per-vehicle margin.",
+      lockWhen: VEHICLE_FROM_RENTAL_LOCK,
     },
     {
       name: "rental_id",
@@ -175,7 +179,7 @@ export const expenseDefinition: ResourceDefinition = {
       type: "select",
       reference: RENTAL_EXPENSE_REFERENCE,
       description:
-        "Optional. Type the reference number to tie a cost to one booking, like the car wash or delivery you paid for. Blank Vehicle takes the rental's car.",
+        "Optional. The booking this paid for, like its car wash or delivery. Sets the vehicle.",
     },
     {
       name: "payment_method",

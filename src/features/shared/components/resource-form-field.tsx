@@ -105,6 +105,9 @@ function SavedImage({
   );
 }
 
+/** The "No …" choice that clears an optional select. */
+const CLEAR_OPTION = "__clear__";
+
 export function ResourceFormField({
   control,
   definitionKey,
@@ -115,6 +118,7 @@ export function ResourceFormField({
   isPending,
   quickCreateLabel,
   onQuickCreate,
+  onPick,
 }: {
   control: Control<FieldValues>;
   definitionKey: string;
@@ -126,6 +130,8 @@ export function ResourceFormField({
   /** For `select` fields: offer to create the record being picked. */
   quickCreateLabel?: string;
   onQuickCreate?: (search: string) => void;
+  /** For `select` fields: after the user picks an option (or clears it). */
+  onPick?: (value: string) => void;
 }) {
   const canQuickCreate = Boolean(onQuickCreate && quickCreateLabel && !readOnly);
   const id = `${definitionKey}-${fieldDef.name}`;
@@ -229,7 +235,11 @@ export function ResourceFormField({
                   aria-invalid={fieldState.invalid}
                   disabled={readOnly || isPending}
                   id={id}
-                  onValueChange={field.onChange}
+                  onValueChange={(picked) => {
+                    const value = picked === CLEAR_OPTION ? "" : picked;
+                    field.onChange(value);
+                    onPick?.(value);
+                  }}
                   createLabel={
                     canQuickCreate
                       ? (search) =>
@@ -239,7 +249,18 @@ export function ResourceFormField({
                       : undefined
                   }
                   onCreate={canQuickCreate ? onQuickCreate : undefined}
-                  options={options}
+                  options={
+                    // An optional pick can be taken back: "No rental".
+                    !fieldDef.required && field.value
+                      ? [
+                          {
+                            value: CLEAR_OPTION,
+                            label: `No ${fieldDef.label.toLowerCase()}`,
+                          },
+                          ...options,
+                        ]
+                      : options
+                  }
                   placeholder={`Select ${fieldDef.label.toLowerCase()}`}
                   searchPlaceholder={`Search ${fieldDef.label.toLowerCase()}…`}
                   value={String(field.value ?? "")}

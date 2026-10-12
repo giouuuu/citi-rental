@@ -9,12 +9,14 @@ type Reference = NonNullable<ResourceField["reference"]>;
 /** Past this many rows a picker shows the first ones by `orderBy` (or table order). */
 const REFERENCE_LIMIT = 200;
 
-function referenceColumns({ labelColumn, secondaryColumn, statusColumn }: Reference) {
-  return ["id", labelColumn, secondaryColumn, statusColumn].filter(Boolean).join(",");
+function referenceColumns({ labelColumn, secondaryColumn, statusColumn, fills }: Reference) {
+  return [...new Set(["id", labelColumn, secondaryColumn, statusColumn, ...Object.values(fills ?? {})])]
+    .filter(Boolean)
+    .join(",");
 }
 
 function referenceOption(
-  { labelColumn, secondaryColumn, statusColumn }: Reference,
+  { labelColumn, secondaryColumn, statusColumn, fills }: Reference,
   row: Record<string, unknown>,
 ): ResourceOption {
   const base =
@@ -22,7 +24,13 @@ function referenceOption(
       ? `${String(row[labelColumn])} · ${String(row[secondaryColumn])}`
       : String(row[labelColumn] ?? row.id);
   const status = statusColumn && row[statusColumn] ? ` · ${String(row[statusColumn])}` : "";
-  return { value: String(row.id), label: `${base}${status}` };
+  const option: ResourceOption = { value: String(row.id), label: `${base}${status}` };
+  if (fills) {
+    option.fill = Object.fromEntries(
+      Object.entries(fills).map(([field, column]) => [field, row[column] == null ? "" : String(row[column])]),
+    );
+  }
+  return option;
 }
 
 /**

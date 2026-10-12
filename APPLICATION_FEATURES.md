@@ -297,6 +297,9 @@ Business rules:
 - Any expense can be tagged to a rental in /finance (Rental picker, by reference number); a
   blank Vehicle takes the rental's car. A cost entered on a rental's bill cannot be moved to
   another rental from /finance.
+- On both expense forms, picking a rental sets Vehicle to the rental's car and locks it until
+  the rental is cleared ("No rental"). The Expenses form groups What was paid / What it was
+  for / Proof, and a new expense's date starts at today.
 - A vehicle expense (Expenses page) can be tagged to a rental the same way. Tagged, it also
   writes a Finance expense (`expenses.vehicle_expense_id`), filed under its category's BIR line
   (`vehicle_expense_categories.expense_category_id`, else Miscellaneous), so the car wash or

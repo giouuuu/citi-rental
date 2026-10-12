@@ -8,7 +8,10 @@ import {
   requiredText,
 } from "@/features/shared/schemas/schema-helpers";
 import type { ResourceDefinition } from "@/features/shared/types/resource";
-import { RENTAL_EXPENSE_REFERENCE } from "@/features/rentals/schemas/rental-expense-reference";
+import {
+  RENTAL_EXPENSE_REFERENCE,
+  VEHICLE_FROM_RENTAL_LOCK,
+} from "@/features/rentals/schemas/rental-expense-reference";
 
 export const vehicleExpenseDefinition: ResourceDefinition = {
   key: "expense",
@@ -58,27 +61,8 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
       message: "Select a vehicle, or pick the rental it was for.",
       path: ["vehicle_id"],
     }),
+  // What was paid first: most costs (fuel, repairs) are for no booking.
   fields: [
-    {
-      name: "rental_id",
-      label: "Rental",
-      type: "select",
-      reference: RENTAL_EXPENSE_REFERENCE,
-      description:
-        "Optional. Type the reference number when this cost was for one booking, like its car wash or delivery. It also goes to Finance as an expense for that rental, so don't enter it there again.",
-    },
-    {
-      name: "vehicle_id",
-      label: "Vehicle",
-      type: "select",
-      reference: {
-        table: "vehicles",
-        labelColumn: "plate_number",
-        secondaryColumn: "name",
-      },
-      description:
-        "Leave it blank when you pick a rental: it takes the rental's car.",
-    },
     {
       name: "category_id",
       label: "Category",
@@ -90,6 +74,7 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
         activeColumn: "is_active",
       },
       description: "Missing one? Add it under Expenses → Categories.",
+      section: { title: "What was paid" },
     },
     {
       name: "amount",
@@ -110,15 +95,40 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
       placeholder: "Rapide Cebu",
     },
     {
+      name: "rental_id",
+      label: "Rental",
+      type: "select",
+      reference: RENTAL_EXPENSE_REFERENCE,
+      description: "Optional. Search by reference number or customer.",
+      section: {
+        title: "What it was for",
+        description:
+          "Pick the booking when this paid for its car wash or delivery. It also goes to Finance against that booking, so don't enter it there again.",
+      },
+    },
+    {
+      name: "vehicle_id",
+      label: "Vehicle",
+      type: "select",
+      reference: {
+        table: "vehicles",
+        labelColumn: "plate_number",
+        secondaryColumn: "name",
+      },
+      description: "Needed when there's no rental.",
+      lockWhen: VEHICLE_FROM_RENTAL_LOCK,
+    },
+    {
       name: "reference",
       label: "Receipt / OR number",
+      section: { title: "Proof" },
     },
     {
       name: "odometer_km",
       label: "Odometer (km)",
       type: "number",
       step: "0.1",
-      description: "Reading at the time of the expense, if known.",
+      description: "If known.",
     },
     {
       name: "receipt",
@@ -130,7 +140,6 @@ export const vehicleExpenseDefinition: ResourceDefinition = {
       name: "notes",
       label: "Notes",
       type: "textarea",
-      className: "md:col-span-2",
     },
   ],
   filters: [

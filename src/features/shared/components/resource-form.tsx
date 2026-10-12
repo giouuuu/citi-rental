@@ -95,10 +95,19 @@ export function ResourceForm({
   const { isPending, runMutation } = useMutationCoordinator();
   const router = useRouter();
 
-  const defaultValues = useMemo(
-    () => buildDefaultValues(definition.fields, row, initialValues),
-    [definition.fields, row, initialValues],
-  );
+  const defaultValues = useMemo(() => {
+    const values = buildDefaultValues(definition.fields, row, initialValues);
+    // A prefilled pick (`?rental_id=…`) fills its fields too, unless already set.
+    for (const field of definition.fields) {
+      const picked = values[field.name];
+      if (!field.reference?.fills || !picked) continue;
+      const option = references[field.name]?.find((item) => item.value === picked);
+      for (const [target, filled] of Object.entries(option?.fill ?? {})) {
+        if (filled && !values[target]) values[target] = filled;
+      }
+    }
+    return values;
+  }, [definition.fields, row, initialValues, references]);
   const hidden = new Set(hiddenFields);
   // A range's end is edited by its start's calendar, never on its own.
   const rangeEnds = new Set(
@@ -109,6 +118,21 @@ export function ResourceForm({
 
   const form = useForm<ResourceFormValues>({ defaultValues });
   const watchedValues = form.watch();
+  // The first section heading sits flush under the card header, no rule above.
+  const firstVisible = definition.fields.find(
+    (field) => !hidden.has(field.name) && !rangeEnds.has(field.name),
+  )?.name;
+
+  /** A picked reference row sets the fields it `fills`, e.g. a rental's car. */
+  function applyFills(fieldDef: ResourceField, value: string) {
+    if (!fieldDef.reference?.fills || !value) return;
+    const option = references[fieldDef.name]?.find((item) => item.value === value);
+    for (const [target, filled] of Object.entries(option?.fill ?? {})) {
+      if (!filled) continue;
+      form.setValue(target, filled, { shouldDirty: true, shouldValidate: form.formState.isSubmitted });
+      form.clearErrors(target);
+    }
+  }
 
   function onSubmit(values: ResourceFormValues) {
     const extras: Record<string, string> = {};
@@ -155,7 +179,13 @@ export function ResourceForm({
           if (hidden.has(fieldDef.name) || rangeEnds.has(fieldDef.name))
             return null;
           const heading = fieldDef.section ? (
-            <div className="border-t pt-5 md:col-span-2">
+            <div
+              className={
+                fieldDef.name === firstVisible
+                  ? "md:col-span-2"
+                  : "border-t pt-5 md:col-span-2"
+              }
+            >
               <h3 className="text-base font-semibold text-foreground">
                 {fieldDef.section.title}
               </h3>
@@ -174,7 +204,10 @@ export function ResourceForm({
               )
             : "";
           const locked = Boolean(
-            fieldDef.lockWhen?.values.includes(lockSource),
+            fieldDef.lockWhen &&
+              (fieldDef.lockWhen.whenSet
+                ? lockSource !== ""
+                : fieldDef.lockWhen.values?.includes(lockSource)),
           );
           if (fieldDef.type === "date-range" && fieldDef.range) {
             const keyField = fieldDef.range.blockedBy?.field;
@@ -218,6 +251,11 @@ export function ResourceForm({
                 }
                 isPending={isPending}
                 key={fieldDef.name}
+                onPick={
+                  fieldDef.reference?.fills
+                    ? (value) => applyFills(fieldDef, value)
+                    : undefined
+                }
                 onQuickCreate={
                   quickCreate?.[fieldDef.name]
                     ? (search) => setCreating({ field: fieldDef.name, search })
