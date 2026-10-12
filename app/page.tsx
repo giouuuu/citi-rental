@@ -40,7 +40,7 @@ import { SiteHeader } from "@/components/landing/site-header";
 import { VehicleListing } from "@/components/landing/vehicle-listing";
 import { Button } from "@/components/ui/button";
 import { BookingReminderCard } from "@/features/booking/components/booking-reminder-card";
-import { bookingFormPath } from "@/features/booking/lib/booking-continue";
+import { bookingFormPath, vehiclePageKey } from "@/features/booking/lib/booking-continue";
 import { getMyBookingReminder } from "@/features/booking/services/get-my-booking-reminder";
 import {
   getPublicAgreementTemplate,
@@ -240,7 +240,7 @@ export default async function HomePage({
             color: vehicle.color,
             imageUrl: vehicle.showcase_image_url,
             dailyRate: vehicle.daily_rate,
-            bookHref: bookingFormPath(vehicle.id, {
+            bookHref: bookingFormPath(vehiclePageKey(vehicle), {
               ...trip,
               mode: query.mode,
             }),

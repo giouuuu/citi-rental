@@ -250,12 +250,28 @@ export const getPublicAgreementTemplate = cache(
 );
 
 /** Cached per request: page metadata and the page body both read it. */
+const UUID_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SLUG_KEY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/**
+ * A public car by its id or its slug, current or old (a renamed car keeps
+ * its old slugs). The page redirects anything but the current slug to it.
+ */
 export const getPublicVehicle = cache(async function getPublicVehicle(
-  vehicleId: string,
+  vehicleKey: string,
 ): Promise<(PublicFleetVehicle & { status: string }) | null> {
   if (!isSupabaseConfigured()) return null;
 
   const supabase = await createClient();
+  let vehicleId: string | null = UUID_KEY.test(vehicleKey) ? vehicleKey : null;
+  if (!vehicleId && SLUG_KEY.test(vehicleKey) && vehicleKey.length <= 120) {
+    const { data: resolved } = await supabase.rpc("resolve_public_vehicle_slug", {
+      p_slug: vehicleKey,
+    });
+    vehicleId = resolved?.[0]?.vehicle_id ?? null;
+  }
+  if (!vehicleId) return null;
+
   const { data, error } = await supabase.rpc("get_public_vehicle", {
     p_vehicle_id: vehicleId,
   });
@@ -264,6 +280,7 @@ export const getPublicVehicle = cache(async function getPublicVehicle(
   const row = data[0];
   return {
     id: row.id,
+    slug: typeof row.slug === "string" && row.slug ? row.slug : null,
     name: row.name,
     make: row.make,
     model: row.model,

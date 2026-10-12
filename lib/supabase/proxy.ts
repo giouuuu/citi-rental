@@ -22,6 +22,8 @@ const publicRoutes = [
   "/access-disabled",
   "/auth",
   "/book",
+  // Readable car links (/cars/<slug>) redirect to the car's booking page.
+  "/cars",
   // Payment providers call these without a session; each handler verifies
   // its own signature.
   "/api/webhooks",

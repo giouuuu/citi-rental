@@ -26,10 +26,20 @@ describe("pageEventFor", () => {
     expect(pageEventFor(`/book/${CAR}`)).toEqual({
       type: "booking_start",
       vehicleId: CAR,
+      vehicleSlug: null,
     });
     expect(pageEventFor(`/book/${CAR}/continue`)).toEqual({
       type: "booking_start",
       vehicleId: CAR,
+      vehicleSlug: null,
+    });
+  });
+
+  it("counts a car opened by its readable URL, by slug", () => {
+    expect(pageEventFor("/book/vios-automatic-red")).toEqual({
+      type: "booking_start",
+      vehicleId: null,
+      vehicleSlug: "vios-automatic-red",
     });
   });
 

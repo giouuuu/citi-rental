@@ -12,6 +12,7 @@ import {
   decodeSourceCookie,
   encodeSourceCookie,
   isUuid,
+  isVehicleSlug,
   type SiteEventType,
 } from "@/features/site-analytics/lib/site-event";
 import { detectTrafficSource } from "@/features/site-analytics/lib/traffic-source";
@@ -27,6 +28,8 @@ export type SiteEventInput = {
   search?: string | null;
   referrer?: string | null;
   vehicleId?: string | null;
+  /** The car's slug when the page named it that way; resolved to its id. */
+  vehicleSlug?: string | null;
   rentalId?: string | null;
 };
 
@@ -83,6 +86,15 @@ export async function recordSiteEvent(input: SiteEventInput): Promise<void> {
     const { data: claims } = await supabase.auth.getClaims();
     const userId = typeof claims?.claims?.sub === "string" ? claims.claims.sub : null;
 
+    let vehicleId = isUuid(input.vehicleId) ? input.vehicleId : null;
+    if (!vehicleId && isVehicleSlug(input.vehicleSlug)) {
+      // Granted to signed-in and anonymous visitors, not the service role.
+      const { data: resolved } = await supabase.rpc("resolve_public_vehicle_slug", {
+        p_slug: input.vehicleSlug,
+      });
+      vehicleId = isUuid(resolved?.[0]?.vehicle_id) ? resolved[0].vehicle_id : null;
+    }
+
     const { error } = await admin.rpc("record_site_event", {
       p_event_type: input.type,
       p_visitor_id: visitorId,
@@ -92,7 +104,7 @@ export async function recordSiteEvent(input: SiteEventInput): Promise<void> {
       p_campaign: attribution?.campaign ?? null,
       p_referrer_host: detected?.referrerHost ?? null,
       p_device: deviceFromUserAgent(userAgent),
-      p_vehicle_id: isUuid(input.vehicleId) ? input.vehicleId : null,
+      p_vehicle_id: vehicleId,
       p_rental_id: isUuid(input.rentalId) ? input.rentalId : null,
       p_user_id: userId,
     });

@@ -7,6 +7,8 @@ export type VehicleBookingCharge = {
 
 export type PublicFleetVehicle = {
   id: string;
+  /** Readable URL key ("vios-automatic-red"); its page is /book/<slug>. */
+  slug?: string | null;
   name: string;
   make: string;
   model: string;

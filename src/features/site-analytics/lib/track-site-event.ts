@@ -6,7 +6,7 @@ import type { SiteEventType } from "@/features/site-analytics/lib/site-event";
  */
 export function trackSiteEvent(
   type: Exclude<SiteEventType, "booking_submit">,
-  options: { vehicleId?: string | null } = {},
+  options: { vehicleId?: string | null; vehicleSlug?: string | null } = {},
 ) {
   if (typeof window === "undefined" || navigator.webdriver) return;
   try {
@@ -20,6 +20,7 @@ export function trackSiteEvent(
         search: window.location.search.slice(0, 1000),
         referrer: document.referrer.slice(0, 1000) || undefined,
         vehicleId: options.vehicleId ?? null,
+        vehicleSlug: options.vehicleSlug ?? null,
       }),
     }).catch(() => {});
   } catch {

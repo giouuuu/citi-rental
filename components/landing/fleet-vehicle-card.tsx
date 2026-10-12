@@ -14,7 +14,7 @@ import {
 } from "@/components/landing/vehicle-gallery-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { bookingFormPath } from "@/features/booking/lib/booking-continue";
+import { bookingFormPath, vehiclePageKey } from "@/features/booking/lib/booking-continue";
 import { VehicleRateQuote } from "@/features/vehicles/components/vehicle-rate-quote";
 import {
   vehicleBookingFees,
@@ -83,7 +83,7 @@ export function FleetVehicleCard({
   // The landing search's driving choice prices the card.
   const withDriver = tripQuery.mode === "with-driver";
   const coverUrl = vehicle.photo_url ?? vehicle.gallery[0]?.url ?? null;
-  const href = bookingFormPath(vehicle.id, tripQuery);
+  const href = bookingFormPath(vehiclePageKey(vehicle), tripQuery);
   const photoLayoutId = `fleet-photo-${vehicle.id}`;
 
   const modelLine = vehicleModelLine(vehicle);

@@ -12,7 +12,10 @@ import { BookingCarShowcase } from "@/features/booking/components/booking-car-sh
 import { BookingDateClashNotice } from "@/features/booking/components/booking-date-clash-notice";
 import { BookingFlow } from "@/features/booking/components/booking-flow";
 import { BookingHero } from "@/features/booking/components/booking-hero";
-import type { BookingContinueQuery } from "@/features/booking/lib/booking-continue";
+import {
+  type BookingContinueQuery,
+  vehiclePageKey,
+} from "@/features/booking/lib/booking-continue";
 import type { PublicVehicleBookedRange } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import {
   bookedDays,
@@ -81,7 +84,7 @@ export function BookingWorkspace({
     window.history.replaceState(
       null,
       "",
-      `/book/${next.id}${window.location.search}`,
+      `/book/${vehiclePageKey(next)}${window.location.search}`,
     );
     if (rangesByCar[next.id]) return;
     startLoadingRanges(async () => {

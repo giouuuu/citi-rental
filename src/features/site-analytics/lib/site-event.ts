@@ -23,7 +23,15 @@ export const SOURCE_MAX_AGE = 60 * 60 * 24 * 30;
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const UUID_PATTERN = new RegExp(`^${UUID}$`, "i");
-const BOOKING_PATH = new RegExp(`^/book/(${UUID})(?:/continue)?/?$`, "i");
+// `/book/<car id or slug>`; `pay` and `confirmation` are other pages.
+const BOOKING_PATH = /^\/book\/([a-z0-9-]{1,120})(?:\/continue)?\/?$/i;
+const NOT_A_CAR = new Set(["pay", "confirmation"]);
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** A car slug as booking URLs carry it ("vios-automatic-red"). */
+export function isVehicleSlug(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 120 && SLUG_PATTERN.test(value);
+}
 
 export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_PATTERN.test(value);
@@ -43,16 +51,22 @@ export function isTrackedPath(pathname: string): boolean {
 
 /**
  * Opening `/book/<car>` (or its sign-in step) is a booking start for
- * that car; every other tracked page is a plain page view.
+ * that car; every other tracked page is a plain page view. The car is in
+ * the URL by id or, usually, by slug, which the server resolves.
  */
 export function pageEventFor(pathname: string): {
   type: Extract<SiteEventType, "page_view" | "booking_start">;
   vehicleId: string | null;
+  vehicleSlug: string | null;
 } {
   const match = BOOKING_PATH.exec(pathname);
-  return match
-    ? { type: "booking_start", vehicleId: match[1].toLowerCase() }
-    : { type: "page_view", vehicleId: null };
+  const key = match?.[1].toLowerCase();
+  if (!key || NOT_A_CAR.has(key)) {
+    return { type: "page_view", vehicleId: null, vehicleSlug: null };
+  }
+  return isUuid(key)
+    ? { type: "booking_start", vehicleId: key, vehicleSlug: null }
+    : { type: "booking_start", vehicleId: null, vehicleSlug: key };
 }
 
 export function encodeSourceCookie(

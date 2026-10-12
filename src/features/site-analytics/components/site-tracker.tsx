@@ -19,7 +19,10 @@ export function SiteTracker() {
     if (!pathname || !isTrackedPath(pathname) || lastTracked.current === pathname) return;
     lastTracked.current = pathname;
     const event = pageEventFor(pathname);
-    trackSiteEvent(event.type, { vehicleId: event.vehicleId });
+    trackSiteEvent(event.type, {
+      vehicleId: event.vehicleId,
+      vehicleSlug: event.vehicleSlug,
+    });
   }, [pathname]);
 
   return null;

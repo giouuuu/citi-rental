@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { vehiclePageKey } from "@/features/booking/lib/booking-continue";
 import { SEO_PAGES } from "@/features/seo/lib/seo-pages";
 import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-public-available-vehicles";
 import { siteUrl } from "@/lib/site-url";
@@ -31,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ),
       ];
       return {
-        url: `${base}/book/${vehicle.id}`,
+        url: `${base}/book/${vehiclePageKey(vehicle)}`,
         changeFrequency: "weekly" as const,
         priority: 0.8,
         ...(images.length ? { images } : {}),

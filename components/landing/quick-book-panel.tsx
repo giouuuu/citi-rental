@@ -14,7 +14,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { DrivingModeToggle } from "@/features/booking/components/driving-mode-toggle";
-import { bookingFormPath } from "@/features/booking/lib/booking-continue";
+import { bookingFormPath, vehiclePageKey } from "@/features/booking/lib/booking-continue";
 import {
   parseDrivingMode,
   type DrivingMode,
@@ -65,7 +65,7 @@ export function QuickBookPanel({
   const withDriver = mode === "with-driver";
   const seats = vehicle.seating_capacity;
 
-  const href = bookingFormPath(vehicle.id, {
+  const href = bookingFormPath(vehiclePageKey(vehicle), {
     pickup: pickup.trim() || undefined,
     start: start || undefined,
     end: end || undefined,

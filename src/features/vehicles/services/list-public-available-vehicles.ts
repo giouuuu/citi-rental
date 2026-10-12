@@ -16,6 +16,7 @@ import type {
 
 type PublicFleetVehicleRow = {
   id: string;
+  slug?: string | null;
   name: string;
   make: string;
   model: string;
@@ -79,6 +80,7 @@ export async function listPublicAvailableVehicles(
 
   return rows.map((row) => ({
     id: row.id,
+    slug: typeof row.slug === "string" && row.slug ? row.slug : null,
     name: row.name,
     make: row.make,
     model: row.model,

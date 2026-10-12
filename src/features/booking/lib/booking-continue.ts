@@ -16,11 +16,17 @@ export function buildBookingQueryString(query: BookingContinueQuery) {
   return value ? `?${value}` : "";
 }
 
+/** A car's booking page key: its readable slug when it has one, else its id. */
+export function vehiclePageKey(vehicle: { id: string; slug?: string | null }) {
+  return vehicle.slug || vehicle.id;
+}
+
+/** `vehicleKey` is the car's slug (preferred) or id; an id redirects to the slug. */
 export function bookingFormPath(
-  vehicleId: string,
+  vehicleKey: string,
   query: BookingContinueQuery = {},
 ) {
-  return `/book/${vehicleId}${buildBookingQueryString(query)}`;
+  return `/book/${vehicleKey}${buildBookingQueryString(query)}`;
 }
 
 export function bookingSignInPath(
@@ -29,4 +35,18 @@ export function bookingSignInPath(
 ) {
   const next = bookingFormPath(vehicleId, query);
   return `/login?next=${encodeURIComponent(next)}`;
+}
+
+/** Every param of a page's query as `?a=1&b=2` (or ""), for a redirect that keeps them all. */
+export function fullQueryString(
+  query: Record<string, string | string[] | undefined>,
+) {
+  const kept = new URLSearchParams();
+  for (const [name, value] of Object.entries(query)) {
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (typeof item === "string") kept.append(name, item);
+    }
+  }
+  const search = kept.toString();
+  return search ? `?${search}` : "";
 }

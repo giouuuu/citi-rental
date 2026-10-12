@@ -484,7 +484,11 @@ leave them; do not add columns to them in this scope.
 ### Public
 - `/` (landing)
 - `/book`
-- `/book/[vehicleId]`
+- `/book/[vehicleId]` — addressed by the car's slug (`/book/vios-automatic-red`). Its id or an
+  old slug 308-redirects there with the whole query kept; the slug is the canonical URL, the
+  sitemap entry, and every link. The title names colour and year ("Vios Automatic (Red,
+  2027)") so two cars of one name never share a title.
+- `/cars/[slug]` — short car link, 308 to `/book/<slug>`.
 - `/book/confirmation`
 - `/login`
 - `/forgot-password`

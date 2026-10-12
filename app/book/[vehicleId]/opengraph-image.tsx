@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 import { getPublicVehicle } from "@/features/booking/services/public-booking-service";
-import { vehicleSeoTitle } from "@/features/seo/lib/vehicle-title";
+import { vehicleListingTitle } from "@/features/seo/lib/vehicle-title";
 import { formatPhp } from "@/features/shared/lib/money";
 
 export const alt = "Car for rent in Cebu — Zeke Car Rental & Services";
@@ -18,7 +18,7 @@ export default async function Image({
   const vehicle = await getPublicVehicle(vehicleId);
   const carImage = vehicle?.showcase_image_url ?? vehicle?.photo_url ?? null;
   const cutout = Boolean(vehicle?.showcase_image_url);
-  const title = vehicle ? vehicleSeoTitle(vehicle) : "Car rental in Cebu";
+  const title = vehicle ? vehicleListingTitle(vehicle) : "Car rental in Cebu";
 
   return new ImageResponse(
     <div

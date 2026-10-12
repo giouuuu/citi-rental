@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { SiteHeader } from "@/components/landing/site-header";
 import { buildAgreementTerms } from "@/features/agreements/lib/agreement-template";
@@ -8,6 +8,7 @@ import { BookingHero } from "@/features/booking/components/booking-hero";
 import { BookingWorkspace } from "@/features/booking/components/booking-workspace";
 import { DEFAULT_FREE_CANCELLATION_HOURS } from "@/features/booking/lib/cancellation-policy";
 import { parseDrivingMode } from "@/features/booking/lib/driving-mode";
+import { fullQueryString, vehiclePageKey } from "@/features/booking/lib/booking-continue";
 import { listPublicVehicleBookedRanges } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import {
   getPublicAgreementTemplate,
@@ -18,7 +19,7 @@ import {
   getPublicVehicle,
 } from "@/features/booking/services/public-booking-service";
 import { OPEN_GRAPH_BASE } from "@/features/seo/lib/business";
-import { vehicleSeoTitle } from "@/features/seo/lib/vehicle-title";
+import { vehicleListingTitle } from "@/features/seo/lib/vehicle-title";
 import { formatPhp } from "@/features/shared/lib/money";
 import { listPublicAvailableVehicles } from "@/features/vehicles/services/list-public-available-vehicles";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -41,7 +42,8 @@ export async function generateMetadata({
   const vehicle = await getPublicVehicle(vehicleId);
   if (!vehicle) return { title: "Car not found", robots: { index: false } };
 
-  const title = `${vehicleSeoTitle(vehicle)} for Rent in Cebu – ${formatPhp(vehicle.daily_rate)}/day`;
+  const carName = vehicleListingTitle(vehicle);
+  const title = `${carName} for Rent in Cebu – ${formatPhp(vehicle.daily_rate)}/day`;
   const specs = [
     vehicle.seating_capacity ? `${vehicle.seating_capacity} seats` : null,
     vehicle.transmission === "manual"
@@ -51,19 +53,20 @@ export async function generateMetadata({
         : null,
     vehicle.fuel_type === "other" ? null : vehicle.fuel_type,
   ].filter(Boolean);
-  const description = `${vehicleSeoTitle(vehicle)} for rent in Cebu at ${formatPhp(vehicle.daily_rate)} a day${specs.length ? ` (${specs.join(", ")})` : ""}. Self-drive or with driver, delivered anywhere in Cebu province. Check dates and book online.`;
+  const description = `${carName} for rent in Cebu at ${formatPhp(vehicle.daily_rate)} a day${specs.length ? ` (${specs.join(", ")})` : ""}. Self-drive or with driver, delivered anywhere in Cebu province. Check dates and book online.`;
   const listed =
     vehicle.status !== "maintenance" && vehicle.status !== "inactive";
+  const path = `/book/${vehiclePageKey(vehicle)}`;
 
   return {
     title,
     description,
-    alternates: { canonical: `/book/${vehicle.id}` },
+    alternates: { canonical: path },
     // Off-fleet cars drop out of search until they are bookable again.
     robots: listed ? undefined : { index: false },
     openGraph: {
       ...OPEN_GRAPH_BASE,
-      url: `/book/${vehicle.id}`,
+      url: path,
       title,
       description,
     },
@@ -79,6 +82,10 @@ export default async function BookVehiclePage({
   const vehicle = await getPublicVehicle(vehicleId);
 
   if (!vehicle) notFound();
+  // One address per car: its id and old slugs move to the current slug,
+  // keeping the trip and any tracking (utm, fbclid) in the query.
+  const key = vehiclePageKey(vehicle);
+  if (vehicleId !== key) permanentRedirect(`/book/${key}${fullQueryString(query)}`);
 
   const [
     bookedRanges,
@@ -89,7 +96,7 @@ export default async function BookVehiclePage({
     agreementTemplate,
     bookingFees,
   ] = await Promise.all([
-    listPublicVehicleBookedRanges(vehicleId),
+    listPublicVehicleBookedRanges(vehicle.id),
     listPublicAvailableVehicles(),
     getPublicReservationFee(),
     getPublicFreeCancellationHours(),

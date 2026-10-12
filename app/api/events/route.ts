@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isTrackedPath } from "@/features/site-analytics/lib/site-event";
+import { isTrackedPath, isVehicleSlug } from "@/features/site-analytics/lib/site-event";
 import { recordSiteEvent } from "@/features/site-analytics/services/record-site-event";
 
 /**
@@ -13,6 +13,12 @@ const eventSchema = z.object({
   search: z.string().max(1000).optional(),
   referrer: z.string().max(1000).optional(),
   vehicleId: z.uuid().nullable().optional(),
+  // A booking page opened by its readable URL; the server finds the car.
+  vehicleSlug: z
+    .string()
+    .refine(isVehicleSlug)
+    .nullable()
+    .optional(),
 });
 
 export async function POST(request: Request) {
