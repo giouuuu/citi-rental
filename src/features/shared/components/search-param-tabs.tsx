@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, type ReactNode } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -57,7 +57,6 @@ function SearchParamTabsInner({
   defaultValue?: string;
   paramName?: string;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -73,7 +72,10 @@ function SearchParamTabsInner({
       params.set(paramName, next);
     }
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // Every tab's content is already on the page and the server never reads
+    // ?tab=, so only the URL changes: no round trip, so the tap never waits.
+    // Next syncs useSearchParams with the native history API.
+    window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);
   }
 
   return (
