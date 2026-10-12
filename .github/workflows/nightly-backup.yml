@@ -1,9 +1,13 @@
-# Nightly backup of the Supabase database, emailed as a password-locked .7z.
+# Nightly backup of the Supabase database, emailed as two password-locked files.
 # The free Supabase plan keeps no backups, so this is the copy to restore from.
 #
-# Inside the archive:
-#   database/roles.sql, schema.sql, data.sql  supabase db dump: restores the system
-#   zeke-records-<day>.xlsx                    the records, for reading
+#   zeke-database-<day>.7z   roles.sql, schema.sql, data.sql (supabase db dump):
+#                            restores the system
+#   zeke-records-<day>.xlsx  the records, for reading; Excel's own password
+#
+# Two files, not one archive: Gmail bounces a locked archive with another
+# archive inside, and an .xlsx is a zip. File names stay visible for the same
+# reason.
 #
 # Repo secrets: SUPABASE_DB_URL (session pooler URI), RESEND_API_KEY,
 # BACKUP_EMAIL_TO (comma-separated), BACKUP_PASSWORD. Optional: EMAIL_FROM.
@@ -66,20 +70,22 @@ jobs:
       - name: Build the Excel records
         run: node scripts/backup/build-records.mjs backup "$DAY"
 
-      - name: Lock it with the backup password
+      - name: Lock both with the backup password
         run: |
+          mkdir -p out
           mv backup/summary.json summary.json
-          7z a -t7z -mx=9 -mhe=on -p"$BACKUP_PASSWORD" "zeke-backup-$DAY.7z" ./backup/* > /dev/null
-          ls -lh "zeke-backup-$DAY.7z"
+          7z a -t7z -mx=9 -p"$BACKUP_PASSWORD" "out/zeke-database-$DAY.7z" ./backup/database/*.sql > /dev/null
+          pipx run --quiet msoffcrypto-tool -e -p "$BACKUP_PASSWORD" "backup/zeke-records-$DAY.xlsx" "out/zeke-records-$DAY.xlsx"
+          ls -lh out
 
       - name: Email it
-        run: node scripts/backup/send-backup-email.mjs ok "zeke-backup-$DAY.7z" summary.json
+        run: node scripts/backup/send-backup-email.mjs ok summary.json out/*
 
       # A second copy for two weeks, in case an email goes missing.
       - uses: actions/upload-artifact@v4
         with:
           name: zeke-backup-${{ env.DAY }}
-          path: zeke-backup-${{ env.DAY }}.7z
+          path: out/
           retention-days: 14
 
       - name: Email the failure

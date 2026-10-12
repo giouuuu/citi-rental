@@ -1,6 +1,6 @@
 // Emails the nightly backup through Resend.
 //
-//   node scripts/backup/send-backup-email.mjs ok <archive.7z> <summary.json>
+//   node scripts/backup/send-backup-email.mjs ok <summary.json> <file>...
 //   node scripts/backup/send-backup-email.mjs failed <run-url>
 //
 // Env: RESEND_API_KEY, BACKUP_EMAIL_TO (comma-separated), EMAIL_FROM (optional).
@@ -33,9 +33,9 @@ const megabytes = (bytes) =>
 
 let email;
 if (mode === "ok") {
-  const [archive, summaryPath] = args;
+  const [summaryPath, ...files] = args;
   const summary = JSON.parse(readFileSync(summaryPath, "utf8"));
-  const size = statSync(archive).size;
+  const size = files.reduce((sum, file) => sum + statSync(file).size, 0);
   const attach = size <= MAX_ATTACHMENT_BYTES;
   const counts = Object.entries(summary.sheets).map(([sheet, count]) => `${sheet}: ${count}`);
   const lines = [
@@ -47,16 +47,20 @@ if (mode === "ok") {
       : []),
     "",
     attach
-      ? `${basename(archive)} (${megabytes(size)}) is locked with the backup password. Open it with Keka or The Unarchiver (Mac) or 7-Zip (Windows).`
-      : `The file is ${megabytes(size)}, too big to email. Download it from the GitHub run under Artifacts, and plan to move backups to Google Drive.`,
-    "Inside: zeke-records (Excel, to read) and database/ (SQL, to restore the system).",
+      ? "Both files are locked with the backup password:"
+      : `The files are ${megabytes(size)}, too big to email. Download them from the GitHub run under Artifacts, and plan to move backups to Google Drive.`,
+    ...files.map((file) =>
+      file.endsWith(".xlsx")
+        ? `• ${basename(file)}: the records, to read. Opens in Excel or Numbers.`
+        : `• ${basename(file)}: the database, to restore the system. Open with Keka or The Unarchiver (Mac) or 7-Zip (Windows).`,
+    ),
   ];
   email = {
     subject: `${attach ? "✅" : "⚠️"} Zeke backup · ${summary.day} · ${megabytes(size)}`,
     text: lines.join("\n"),
     html: lines.map((line) => (line ? `<p style="margin:0 0 8px">${escape(line)}</p>` : "")).join(""),
     attachments: attach
-      ? [{ filename: basename(archive), content: readFileSync(archive).toString("base64") }]
+      ? files.map((file) => ({ filename: basename(file), content: readFileSync(file).toString("base64") }))
       : undefined,
   };
 } else if (mode === "failed") {
@@ -73,7 +77,7 @@ if (mode === "ok") {
     html: lines.map((line) => (line ? `<p style="margin:0 0 8px">${escape(line)}</p>` : "")).join(""),
   };
 } else {
-  console.error("Usage: send-backup-email.mjs ok <archive> <summary.json> | failed <run-url>");
+  console.error("Usage: send-backup-email.mjs ok <summary.json> <file>... | failed <run-url>");
   process.exit(1);
 }
 

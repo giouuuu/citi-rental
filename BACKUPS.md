@@ -12,10 +12,13 @@ from GitHub → Actions → Nightly backup → Run workflow):
    every table, function, security rule and sign-in account.
 2. `scripts/backup/build-records.mjs` writes `zeke-records-<day>.xlsx`: Bookings,
    Payments, Customers, Fleet, Expenses, Vehicle expenses, Charge types, for reading.
-3. Both are packed into `zeke-backup-<day>.7z`, locked with the backup password.
-4. `scripts/backup/send-backup-email.mjs` emails it to `BACKUP_EMAIL_TO`, with how
-   many rows each sheet has. A failed night sends "❌ Zeke backup failed" instead.
-5. GitHub keeps the same `.7z` for 14 days under the run's **Artifacts**.
+3. Both are locked with the backup password, as two files:
+   `zeke-database-<day>.7z` (the SQL) and `zeke-records-<day>.xlsx` (Excel's own
+   password). Not one archive: Gmail bounces a locked archive with another
+   archive inside, and an `.xlsx` is a zip.
+4. `scripts/backup/send-backup-email.mjs` emails both to `BACKUP_EMAIL_TO`, with
+   how many rows each sheet has. A failed night sends "❌ Zeke backup failed".
+5. GitHub keeps the same files for 14 days under the run's **Artifacts**.
 
 Not included: files in Storage (car photos, ID photos, payment proofs).
 
@@ -33,15 +36,16 @@ GitHub → `giouuuu/citi-rental` → Settings → Secrets and variables → Acti
 
 ## Opening a backup
 
-Save the attachment, open it with Keka or The Unarchiver (Mac) or 7-Zip
-(Windows), and type the backup password.
+- `zeke-records-<day>.xlsx`: open in Excel or Numbers and type the backup password.
+- `zeke-database-<day>.7z`: open with Keka or The Unarchiver (Mac) or 7-Zip
+  (Windows) and type the backup password.
 
 ## Restoring the system
 
 Restore into a **new** Supabase project, never on top of a live one.
 
 1. Create the project, then copy its Session pooler URI.
-2. Unpack the `.7z`, and from the `database/` folder run:
+2. Unpack `zeke-database-<day>.7z`, and from that folder run:
 
    ```sh
    psql \
