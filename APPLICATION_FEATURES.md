@@ -280,6 +280,15 @@ Features:
 
 Business rules:
 - A vehicle cannot have overlapping active or reserved rentals (date-range conflicts).
+- Rentals of one car keep Settings → turnaround apart (default 90 minutes, for washing and
+  checks): a car back at 7:00 AM goes out again from 8:30 AM at the earliest, and a trip ends
+  90 minutes before the car's next pick-up. The database applies it when a booking is placed
+  or moved (`private.rental_schedule_conflict`, `20261125090000_rental_turnaround.sql`), not
+  to a status change on a booking already placed.
+- Calendars work in times, not whole days: a day the car is back on (or goes out on) stays
+  pickable from (or until) that time, labelled "From 8:30a" / "Till 7:30a"; only a day taken
+  midnight to midnight is greyed out. The landing's "free for these dates" lists a car busy
+  for only part of the pick-up or return day.
 - Vehicle status stays operational (`available` / `maintenance` / `inactive`); rentals do not
   flip the vehicle to reserved or rented.
 - Maintenance and inactive vehicles cannot be booked for any dates.

@@ -91,6 +91,11 @@ export type ResourceField = {
       labelColumn?: string;
       statusColumn?: string;
       statuses: string[];
+      /**
+       * Widen each booking by Settings → turnaround on both sides, the gap the
+       * database keeps between rentals of one car.
+       */
+      turnaround?: boolean;
       /** Rows in `status` also block when `column` is one of `values` (a paid draft, say). */
       alsoWhen?: {
         status: string;

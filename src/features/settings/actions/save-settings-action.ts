@@ -76,6 +76,7 @@ export async function saveSettingsAction(
         delivery_fee_within_city: parsed.data.delivery_fee_within_city,
         delivery_fee_outside_city: parsed.data.delivery_fee_outside_city,
         free_cancellation_hours: parsed.data.free_cancellation_hours,
+        turnaround_minutes: parsed.data.turnaround_minutes,
         payment_instructions: parsed.data.payment_instructions?.trim() || null,
         operating_address: parsed.data.operating_address?.trim() || null,
         review_google_url: parsed.data.review_google_url?.trim() || null,

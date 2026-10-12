@@ -18,8 +18,7 @@ import {
 } from "@/features/booking/lib/booking-continue";
 import type { PublicVehicleBookedRange } from "@/features/booking/services/list-public-vehicle-booked-ranges";
 import {
-  bookedDays,
-  firstBookedDayBetween,
+  firstClash,
   wallClockDateKey,
 } from "@/features/shared/lib/booked-days";
 import { trackSiteEvent } from "@/features/site-analytics/lib/track-site-event";
@@ -95,10 +94,14 @@ export function BookingWorkspace({
 
   const fromKey = wallClockDateKey(dates.start);
   const toKey = wallClockDateKey(dates.end) ?? fromKey;
-  const clashDay =
-    bookedRanges && fromKey && toKey && toKey >= fromKey
-      ? firstBookedDayBetween(fromKey, toKey, bookedDays(blocked(bookedRanges)))
+  // Times, not whole days: a car back at 7:00 AM is free that afternoon.
+  const clash =
+    bookedRanges && dates.start && dates.end
+      ? firstClash(blocked(bookedRanges), dates.start, dates.end)
       : null;
+  const clashStart = clash ? wallClockDateKey(clash.startAt) : null;
+  const clashDay =
+    clash && fromKey ? (clashStart && clashStart > fromKey ? clashStart : fromKey) : null;
 
   return (
     <>

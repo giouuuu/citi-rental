@@ -36,6 +36,8 @@ export type OrganizationSettings = {
   delivery_fee_within_city: number | null;
   delivery_fee_outside_city: number | null;
   free_cancellation_hours: number;
+  /** Minutes kept free before and after every rental of a car. */
+  turnaround_minutes: number;
   payment_qr_url: string;
   payment_instructions: string;
   /** Where the business currently operates; not the agreement's registered address. */
@@ -62,6 +64,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
       delivery_fee_within_city: 300,
       delivery_fee_outside_city: 400,
       free_cancellation_hours: 24,
+      turnaround_minutes: 90,
       payment_qr_url: "",
       payment_instructions: "",
       operating_address: "",
@@ -77,7 +80,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     .from("company_profile")
     .select(
       [
-        "name, timezone, reservation_fee, driver_daily_rate, driver_hours_per_day, driver_overtime_hourly_rate, delivery_fee_within_city, delivery_fee_outside_city, free_cancellation_hours, payment_qr_url, payment_instructions, operating_address, review_google_url, review_facebook_url, review_thank_you_message",
+        "name, timezone, reservation_fee, driver_daily_rate, driver_hours_per_day, driver_overtime_hourly_rate, delivery_fee_within_city, delivery_fee_outside_city, free_cancellation_hours, turnaround_minutes, payment_qr_url, payment_instructions, operating_address, review_google_url, review_facebook_url, review_thank_you_message",
         ...CONTACT_COLUMNS,
       ].join(", "),
     )
@@ -102,6 +105,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     delivery_fee_within_city: number | null;
     delivery_fee_outside_city: number | null;
     free_cancellation_hours: number | null;
+    turnaround_minutes: number | null;
     payment_qr_url: string | null;
     payment_instructions: string | null;
     operating_address: string | null;
@@ -151,6 +155,7 @@ export async function getOrganizationSettings(): Promise<OrganizationSettings> {
     free_cancellation_hours: Number(
       organization.free_cancellation_hours ?? 24,
     ),
+    turnaround_minutes: Number(organization.turnaround_minutes ?? 90),
     payment_qr_url: organization.payment_qr_url ?? "",
     payment_instructions: organization.payment_instructions ?? "",
     operating_address: organization.operating_address ?? "",

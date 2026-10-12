@@ -27,6 +27,12 @@ export async function loadResourceBlockedRanges(
   { excludeId }: { excludeId?: string } = {},
 ): Promise<ResourceBlockedRanges> {
   const blocked: ResourceBlockedRanges = {};
+  // Settings → turnaround, read once for every field that wants it.
+  let turnaround: Promise<number> | null = null;
+  const turnaroundMinutes = () =>
+    (turnaround ??= Promise.resolve(
+      supabase.from("company_profile").select("turnaround_minutes").limit(1).maybeSingle(),
+    ).then(({ data }) => Math.max(0, Number(data?.turnaround_minutes ?? 0))));
 
   await Promise.all(
     fields.map(async (field) => {
@@ -58,6 +64,13 @@ export async function loadResourceBlockedRanges(
         .order(field.name, { ascending: true })
         .limit(MAX_BLOCKING_ROWS);
       if (error) throw new Error(error.message);
+      const padMs = blockedBy.turnaround ? (await turnaroundMinutes()) * 60_000 : 0;
+      const shifted = (value: unknown, ms: number) => {
+        const instant = new Date(String(value));
+        return ms && Number.isFinite(instant.getTime())
+          ? new Date(instant.getTime() + ms).toISOString()
+          : String(value);
+      };
 
       const byKey: Record<string, ResourceBlockedRanges[string][string]> = {};
       for (const row of (data ?? []) as unknown as Record<string, unknown>[]) {
@@ -77,8 +90,8 @@ export async function loadResourceBlockedRanges(
           .join(" · ");
         // The calendar reads days as written, so hand it Manila wall-clock.
         (byKey[String(key)] ??= []).push({
-          startAt: toManilaDateTimeInput(String(startAt)),
-          endAt: toManilaDateTimeInput(String(endAt)),
+          startAt: toManilaDateTimeInput(shifted(startAt, -padMs)),
+          endAt: toManilaDateTimeInput(shifted(endAt, padMs)),
           label: label || undefined,
         });
       }

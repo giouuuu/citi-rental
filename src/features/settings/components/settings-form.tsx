@@ -85,6 +85,7 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
       delivery_fee_within_city: settings.delivery_fee_within_city,
       delivery_fee_outside_city: settings.delivery_fee_outside_city,
       free_cancellation_hours: settings.free_cancellation_hours,
+      turnaround_minutes: settings.turnaround_minutes,
       payment_instructions: settings.payment_instructions,
       operating_address: settings.operating_address,
       review_google_url: settings.review_google_url,
@@ -517,6 +518,43 @@ export function SettingsForm({ settings }: { settings: OrganizationSettings }) {
                   <FieldDescription>
                     Cancelling closer to pickup than this keeps the paid
                     reservation fee. Shown to customers when they book.
+                  </FieldDescription>
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : null}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="turnaround_minutes"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="turnaround_minutes">
+                    Turnaround between rentals (minutes)
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    disabled={isPending}
+                    id="turnaround_minutes"
+                    min={0}
+                    max={1440}
+                    step={15}
+                    onChange={(event) =>
+                      field.onChange(event.target.valueAsNumber)
+                    }
+                    type="number"
+                    value={
+                      field.value === undefined || field.value === null
+                        ? ""
+                        : String(field.value)
+                    }
+                  />
+                  <FieldDescription>
+                    Time to wash and check a car. With 90, a car back at 7:00
+                    AM can go out again from 8:30 AM, and a trip must end 90
+                    minutes before its next pick-up. 0 allows back-to-back.
                   </FieldDescription>
                   {fieldState.invalid ? (
                     <FieldError errors={[fieldState.error]} />

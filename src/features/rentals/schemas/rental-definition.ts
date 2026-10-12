@@ -199,6 +199,7 @@ export const rentalDefinition: ResourceDefinition = {
           table: "rentals",
           labelColumn: "reference_number",
           statuses: HOLDING_RENTAL_STATUSES,
+          turnaround: true,
           alsoWhen: {
             status: "draft",
             column: "payment_status",

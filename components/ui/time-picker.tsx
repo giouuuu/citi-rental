@@ -54,6 +54,15 @@ function ceilToStep(value: string | undefined, step: number) {
     : undefined
 }
 
+/** `HH:mm` rounded down onto the minute step. */
+function floorToStep(value: string | undefined, step: number) {
+  const parts = parseTime(value)
+  if (!parts) return undefined
+  const [hours, minutes] = toTimeValue(parts).split(":").map(Number)
+  const total = Math.floor((hours * 60 + minutes) / step) * step
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`
+}
+
 function formatParts({ hour, minute, period }: TimeParts) {
   return `${hour}:${pad(minute)} ${period}`
 }
@@ -248,6 +257,8 @@ type TimePickerProps = {
   minuteStep?: number
   /** Earliest `HH:mm` that can be picked, e.g. now on today's date. */
   min?: string
+  /** Latest `HH:mm` that can be picked, e.g. before the car goes out again. */
+  max?: string
   placeholder?: string
   /** Submits the `HH:mm` value with a native form. */
   name?: string
@@ -273,6 +284,7 @@ function TimePicker({
   onValueChange,
   minuteStep = 5,
   min,
+  max,
   placeholder = "Pick a time",
   name,
   id,
@@ -289,11 +301,18 @@ function TimePicker({
   const current = value ?? uncontrolled
   const selected = parseTime(current)
   const floor = ceilToStep(min, minuteStep)
+  const ceiling = floorToStep(max, minuteStep)
   const beforeFloor = (parts: TimeParts) =>
     Boolean(floor && toTimeValue(parts) < floor)
-  /** Pulls a time below `min` up to it. */
+  const afterCeiling = (parts: TimeParts) =>
+    Boolean(ceiling && toTimeValue(parts) > ceiling)
+  /** Pulls a time below `min` up to it, and one past `max` back to it. */
   const atLeastFloor = (parts: TimeParts) =>
-    beforeFloor(parts) ? parseTime(floor)! : parts
+    beforeFloor(parts)
+      ? parseTime(floor)!
+      : afterCeiling(parts)
+        ? parseTime(ceiling)!
+        : parts
   const [draft, setDraft] = React.useState<TimeParts>(() =>
     atLeastFloor(selected ?? parseTime(FALLBACK_TIME)!)
   )
@@ -374,8 +393,12 @@ function TimePicker({
           />
           <WheelColumn
             id={`${baseId}-hour`}
-            // An hour is out when even its last minute is before `min`.
-            isDisabled={(hour) => beforeFloor({ ...draft, hour, minute: 59 })}
+            // An hour is out when even its last minute is before `min`, or
+            // its first is past `max`.
+            isDisabled={(hour) =>
+              beforeFloor({ ...draft, hour, minute: 59 }) ||
+              afterCeiling({ ...draft, hour, minute: 0 })
+            }
             label="Hour"
             onValueChange={(hour) => turn({ hour })}
             options={HOURS}
@@ -389,7 +412,9 @@ function TimePicker({
           </span>
           <WheelColumn
             id={`${baseId}-minute`}
-            isDisabled={(minute) => beforeFloor({ ...draft, minute })}
+            isDisabled={(minute) =>
+              beforeFloor({ ...draft, minute }) || afterCeiling({ ...draft, minute })
+            }
             label="Minute"
             onValueChange={(minute) => turn({ minute })}
             options={minutes}
@@ -398,7 +423,8 @@ function TimePicker({
           <WheelColumn
             id={`${baseId}-period`}
             isDisabled={(period) =>
-              beforeFloor({ hour: 11, minute: 59, period })
+              beforeFloor({ hour: 11, minute: 59, period }) ||
+              afterCeiling({ hour: 12, minute: 0, period })
             }
             label="AM or PM"
             onValueChange={(period) => turn({ period })}

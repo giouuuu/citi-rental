@@ -64,6 +64,12 @@ export const settingsSchema = z
       .int("Use whole hours.")
       .min(0)
       .max(720, "Keep the window under 30 days (720 hours)."),
+    // Kept free before and after every rental of a car: washing, checks.
+    turnaround_minutes: z.coerce
+      .number()
+      .int("Use whole minutes.")
+      .min(0, "The turnaround cannot be negative.")
+      .max(1440, "Keep the turnaround under a day (1,440 minutes)."),
     payment_instructions: z.string().trim().max(2000).optional(),
     operating_address: z
       .string()

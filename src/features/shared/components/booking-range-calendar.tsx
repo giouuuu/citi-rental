@@ -13,11 +13,12 @@ import {
 } from "@/components/ui/field";
 import { TimePicker } from "@/components/ui/time-picker";
 import {
-  bookedDays,
-  firstBookedDayBetween,
+  dayHolds,
+  firstClash,
   wallClockDateKey,
   wallClockTime,
   type BlockedRange,
+  type DayHold,
 } from "@/features/shared/lib/booked-days";
 import { formatDuration } from "@/features/shared/lib/format-duration";
 import {
@@ -64,13 +65,43 @@ function formatKeyTime(key: string, time: string, pattern = "MMM d") {
   return date && isValid(date) ? format(date, `${pattern}, h:mm a`) : formatKey(key, pattern);
 }
 
-/** Booked days, keyed `YYYY-MM-DD`, for the day buttons to read. */
-const BookedDaysContext = createContext<Map<string, BlockedRange[]>>(new Map());
+/** "8:30 AM" from `HH:mm`. */
+function formatTime(time: string, pattern = "h:mm a") {
+  const date = parse(time, "HH:mm", new Date());
+  return isValid(date) ? format(date, pattern) : time;
+}
+
+/** The later of two `HH:mm` times, either possibly missing. */
+function laterTime(a: string | null | undefined, b: string | null | undefined) {
+  if (!a) return b ?? undefined;
+  if (!b) return a;
+  return a > b ? a : b;
+}
+
+/** What each day holds, keyed `YYYY-MM-DD`, for the day buttons to read. */
+const BookedDaysContext = createContext<Map<string, DayHold>>(new Map());
 
 function BookedDayButton({ children, className, day, modifiers, ...props }: DayButtonProps) {
   const booked = useContext(BookedDaysContext);
-  const holders = modifiers.booked ? (booked.get(dateToKey(day.date)) ?? []) : [];
+  const hold = booked.get(dateToKey(day.date));
+  const holders = modifiers.booked ? (hold?.ranges ?? []) : [];
   const labels = holders.map((range) => range.label).filter(Boolean);
+  // A day the car is free for part of: pickable, with when it's free.
+  const partly = modifiers.partly && hold && !modifiers.outside;
+  const partLabel = partly
+    ? hold.freeFrom
+      ? `From ${formatTime(hold.freeFrom, "h:mmaaaaa")}`
+      : hold.freeUntil
+        ? `Till ${formatTime(hold.freeUntil, "h:mmaaaaa")}`
+        : "Part free"
+    : null;
+  const partTitle = partly
+    ? hold.freeFrom
+      ? `Free from ${formatTime(hold.freeFrom)}`
+      : hold.freeUntil
+        ? `Free until ${formatTime(hold.freeUntil)}`
+        : "Free for part of the day"
+    : undefined;
 
   return (
     <CalendarDayButton
@@ -89,7 +120,7 @@ function BookedDayButton({ children, className, day, modifiers, ...props }: DayB
           ? labels.length
             ? `Booked — ${labels.join(", ")}`
             : "Booked — not available this day"
-          : undefined
+          : partTitle
       }
       {...props}
     >
@@ -97,6 +128,10 @@ function BookedDayButton({ children, className, day, modifiers, ...props }: DayB
       {modifiers.booked && !modifiers.outside ? (
         <span className="text-[0.6rem]! leading-none font-medium opacity-100!">
           Booked
+        </span>
+      ) : partLabel ? (
+        <span className="text-[0.55rem]! leading-none font-medium text-warning opacity-100! group-data-[selected=true]/day:text-inherit">
+          {partLabel}
         </span>
       ) : null}
     </CalendarDayButton>
@@ -112,7 +147,11 @@ type BookingRangeCalendarProps = {
   start: string;
   end: string;
   onChange: (next: { start: string; end: string }) => void;
-  /** Existing bookings for this car. Their days can't be picked or crossed. */
+  /**
+   * Times this car is taken (bookings, with any turnaround already added).
+   * A day taken from midnight to midnight can't be picked; a day the car is
+   * free for part of can, at those times. A trip can't run through a booking.
+   */
   blocked?: BlockedRange[];
   /**
    * Earliest pickable day as `YYYY-MM-DD` (customers can't book the past).
@@ -129,8 +168,9 @@ type BookingRangeCalendarProps = {
 
 /**
  * Pick-up and return on one calendar: click a start day, then an end day.
- * Days another booking holds are hatched, labelled "Booked" and can't be
- * picked — and a range can't run through them.
+ * Days another booking takes whole are hatched, labelled "Booked" and can't
+ * be picked; a day the car comes back (or goes out) on stays pickable from
+ * (or until) that time. A range can't run through another booking.
  */
 export function BookingRangeCalendar({
   id,
@@ -149,7 +189,7 @@ export function BookingRangeCalendar({
   errors = [],
 }: BookingRangeCalendarProps) {
   const isMobile = useIsMobile();
-  const booked = useMemo(() => bookedDays(blocked), [blocked]);
+  const booked = useMemo(() => dayHolds(blocked), [blocked]);
   const [notice, setNotice] = useState<string | null>(null);
 
   const fromKey = wallClockDateKey(start);
@@ -172,18 +212,28 @@ export function BookingRangeCalendar({
   const visibleErrors = errors.filter((error) => error?.message);
   const invalid = visibleErrors.length > 0;
 
+  /** Earliest pick-up on a day: not gone already, and not before the car is back. */
+  function pickupFloor(key: string) {
+    return laterTime(
+      key === earliestKey ? earliestTime : undefined,
+      booked.get(key)?.freeFrom,
+    );
+  }
+
   function emit(from: string, to: string | null, times = { start: startTime, end: endTime }) {
     let pickup = times.start || DEFAULT_START_TIME;
-    if (from === earliestKey && earliestTime && pickup < earliestTime) {
-      pickup = earliestTime;
-    }
+    const floor = pickupFloor(from);
+    if (floor && pickup < floor) pickup = floor;
     const nextStart = `${from}T${pickup}`;
     if (!to) {
       onChange({ start: nextStart, end: "" });
       return;
     }
-    const fallbackEnd = to === from ? SAME_DAY_END_TIME : DEFAULT_END_TIME;
-    onChange({ start: nextStart, end: `${to}T${times.end || fallbackEnd}` });
+    let dropOff = times.end || (to === from ? SAME_DAY_END_TIME : DEFAULT_END_TIME);
+    // Back before the car's next trip goes out that day.
+    const ceiling = booked.get(to)?.freeUntil;
+    if (ceiling && dropOff > ceiling) dropOff = ceiling;
+    onChange({ start: nextStart, end: `${to}T${dropOff}` });
   }
 
   function pickDay(day: Date) {
@@ -195,10 +245,17 @@ export function BookingRangeCalendar({
       emit(key, null);
       return;
     }
-    const clash = firstBookedDayBetween(fromKey, key, booked);
+    const ceiling = booked.get(key)?.freeUntil;
+    const dropOff = endTime || (key === fromKey ? SAME_DAY_END_TIME : DEFAULT_END_TIME);
+    const clash = firstClash(
+      blocked,
+      start,
+      `${key}T${ceiling && dropOff > ceiling ? ceiling : dropOff}`,
+    );
     if (clash) {
+      const clashDay = wallClockDateKey(clash.startAt);
       setNotice(
-        `${formatKey(clash, "MMM d")} is already booked, so the rental can't run through it. ${formatKey(key, "MMM d")} is now the ${startLabel.toLowerCase()} day — choose a ${endLabel.toLowerCase()} day.`,
+        `The car is taken from ${clashDay ? formatKeyTime(clashDay, wallClockTime(clash.startAt)) : "then"}, so the rental can't run through it. ${formatKey(key, "MMM d")} is now the ${startLabel.toLowerCase()} day — choose a ${endLabel.toLowerCase()} day.`,
       );
       emit(key, null);
       return;
@@ -210,6 +267,10 @@ export function BookingRangeCalendar({
   const upcoming = blocked
     .filter((range) => (wallClockDateKey(range.endAt) ?? "") >= todayKey)
     .toSorted((a, b) => a.startAt.localeCompare(b.startAt));
+  // Times typed after the days were picked can still run into a booking.
+  const timeClash = start && end ? firstClash(blocked, start, end) : null;
+  const startHold = fromKey ? booked.get(fromKey) : undefined;
+  const endHold = toKey ? booked.get(toKey) : undefined;
 
   // The rent is priced on this duration, the time the car is out.
   const days = fromKey && toKey ? daysBetweenKeys(fromKey, toKey) : null;
@@ -252,11 +313,17 @@ export function BookingRangeCalendar({
                 ? true
                 : [
                     ...(firstDay && keyToDate(firstDay) ? [{ before: keyToDate(firstDay)! }] : []),
-                    (date: Date) => booked.has(dateToKey(date)),
+                    (date: Date) => Boolean(booked.get(dateToKey(date))?.full),
                   ]
             }
             mode="range"
-            modifiers={{ booked: (date: Date) => booked.has(dateToKey(date)) }}
+            modifiers={{
+              booked: (date: Date) => Boolean(booked.get(dateToKey(date))?.full),
+              partly: (date: Date) => {
+                const hold = booked.get(dateToKey(date));
+                return Boolean(hold && !hold.full);
+              },
+            }}
             modifiersClassNames={{ booked: "opacity-100!" }}
             month={month}
             numberOfMonths={isMobile ? 1 : 2}
@@ -280,6 +347,12 @@ export function BookingRangeCalendar({
           Booked — not available
         </li>
         <li className="flex items-center gap-1.5">
+          <span aria-hidden="true" className="text-[0.6rem] font-medium text-warning">
+            From 8:30a
+          </span>
+          Free from (or until) that time
+        </li>
+        <li className="flex items-center gap-1.5">
           <span aria-hidden="true" className="size-3.5 rounded-sm bg-primary" />
           Your dates
         </li>
@@ -297,7 +370,9 @@ export function BookingRangeCalendar({
               name: startLabel,
               dateKey: fromKey,
               time: startTime,
-              min: fromKey && fromKey === earliestKey ? earliestTime : undefined,
+              min: fromKey ? pickupFloor(fromKey) : undefined,
+              // The car goes out later that day (and isn't back first).
+              max: startHold && !startHold.freeFrom ? startHold.freeUntil ?? undefined : undefined,
               onTime: (time: string) =>
                 fromKey && emit(fromKey, toKey, { start: time, end: endTime }),
             },
@@ -307,6 +382,7 @@ export function BookingRangeCalendar({
               dateKey: toKey,
               time: endTime,
               min: undefined,
+              max: endHold?.freeUntil ?? undefined,
               onTime: (time: string) =>
                 fromKey && toKey && emit(fromKey, toKey, { start: startTime, end: time }),
             },
@@ -332,6 +408,7 @@ export function BookingRangeCalendar({
               className="w-34 shrink-0"
               disabled={disabled || !side.dateKey}
               id={`${id}-${side.key}-time`}
+              max={side.max}
               min={side.min}
               onValueChange={side.onTime}
               placeholder="Time"
@@ -345,6 +422,16 @@ export function BookingRangeCalendar({
       <p aria-live="polite" className="text-sm text-muted-foreground">
         {notice ? (
           <span className="text-warning">{notice}</span>
+        ) : timeClash ? (
+          <span className="text-warning">
+            {`The car is taken ${formatKeyTime(
+              wallClockDateKey(timeClash.startAt) ?? "",
+              wallClockTime(timeClash.startAt),
+            )} – ${formatKeyTime(
+              wallClockDateKey(timeClash.endAt) ?? "",
+              wallClockTime(timeClash.endAt),
+            )}. Choose times outside it, or other days.`}
+          </span>
         ) : days ? (
           <>
             <span className="font-medium text-foreground">
@@ -364,14 +451,15 @@ export function BookingRangeCalendar({
         <p className="text-xs text-muted-foreground">{emptyHint}</p>
       ) : upcoming.length > 0 ? (
         <div className="rounded-lg border bg-muted/40 px-3 py-2">
-          <p className="text-xs font-semibold text-foreground">Already booked</p>
+          <p className="text-xs font-semibold text-foreground">Car not available</p>
           <ul className="mt-1 space-y-0.5 text-xs text-foreground">
             {upcoming.slice(0, LISTED_BOOKINGS).map((range) => {
               const from = wallClockDateKey(range.startAt);
               const to = wallClockDateKey(range.endAt);
               return (
                 <li key={`${range.startAt}-${range.endAt}-${range.label ?? ""}`}>
-                  {from ? formatKey(from, "MMM d") : "?"} → {to ? formatKey(to, "MMM d, yyyy") : "?"}
+                  {from ? formatKeyTime(from, wallClockTime(range.startAt)) : "?"} →{" "}
+                  {to ? formatKeyTime(to, wallClockTime(range.endAt), "MMM d, yyyy") : "?"}
                   {range.label ? (
                     <span className="text-muted-foreground"> · {range.label}</span>
                   ) : null}
