@@ -8,6 +8,7 @@ import type { RentalPayment } from "@/features/rentals/types/rental-payment";
 import {
   type BookingFeeLine,
   bookingFeesTotal,
+  describeBookingFees,
 } from "@/features/booking/lib/booking-fees";
 import {
   handoverBillLine,
@@ -23,7 +24,7 @@ export type RentalBillRent = {
   hours: number | null;
   total: number;
   /** Booking fees (the car wash) inside `total`, on the renter's view of the bill. */
-  feesIncluded?: number;
+  feesIncluded?: BookingFeeLine[];
 };
 
 /** A with-driver rental's driver line; its fee is inside `quoted_total`. */
@@ -145,27 +146,26 @@ export function withBookingFeesInRent(bill: RentalBill): RentalBill {
   if (fees <= 0) return bill;
   return {
     ...bill,
-    rent: { ...bill.rent, total: round(bill.rent.total + fees), feesIncluded: fees },
+    rent: { ...bill.rent, total: round(bill.rent.total + fees), feesIncluded: bill.bookingFees },
     bookingFees: [],
   };
 }
 
 /**
- * "3 days 2 hours · ₱1,350.00 × 3 days + 2 hours × ₱150.00"; just the time
- * when booking fees are inside the rent. Null when there is no rate.
+ * "3 days 2 hours · ₱1,350.00 × 3 days + 2 hours × ₱150.00", ending
+ * "+ ₱300.00 car wash" when booking fees are inside the rent. Null when there
+ * is no rate.
  */
 export function describeRentLine(rent: RentalBillRent): string | null {
   if (!rent.rates || rent.days == null) return null;
-  if (rent.feesIncluded) {
-    return rent.hours == null
-      ? `${rent.days} ${rent.days === 1 ? "day" : "days"}`
-      : describeBilledTime({ days: rent.days, hours: rent.hours });
-  }
+  const fees = rent.feesIncluded?.length
+    ? ` + ${describeBookingFees(rent.feesIncluded, formatPhpExact)}`
+    : "";
   if (rent.hours == null) {
-    return `${formatPhpExact(rent.rates.daily)} × ${rent.days} ${rent.days === 1 ? "day" : "days"}`;
+    return `${formatPhpExact(rent.rates.daily)} × ${rent.days} ${rent.days === 1 ? "day" : "days"}${fees}`;
   }
   const quote = quoteRentForHours(rent.days * 24 + rent.hours, rent.rates);
-  return `${describeBilledTime(quote)} · ${describeRent(quote, rent.rates)}`;
+  return `${describeBilledTime(quote)} · ${describeRent(quote, rent.rates)}${fees}`;
 }
 
 /**

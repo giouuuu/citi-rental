@@ -28,13 +28,13 @@ export function driverLineLabel(days: number | null | undefined) {
   return days ? `Driver (${days} ${dayWord(days)})` : "Driver";
 }
 
-/** "₱1,500 a day, for up to 10 hours of driving each day" */
+/** "₱1,500 / 10 hours of driving" */
 export function driverDayNote(
   rate: number,
   terms: Pick<DriverTerms, "hoursPerDay"> | null | undefined,
 ) {
   const hours = terms?.hoursPerDay ?? DEFAULT_DRIVER_HOURS;
-  return `${formatPhp(rate)} a day, for up to ${hours} hours of driving each day`;
+  return `${formatPhp(rate)} / ${hours} hours of driving`;
 }
 
 /**

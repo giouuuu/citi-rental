@@ -1,6 +1,7 @@
 import {
   type BookingFeeLine,
   bookingFeesTotal,
+  describeBookingFees,
 } from "@/features/booking/lib/booking-fees";
 import {
   type DriverTerms,
@@ -72,15 +73,16 @@ export function bookingBill(input: BookingBillInput): BookingBill | null {
   if (!quote) return null;
 
   // Fees on every booking (the car wash) are part of the rent the renter
-  // sees, not lines of their own.
+  // sees, not lines of their own; the detail says what is inside it.
+  const rate = `${formatPhp(input.dailyRate)} × ${describeBilledTime(quote.rent)}`;
   const lines: BillLine[] = [
     {
       key: "rent",
-      label:
+      label: quote.fees > 0 ? `Car rental · ${describeBilledTime(quote.rent)}` : rate,
+      detail:
         quote.fees > 0
-          ? `Car rental · ${describeBilledTime(quote.rent)}`
-          : `${formatPhp(input.dailyRate)} × ${describeBilledTime(quote.rent)}`,
-      detail: quote.fees > 0 ? undefined : "Car rental",
+          ? `${rate} + ${describeBookingFees(input.bookingFees, formatPhp)}`
+          : "Car rental",
       amount: quote.rent.total + quote.fees,
     },
   ];
@@ -172,6 +174,17 @@ export function BookingBillList({
           </dd>
         </div>
       ) : null}
+      {/* The renter buys the fuel, with or without a driver. */}
+      <div className="flex items-start justify-between gap-3 border-t border-border pt-2">
+        <dt className="min-w-0">
+          <span className="text-brand-950">Fuel</span>
+          <span className="block text-xs text-muted-foreground">
+            Return the car with the same fuel level it had at pick-up or
+            delivery.
+          </span>
+        </dt>
+        <dd className="shrink-0 text-brand-950">Paid by you</dd>
+      </div>
     </dl>
   );
 }

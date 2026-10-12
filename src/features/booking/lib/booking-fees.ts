@@ -21,3 +21,13 @@ export function parseBookingFees(value: unknown): BookingFeeLine[] {
 export function bookingFeesTotal(lines: BookingFeeLine[]): number {
   return Math.round(lines.reduce((sum, line) => sum + line.amount, 0) * 100) / 100;
 }
+
+/** "₱300 car wash", joined with " + ": the fees inside the rent, on its detail. */
+export function describeBookingFees(
+  lines: BookingFeeLine[],
+  format: (amount: number) => string,
+): string {
+  return lines
+    .map((line) => `${format(line.amount)} ${line.name.toLowerCase()}`)
+    .join(" + ");
+}

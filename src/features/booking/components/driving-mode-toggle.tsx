@@ -10,12 +10,14 @@ import { cn } from "@/lib/utils";
 
 /**
  * Self-drive or with a driver, as a two-way switch. With the owner's driver
- * rate set, the driver option names its price so the choice is informed.
+ * rate set, the driver option names its price and the hours that price buys,
+ * so nobody reads it as the driver for the whole day.
  */
 export function DrivingModeToggle({
   value,
   onChange,
   driverDailyRate,
+  driverHoursPerDay,
   disabled,
   className,
   "aria-label": ariaLabel = "Driving option",
@@ -23,6 +25,7 @@ export function DrivingModeToggle({
   value: DrivingMode;
   onChange: (mode: DrivingMode) => void;
   driverDailyRate?: number | null;
+  driverHoursPerDay?: number | null;
   disabled?: boolean;
   className?: string;
   "aria-label"?: string;
@@ -59,7 +62,9 @@ export function DrivingModeToggle({
             )}
           >
             {driverDailyRate
-              ? `+${formatPhp(driverDailyRate)} / day`
+              ? driverHoursPerDay
+                ? `+${formatPhp(driverDailyRate)} / ${driverHoursPerDay} hours`
+                : `+${formatPhp(driverDailyRate)} / day`
               : "A local driver"}
           </span>
         </TabsTrigger>

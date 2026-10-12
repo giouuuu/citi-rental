@@ -98,7 +98,7 @@ describe("buildRentalBill", () => {
 
     expect(bill.rent.total).toBe(1800);
     expect(bill.bookingFees).toEqual([]);
-    expect(describeRentLine(bill.rent)).toBe("1 day");
+    expect(describeRentLine(bill.rent)).toBe("1 day · ₱1,500.00 × 1 day + ₱300.00 car wash");
     expect(bill.total).toBe(3300);
   });
 

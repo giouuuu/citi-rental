@@ -9,12 +9,14 @@ import {
   ChevronDown,
   CircleCheck,
   ClipboardCheck,
+  Fuel,
   Info,
   Mail,
 } from "lucide-react";
 import {
   type FormEvent,
   type ReactNode,
+  type TouchEvent,
   useEffect,
   useRef,
   useState,
@@ -581,6 +583,7 @@ export function BookingForm({
                 <DrivingModeToggle
                   disabled={pending}
                   driverDailyRate={driverTerms?.dailyRate}
+                  driverHoursPerDay={driverTerms?.hoursPerDay}
                   onChange={(mode) => {
                     form.setValue("drivingMode", mode, { shouldDirty: true });
                     // The license and ID photo rules follow the mode; refresh
@@ -595,13 +598,51 @@ export function BookingForm({
                   }}
                   value={drivingMode}
                 />
-                <p className="text-sm text-muted-foreground">
-                  {withDriver
-                    ? driverTerms?.dailyRate
-                      ? `A driver from Cebu drives you the whole trip. They bring the car to you and pick it up for free. The driver's pay for up to ${driverTerms.hoursPerDay} hours a day is already in your total.`
-                      : "A driver from Cebu drives you the whole trip. They bring the car to you and pick it up for free. Our staff will tell you how much the driver costs."
-                    : "You drive. Bring your valid driver's license to pickup."}
-                </p>
+                {withDriver ? (
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>
+                      A driver from Cebu drives you the whole trip. They bring
+                      the car to you and pick it up for free.
+                      {driverTerms?.dailyRate
+                        ? null
+                        : " Our staff will tell you how much the driver costs."}
+                    </p>
+                    {driverTerms?.dailyRate ? (
+                      <ul className="space-y-0.5 tabular-nums">
+                        <li>
+                          {formatPhp(driverTerms.dailyRate)} covers up to{" "}
+                          {driverTerms.hoursPerDay} hours of driving.
+                        </li>
+                        {driverTerms.overtimeRate ? (
+                          <li>
+                            Over {driverTerms.hoursPerDay} hours:{" "}
+                            {formatPhp(driverTerms.overtimeRate)} per extra
+                            hour, paid when you return the car.
+                          </li>
+                        ) : null}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    You drive. Bring your valid driver&apos;s license to
+                    pickup.
+                  </p>
+                )}
+                {/* Up front, so nobody learns at return that fuel is theirs. */}
+                <Alert
+                  className="border-primary/20 bg-primary/5 px-3.5 py-3 *:[svg]:text-primary"
+                  role="note"
+                >
+                  <Fuel aria-hidden="true" />
+                  <AlertTitle className="font-semibold text-brand-950">
+                    Fuel Disclosure
+                  </AlertTitle>
+                  <AlertDescription>
+                    Fuel is paid by you. Return the car with the same fuel
+                    level it had at pick-up or delivery.
+                  </AlertDescription>
+                </Alert>
               </FieldSet>
 
               <BookingDateRangeCalendar
@@ -888,7 +929,10 @@ export function BookingForm({
                           : "Return the car washed, or pay the wash rate."}
                       </li>
                     )}
-                    <li>Return the car with the same fuel level.</li>
+                    <li>
+                      You pay for fuel. Return the car with the same fuel
+                      level it had at pick-up or delivery.
+                    </li>
                   </ul>
                 </AlertDescription>
               </Alert>
@@ -1025,6 +1069,30 @@ function ActionBar({
   onBack: (() => void) | null;
   onToggleBill: () => void;
 }) {
+  // Dragging the open lines down closes them, like a sheet. A drag starts
+  // only with the lines scrolled to the top, so a long bill scrolls first.
+  const linesRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+
+  function onDragStart(event: TouchEvent) {
+    if ((linesRef.current?.scrollTop ?? 0) > 0) return;
+    dragStartY.current = event.touches[0]?.clientY ?? null;
+  }
+
+  function onDragMove(event: TouchEvent) {
+    if (dragStartY.current == null) return;
+    const y = event.touches[0]?.clientY ?? dragStartY.current;
+    setDragOffset(Math.max(0, y - dragStartY.current));
+  }
+
+  function onDragEnd() {
+    if (dragStartY.current == null) return;
+    dragStartY.current = null;
+    if (dragOffset > 60) onToggleBill();
+    setDragOffset(0);
+  }
+
   const days = bill
     ? [
         bill.quote.rent.days
@@ -1044,8 +1112,41 @@ function ActionBar({
       {...{ [CONTACT_FAB_AVOID_ATTRIBUTE]: "" }}
     >
       {billOpen && bill ? (
-        <div className="max-h-[45vh] overflow-y-auto pb-3 lg:hidden" id="booking-bill-lines">
-          <BookingBillList bill={bill} />
+        <div
+          className="overflow-hidden lg:hidden"
+          onTouchCancel={onDragEnd}
+          onTouchEnd={onDragEnd}
+          onTouchMove={onDragMove}
+          onTouchStart={onDragStart}
+        >
+          <div
+            className={cn(dragOffset === 0 && "transition-transform duration-200")}
+            style={
+              dragOffset
+                ? {
+                    transform: `translateY(${dragOffset}px)`,
+                    opacity: Math.max(0.4, 1 - dragOffset / 240),
+                  }
+                : undefined
+            }
+          >
+            <button
+              aria-controls="booking-bill-lines"
+              aria-label="Hide details"
+              className="-mt-1 mb-2 flex h-5 w-full touch-none items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              onClick={onToggleBill}
+              type="button"
+            >
+              <span aria-hidden="true" className="h-1 w-10 rounded-full bg-border" />
+            </button>
+            <div
+              className="max-h-[45vh] overflow-y-auto overscroll-contain pb-3"
+              id="booking-bill-lines"
+              ref={linesRef}
+            >
+              <BookingBillList bill={bill} />
+            </div>
+          </div>
         </div>
       ) : null}
       <div className="flex items-center gap-3">

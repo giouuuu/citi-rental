@@ -32,6 +32,7 @@ describe("bookingBill", () => {
       ["return", 300],
     ]);
     expect(bill?.lines[0]?.label).toBe("Car rental · 3 days");
+    expect(bill?.lines[0]?.detail).toBe("₱2,300 × 3 days + ₱250 car wash");
     expect(bill?.quote.total).toBe(7750);
     expect(bill?.deposit).toBe(500);
   });
@@ -76,8 +77,8 @@ describe("bookingBill", () => {
     expect(
       bill?.lines.map((line) => [line.label, line.detail, line.amountText ?? line.amount]),
     ).toEqual([
-      ["Car rental · 1 day", undefined, 1800],
-      ["Driver (1 day)", "₱1,500 a day, for up to 10 hours of driving each day", 1500],
+      ["Car rental · 1 day", "₱1,500 × 1 day + ₱300 car wash", 1800],
+      ["Driver (1 day)", "₱1,500 / 10 hours of driving", 1500],
       [
         "Extra driving hours",
         "Only if the driver drives more than 10 hours in one day. This is not in your total. You pay it when you return the car.",
