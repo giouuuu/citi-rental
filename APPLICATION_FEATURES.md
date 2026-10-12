@@ -339,6 +339,11 @@ Features:
   (reserved, active, overdue or completed), the customer can send any amount up to the open
   balance with a proof. Staff confirm or reject each one on the rental (and it shows under
   "Proof to check"). PayMongo stays reservation-fee-on-a-draft only.
+- At the reservation step the customer says how much they sent ("Reservation fee" or "Full
+  amount", or any amount between): at least the fee, at most the whole bill
+  (`20261124090000_reservation_payment_amount.sql`). Staff see that amount on Confirm deposit
+  and check it against the screenshot; confirming a full payment reads paid in full. On
+  cancellation only the fee is ever kept; anything paid above it is refunded.
 - Confirmation page.
 - Owner notification when a booking arrives.
 

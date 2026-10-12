@@ -47,8 +47,10 @@ import type { ReturnBillContext } from "@/features/inspections/lib/return-settle
 /** What the Cancel dialog needs to state the reservation-fee policy. */
 export type RentalCancellationContext = {
   startAt: string | null;
-  /** Confirmed deposit payments on this rental. */
+  /** The reservation fee paid: confirmed deposits, up to the fee asked. */
   depositPaid: number;
+  /** Paid at the reservation step beyond the fee (a renter who paid it all): always refunded. */
+  paidBeyondFee?: number;
   /** Settings → free-cancellation window, in hours before pickup. */
   freeHours: number;
   /** Recorded on a cancelled rental. */
@@ -271,6 +273,7 @@ export function RentalWorkflowActions({
             {cancellation?.startAt ? (
               <ReservationFeeNotice
                 depositPaid={cancellation.depositPaid}
+                paidBeyondFee={cancellation.paidBeyondFee ?? 0}
                 freeHours={cancellation.freeHours}
                 startAt={cancellation.startAt}
               />
@@ -312,10 +315,12 @@ export function RentalWorkflowActions({
 function ReservationFeeNotice({
   startAt,
   depositPaid,
+  paidBeyondFee,
   freeHours,
 }: {
   startAt: string;
   depositPaid: number;
+  paidBeyondFee: number;
   freeHours: number;
 }) {
   const [openedAt] = useState(() => new Date());
@@ -340,6 +345,9 @@ function ReservationFeeNotice({
             ? formatHoursToPickup(outcome.hoursToPickup)
             : "after the pickup time"}
           . The {fee} reservation fee already paid will not be refunded.
+          {paidBeyondFee > 0
+            ? ` Refund the other ${formatPhpExact(paidBeyondFee)} they paid on Bill & payments.`
+            : null}
         </AlertDescription>
       </Alert>
     );
@@ -350,8 +358,11 @@ function ReservationFeeNotice({
       <AlertTitle>Within the free-cancellation window</AlertTitle>
       <AlertDescription>
         Cancelled {formatHoursToPickup(outcome.hoursToPickup)}, at least{" "}
-        {freeHours} hours ahead. The {fee} reservation fee can be refunded —
-        record the refund on Bill &amp; payments.
+        {freeHours} hours ahead. The {fee} reservation fee can be refunded
+        {paidBeyondFee > 0
+          ? `, with the other ${formatPhpExact(paidBeyondFee)} they paid`
+          : ""}{" "}
+        — record the refund on Bill &amp; payments.
       </AlertDescription>
     </Alert>
   );

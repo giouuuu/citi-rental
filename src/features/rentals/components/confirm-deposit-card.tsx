@@ -23,6 +23,9 @@ import { toast } from "sonner";
 type ConfirmDepositCardProps = {
   rentalId: string;
   depositAmount?: number | null;
+  /** What the renter says they sent; the fee, or more up to the whole bill. */
+  amountSent?: number | null;
+  billTotal?: number | null;
   paymentReference?: string | null;
   proofUrl?: string | null;
   /** The deposit was paid through PayMongo, which verified the money. */
@@ -35,6 +38,8 @@ type ConfirmDepositCardProps = {
 export function ConfirmDepositCard({
   rentalId,
   depositAmount,
+  amountSent = null,
+  billTotal = null,
   paymentReference,
   proofUrl,
   paidOnline = false,
@@ -44,6 +49,9 @@ export function ConfirmDepositCard({
   const [error, setError] = useState("");
   const { isPending, runMutation } = useMutationCoordinator();
   const router = useRouter();
+  const sent = amountSent ?? depositAmount ?? null;
+  const paysMore = sent != null && depositAmount != null && sent > depositAmount;
+  const paysAll = paysMore && billTotal != null && sent >= billTotal;
 
   function confirmDeposit() {
     const data = new FormData();
@@ -82,10 +90,18 @@ export function ConfirmDepositCard({
       <CardContent className="space-y-3 text-sm">
         <dl className="grid gap-2 sm:grid-cols-3">
           <div>
-            <dt className="text-muted-foreground">Deposit</dt>
+            <dt className="text-muted-foreground">
+              {paysMore ? "Amount sent" : "Deposit"}
+            </dt>
             <dd className="font-semibold tabular-nums text-brand-950">
-              {depositAmount != null ? formatPhp(Number(depositAmount)) : "—"}
+              {sent != null ? formatPhp(Number(sent)) : "—"}
             </dd>
+            {paysMore ? (
+              <dd className="text-xs text-muted-foreground">
+                {paysAll ? "Full payment" : "Fee and part of the rest"} · fee{" "}
+                {formatPhp(Number(depositAmount))}
+              </dd>
+            ) : null}
           </div>
           <div>
             <dt className="text-muted-foreground">Payment ref</dt>
@@ -106,14 +122,22 @@ export function ConfirmDepositCard({
             reserve the car.
           </p>
         ) : proofUrl ? (
-          <a
-            className="inline-flex text-sm font-medium text-teal-700 underline-offset-2 hover:underline"
-            href={proofUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            View payment proof
-          </a>
+          <div className="space-y-1">
+            <a
+              className="inline-flex text-sm font-medium text-teal-700 underline-offset-2 hover:underline"
+              href={proofUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              View payment proof
+            </a>
+            {paysMore && sent != null ? (
+              <p className="text-muted-foreground">
+                The renter typed this amount. Check the screenshot shows{" "}
+                {formatPhp(Number(sent))} before you confirm.
+              </p>
+            ) : null}
+          </div>
         ) : (
           <p className="text-muted-foreground">
             No proof file linked yet — confirm only if you verified payment

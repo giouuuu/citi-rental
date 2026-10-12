@@ -16,7 +16,8 @@ const schema = z.object({
     .trim()
     .min(3, "Enter the payment reference from GCash/Maya/bank.")
     .max(120),
-  // Bill payments only; the reservation fee is a set amount.
+  // What the renter sent: on the reservation step at least the fee (the
+  // database checks it), on an open bill up to the balance.
   amount: z.preprocess(
     (value) => (value == null || value === "" ? undefined : value),
     z.coerce

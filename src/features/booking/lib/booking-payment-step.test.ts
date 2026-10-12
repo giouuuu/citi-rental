@@ -76,9 +76,20 @@ describe("bookingPaymentStep", () => {
   };
 
   it("asks for the fee, then waits while it is checked", () => {
-    expect(bookingPaymentStep(details)).toEqual({ kind: "reservation_fee", amount: 500 });
+    expect(bookingPaymentStep(details)).toEqual({ kind: "reservation_fee", amount: 500, max: 3000 });
     expect(bookingPaymentStep({ ...details, depositPending: true })).toEqual({
       kind: "reservation_fee_sent",
+    });
+  });
+
+  it("lets the renter pay the whole trip at the reservation step", () => {
+    const step = bookingPaymentStep(details);
+    expect(step.kind === "reservation_fee" && step.max).toBe(3000);
+    // A fee bigger than the bill is still the least they can send.
+    expect(bookingPaymentStep({ ...details, billTotal: 400 })).toEqual({
+      kind: "reservation_fee",
+      amount: 500,
+      max: 500,
     });
   });
 

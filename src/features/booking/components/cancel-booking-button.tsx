@@ -124,6 +124,9 @@ export function CancelBookingButton({
               Pick-up is less than {hoursPhrase(hours)} away. Under the
               cancellation policy you agreed to when booking, cancelling now
               keeps the reservation fee.
+              {paymentStatus === "paid_in_full"
+                ? " Whatever you paid above it is refunded."
+                : null}
             </AlertDescription>
           </Alert>
         ) : outcome === "refundable" ? (

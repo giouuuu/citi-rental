@@ -3,7 +3,8 @@ export type CustomerPaymentKind = "reservation_fee" | "open_bill";
 
 /** Where the pay page stands, from the booking's payment kind and its ledger. */
 export type BookingPaymentStep =
-  | { kind: "reservation_fee"; amount: number }
+  /** Send at least the fee (`amount`), up to the whole bill (`max`) to pay it all now. */
+  | { kind: "reservation_fee"; amount: number; max: number }
   /** The fee was sent and staff have not confirmed it yet. */
   | { kind: "reservation_fee_sent" }
   /** `payable` is the open balance less payments still being checked. */
@@ -61,7 +62,11 @@ export function bookingPaymentStep(booking: {
   if (booking.paymentKind === "reservation_fee") {
     return booking.depositPending || booking.paymentStatus === "proof_submitted"
       ? { kind: "reservation_fee_sent" }
-      : { kind: "reservation_fee", amount: booking.depositAmount };
+      : {
+          kind: "reservation_fee",
+          amount: booking.depositAmount,
+          max: Math.max(booking.depositAmount, round(booking.billTotal - booking.amountPaid)),
+        };
   }
   if (booking.paymentKind === "open_bill") {
     const balance = Math.max(0, round(booking.billTotal - booking.amountPaid));

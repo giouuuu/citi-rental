@@ -527,7 +527,9 @@ export async function submitBookingPaymentProof(input: {
       `Car: ${payload.vehicle_name ?? details.vehicleName}`,
       billPayment
         ? `Amount: ${formatPhp(num(payload.amount))}`
-        : `Deposit: ${formatPhp(num(payload.deposit_amount, details.depositAmount))}`,
+        : num(payload.amount) > num(payload.deposit_amount, details.depositAmount)
+          ? `Amount: ${formatPhp(num(payload.amount))} (reservation fee ${formatPhp(num(payload.deposit_amount, details.depositAmount))} and more)`
+          : `Deposit: ${formatPhp(num(payload.deposit_amount, details.depositAmount))}`,
       `Pay ref: ${payload.payment_reference ?? input.paymentReference}`,
       `Customer: ${payload.customer_name ?? "—"} · ${payload.customer_phone ?? "—"}`,
     ].join("\n"),

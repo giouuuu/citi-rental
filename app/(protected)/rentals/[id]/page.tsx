@@ -229,14 +229,21 @@ export default async function Page({
     endingOdometer =
       data?.ending_odometer != null ? Number(data.ending_odometer) : null;
 
+    // A renter may pay the whole trip at the reservation step; only the fee
+    // asked is ever kept on cancellation.
+    const paidAtReservation = paymentRows
+      .filter(
+        (payment) =>
+          payment.paymentType === "deposit" && payment.status === "confirmed",
+      )
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    const feeAsked = Number(data?.deposit_amount ?? 0);
+    const feePaid =
+      feeAsked > 0 ? Math.min(paidAtReservation, feeAsked) : paidAtReservation;
     cancellation = {
       startAt: data?.start_at ? String(data.start_at) : null,
-      depositPaid: paymentRows
-        .filter(
-          (payment) =>
-            payment.paymentType === "deposit" && payment.status === "confirmed",
-        )
-        .reduce((sum, payment) => sum + payment.amount, 0),
+      depositPaid: feePaid,
+      paidBeyondFee: Math.round((paidAtReservation - feePaid) * 100) / 100,
       freeHours:
         company?.free_cancellation_hours != null
           ? Number(company.free_cancellation_hours)
@@ -352,6 +359,8 @@ export default async function Page({
               <div className="space-y-3">
                 {showConfirmCard ? (
                   <ConfirmDepositCard
+                    amountSent={pendingDeposit?.amount ?? null}
+                    billTotal={bill.total}
                     customerLabel={customerLabel}
                     depositAmount={depositAmount}
                     paymentReference={

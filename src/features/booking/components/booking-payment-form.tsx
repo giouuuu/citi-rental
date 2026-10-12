@@ -61,8 +61,14 @@ export function BookingPaymentForm({
     step.kind !== "reservation_fee_sent";
   const extraCharges = Math.round((booking.billTotal - booking.quotedTotal) * 100) / 100;
   const [amount, setAmount] = useState(
-    step.kind === "open_bill" ? String(step.payable) : "",
+    step.kind === "open_bill"
+      ? String(step.payable)
+      : step.kind === "reservation_fee"
+        ? String(step.amount)
+        : "",
   );
+  // The fee is the least a renter sends; the whole trip settles it now.
+  const canPayInFull = step.kind === "reservation_fee" && step.max > step.amount;
   const [paymentReference, setPaymentReference] = useState(
     booking.paymentReference ?? "",
   );
@@ -310,6 +316,18 @@ export function BookingPaymentForm({
               </span>{" "}
               — the whole balance or part of it — and put{" "}
             </>
+          ) : canPayInFull && step.kind === "reservation_fee" ? (
+            <>
+              Send at least the{" "}
+              <span className="font-semibold text-brand-950">
+                {formatPhpExact(step.amount)}
+              </span>{" "}
+              reservation fee, or the full{" "}
+              <span className="font-semibold text-brand-950">
+                {formatPhpExact(step.max)}
+              </span>{" "}
+              to pay the whole booking now, and put{" "}
+            </>
           ) : (
             <>
               Send exactly{" "}
@@ -393,6 +411,59 @@ export function BookingPaymentForm({
                 {step.pending > 0
                   ? ` — ${formatPhpExact(step.pending)} you sent earlier is still being checked.`
                   : "."}
+              </FieldDescription>
+              {fieldErrors.amount ? (
+                <FieldError>{fieldErrors.amount[0]}</FieldError>
+              ) : null}
+            </Field>
+          ) : canPayInFull && step.kind === "reservation_fee" ? (
+            <Field data-invalid={Boolean(fieldErrors.amount)}>
+              <FieldLabel htmlFor="amount">Amount you sent</FieldLabel>
+              <div
+                aria-label="How much you sent"
+                className="grid grid-cols-2 gap-2"
+                role="group"
+              >
+                {[
+                  { label: "Reservation fee", value: step.amount },
+                  { label: "Full amount", value: step.max },
+                ].map((choice) => {
+                  const active = Number(amount) === choice.value;
+                  return (
+                    <Button
+                      aria-pressed={active}
+                      className="h-auto flex-col items-start gap-0.5 py-2 text-left"
+                      key={choice.label}
+                      onClick={() => setAmount(String(choice.value))}
+                      type="button"
+                      variant={active ? "default" : "outline"}
+                    >
+                      <span className="text-xs font-normal opacity-80">
+                        {choice.label}
+                      </span>
+                      <span className="font-semibold tabular-nums">
+                        {formatPhpExact(choice.value)}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+              <Input
+                aria-label="Amount you sent, in pesos"
+                id="amount"
+                inputMode="decimal"
+                max={step.max}
+                min={step.amount}
+                name="amount"
+                onChange={(event) => setAmount(event.target.value)}
+                step={0.01}
+                type="number"
+                value={amount}
+              />
+              <FieldDescription>
+                At least {formatPhpExact(step.amount)}, up to{" "}
+                {formatPhpExact(step.max)}. Type another amount if you sent
+                something in between.
               </FieldDescription>
               {fieldErrors.amount ? (
                 <FieldError>{fieldErrors.amount[0]}</FieldError>
