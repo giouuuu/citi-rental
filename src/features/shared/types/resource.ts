@@ -180,6 +180,8 @@ export type ResourceDefinition = {
   fields: ResourceField[];
   columns: ResourceColumn[];
   detailColumns?: string[];
+  /** Where the edit form reads its row, when `table` is a list view missing some columns. */
+  detailTable?: string;
   schema: ZodType<Record<string, unknown>>;
   writeRoles: AppRole[];
   allowCreate?: boolean;

@@ -103,7 +103,7 @@ export async function ResourceDetailScreen({
       ),
     ].join(",");
     const rowRequest = supabase
-      .from(definition.table)
+      .from(definition.detailTable ?? definition.table)
       .select(detailColumns)
       .eq("id", id)
       .maybeSingle();

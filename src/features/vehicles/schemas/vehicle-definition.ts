@@ -14,6 +14,8 @@ export const vehicleDefinition: ResourceDefinition = {
   key: "vehicle",
   // Reads add each car's service status; writes go to `vehicles`.
   table: "vehicle_list",
+  // The edit form reads the car itself: vehicle_list does not carry every rate.
+  detailTable: "vehicles",
   singular: "Vehicle",
   plural: "Vehicles",
   route: "/vehicles",
@@ -230,7 +232,6 @@ export const vehicleDefinition: ResourceDefinition = {
     { key: "name", label: "Vehicle" },
     { key: "category", label: "Category" },
     { key: "daily_rate", label: "Self-drive rate", format: "number" },
-    { key: "with_driver_daily_rate", label: "With-driver rate", format: "number" },
     { key: "status", label: "Status", format: "status" },
     { key: "service_status", label: "Service", format: "status" },
     { key: "updated_at", label: "Last updated", format: "datetime" },
