@@ -280,15 +280,6 @@ export function BookingPaymentForm({
             </>
           )}
         </dl>
-        {booking.carWashFee ? (
-          <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
-            Return the car washed, or a{" "}
-            <span className="font-medium text-brand-950 tabular-nums">
-              {formatPhp(booking.carWashFee)}
-            </span>{" "}
-            car wash fee is added at return.
-          </p>
-        ) : null}
       </div>
 
       {booking.datesTaken ? (

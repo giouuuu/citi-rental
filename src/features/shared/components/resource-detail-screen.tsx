@@ -137,7 +137,10 @@ export async function ResourceDetailScreen({
           canWrite ? (
             <>
               {actions}
-              {definition.archive && archiveAction ? (
+              {/* Already archived: the form's own switch brings it back. */}
+              {definition.archive &&
+              archiveAction &&
+              row[definition.archive.field] !== definition.archive.value ? (
                 <ArchiveButton
                   action={archiveAction}
                   href={definition.route}

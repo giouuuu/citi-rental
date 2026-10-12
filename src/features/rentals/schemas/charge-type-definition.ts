@@ -25,6 +25,7 @@ export const chargeTypeDefinition: ResourceDefinition = {
       default_amount: optionalNumber(0),
       sort_order: optionalNumber(0).pipe(z.number().int().max(999).optional()),
       add_to_bookings: z.boolean().default(false),
+      is_active: z.boolean().default(true),
     })
     .refine(
       (value) => !value.add_to_bookings || (value.default_amount ?? 0) > 0,
@@ -61,6 +62,14 @@ export const chargeTypeDefinition: ResourceDefinition = {
       type: "checkbox",
       description:
         "Charged on each new online booking at the default amount. Customers see it in their total and bill before they pay. Bookings already made keep their price.",
+      className: "md:col-span-2",
+    },
+    {
+      name: "is_active",
+      label: "Active",
+      type: "checkbox",
+      description:
+        "Untick to hide it from Add charge and from new bookings. Past bills keep it.",
       className: "md:col-span-2",
     },
   ],

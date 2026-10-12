@@ -191,10 +191,6 @@ type BookingFormProps = {
   deliveryFees?: DeliveryFees | null;
   /** Settings → operating address, shown for an office pick-up or return. */
   officeAddress?: string | null;
-  /** Charge types → Car wash; named in the requirements. */
-  carWashFee?: number | null;
-  /** The wash is in the booking fees: no "return it washed" requirement. */
-  carWashIncluded?: boolean;
   /** Charge types added to every online booking; in the total. */
   bookingFees?: BookingFeeLine[];
   initialFullName?: string;
@@ -243,8 +239,6 @@ export function BookingForm({
   driverTerms = null,
   deliveryFees = null,
   officeAddress,
-  carWashFee,
-  carWashIncluded = false,
   bookingFees = [],
   initialFullName,
   initialEmail,
@@ -921,14 +915,6 @@ export function BookingForm({
                         ? "Bring the government ID shown in your selfie."
                         : "Bring the driver's license shown in your selfie."}
                     </li>
-                    {/* Already paid for in the booking fees: nothing to wash. */}
-                    {carWashIncluded ? null : (
-                      <li>
-                        {carWashFee
-                          ? `Return the car washed, or pay the ${formatPhp(carWashFee)} car wash fee.`
-                          : "Return the car washed, or pay the wash rate."}
-                      </li>
-                    )}
                     <li>
                       You pay for fuel. Return the car with the same fuel
                       level it had at pick-up or delivery.

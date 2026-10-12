@@ -6,6 +6,7 @@ export default function Page() {
     <ResourceCreateScreen
       action={saveChargeTypeAction}
       definition={chargeTypeDefinition}
+      initialValues={{ is_active: "true" }}
     />
   );
 }
