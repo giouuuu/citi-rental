@@ -1,0 +1,87 @@
+# Nightly backup of the Supabase database, emailed as a password-locked .7z.
+# The free Supabase plan keeps no backups, so this is the copy to restore from.
+#
+# Inside the archive:
+#   database/roles.sql, schema.sql, data.sql  supabase db dump: restores the system
+#   zeke-records-<day>.xlsx                    the records, for reading
+#
+# Repo secrets: SUPABASE_DB_URL (session pooler URI), RESEND_API_KEY,
+# BACKUP_EMAIL_TO (comma-separated), BACKUP_PASSWORD. Optional: EMAIL_FROM.
+# Restoring: see BACKUPS.md.
+name: Nightly backup
+
+on:
+  schedule:
+    # 02:00 Asia/Manila (UTC+8).
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      BACKUP_EMAIL_TO: ${{ secrets.BACKUP_EMAIL_TO }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the secrets are set
+        run: |
+          for name in SUPABASE_DB_URL RESEND_API_KEY BACKUP_EMAIL_TO BACKUP_PASSWORD; do
+            if [ -z "${!name}" ]; then echo "::error::Repo secret $name is not set"; exit 1; fi
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Name today's backup
+        run: echo "DAY=$(TZ=Asia/Manila date +%F)" >> "$GITHUB_ENV"
+
+      - name: Dump the database
+        run: |
+          mkdir -p "backup/database"
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/database/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/database/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/database/data.sql --use-copy --data-only
+
+      - name: Build the Excel records
+        run: node scripts/backup/build-records.mjs backup "$DAY"
+
+      - name: Lock it with the backup password
+        run: |
+          mv backup/summary.json summary.json
+          7z a -t7z -mx=9 -mhe=on -p"$BACKUP_PASSWORD" "zeke-backup-$DAY.7z" ./backup/* > /dev/null
+          ls -lh "zeke-backup-$DAY.7z"
+
+      - name: Email it
+        run: node scripts/backup/send-backup-email.mjs ok "zeke-backup-$DAY.7z" summary.json
+
+      # A second copy for two weeks, in case an email goes missing.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zeke-backup-${{ env.DAY }}
+          path: zeke-backup-${{ env.DAY }}.7z
+          retention-days: 14
+
+      - name: Email the failure
+        if: failure()
+        run: node scripts/backup/send-backup-email.mjs failed "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
